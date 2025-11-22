@@ -110,7 +110,7 @@ const BusinessDetail = () => {
             </Card>
             )}
 
-            {business.address && (
+            {business.email && (
               <Card>
               <CardContent className="pt-6">
                 <h3 className="font-semibold mb-4 flex items-center">
@@ -144,7 +144,7 @@ const BusinessDetail = () => {
             </Card>
             )}
 
-            {business.email && (
+            {business.address && (
               <Card>
               <CardContent className="pt-6">
                 <h3 className="font-semibold mb-4 flex items-center">
