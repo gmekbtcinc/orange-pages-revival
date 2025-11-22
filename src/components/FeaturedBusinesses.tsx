@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -5,6 +6,7 @@ import { ExternalLink, Star } from "lucide-react";
 
 const businesses = [
   {
+    id: "1",
     name: "Lightning Labs",
     category: "Scaling & Layer-2 Protocols",
     description: "Building the Lightning Network, enabling instant, high-volume Bitcoin transactions.",
@@ -12,6 +14,7 @@ const businesses = [
     featured: true,
   },
   {
+    id: "2",
     name: "Ledger",
     category: "Wallets",
     description: "Hardware wallet for securing Bitcoin and cryptocurrency assets with bank-level security.",
@@ -19,6 +22,7 @@ const businesses = [
     featured: true,
   },
   {
+    id: "3",
     name: "River Financial",
     category: "Exchanges & Trading Venues",
     description: "Bitcoin-only financial institution offering trading, mining, and custody solutions.",
@@ -26,6 +30,7 @@ const businesses = [
     featured: true,
   },
   {
+    id: "4",
     name: "BTCPay Server",
     category: "Payments & Commerce",
     description: "Self-hosted, open-source cryptocurrency payment processor with zero fees.",
@@ -82,10 +87,12 @@ const FeaturedBusinesses = () => {
                 ))}
               </div>
               
-              <Button variant="outline" className="w-full group">
-                View Details
-                <ExternalLink className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
-              </Button>
+              <Link to={`/business/${business.id}`}>
+                <Button variant="outline" className="w-full group">
+                  View Details
+                  <ExternalLink className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                </Button>
+              </Link>
             </Card>
           ))}
         </div>
