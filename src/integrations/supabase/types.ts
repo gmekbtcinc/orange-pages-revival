@@ -14,7 +14,187 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      business_services: {
+        Row: {
+          business_id: string
+          created_at: string
+          id: string
+          service_name: string
+        }
+        Insert: {
+          business_id: string
+          created_at?: string
+          id?: string
+          service_name: string
+        }
+        Update: {
+          business_id?: string
+          created_at?: string
+          id?: string
+          service_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "business_services_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      business_tags: {
+        Row: {
+          business_id: string
+          tag_id: string
+        }
+        Insert: {
+          business_id: string
+          tag_id: string
+        }
+        Update: {
+          business_id?: string
+          tag_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "business_tags_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "business_tags_tag_id_fkey"
+            columns: ["tag_id"]
+            isOneToOne: false
+            referencedRelation: "tags"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      businesses: {
+        Row: {
+          address: string | null
+          category_id: string | null
+          city: string | null
+          country: string | null
+          created_at: string
+          description: string
+          email: string | null
+          employees: string | null
+          featured: boolean | null
+          founded: string | null
+          id: string
+          long_description: string | null
+          name: string
+          phone: string | null
+          state: string | null
+          status: Database["public"]["Enums"]["business_status"] | null
+          submitted_by: string | null
+          updated_at: string
+          website: string | null
+        }
+        Insert: {
+          address?: string | null
+          category_id?: string | null
+          city?: string | null
+          country?: string | null
+          created_at?: string
+          description: string
+          email?: string | null
+          employees?: string | null
+          featured?: boolean | null
+          founded?: string | null
+          id?: string
+          long_description?: string | null
+          name: string
+          phone?: string | null
+          state?: string | null
+          status?: Database["public"]["Enums"]["business_status"] | null
+          submitted_by?: string | null
+          updated_at?: string
+          website?: string | null
+        }
+        Update: {
+          address?: string | null
+          category_id?: string | null
+          city?: string | null
+          country?: string | null
+          created_at?: string
+          description?: string
+          email?: string | null
+          employees?: string | null
+          featured?: boolean | null
+          founded?: string | null
+          id?: string
+          long_description?: string | null
+          name?: string
+          phone?: string | null
+          state?: string | null
+          status?: Database["public"]["Enums"]["business_status"] | null
+          submitted_by?: string | null
+          updated_at?: string
+          website?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "businesses_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      categories: {
+        Row: {
+          created_at: string
+          description: string | null
+          icon: string | null
+          id: string
+          name: string
+          slug: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          name: string
+          slug: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          name?: string
+          slug?: string
+        }
+        Relationships: []
+      }
+      tags: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          slug: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          slug: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          slug?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +203,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      business_status: "pending" | "approved" | "rejected"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +330,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      business_status: ["pending", "approved", "rejected"],
+    },
   },
 } as const
