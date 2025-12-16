@@ -14,6 +14,44 @@ export type Database = {
   }
   public: {
     Tables: {
+      business_articles: {
+        Row: {
+          business_id: string
+          created_at: string
+          id: string
+          published_date: string | null
+          source: string | null
+          title: string
+          url: string
+        }
+        Insert: {
+          business_id: string
+          created_at?: string
+          id?: string
+          published_date?: string | null
+          source?: string | null
+          title: string
+          url: string
+        }
+        Update: {
+          business_id?: string
+          created_at?: string
+          id?: string
+          published_date?: string | null
+          source?: string | null
+          title?: string
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "business_articles_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       business_services: {
         Row: {
           business_id: string
@@ -36,6 +74,38 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "business_services_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      business_social_links: {
+        Row: {
+          business_id: string
+          created_at: string
+          id: string
+          platform: string
+          url: string
+        }
+        Insert: {
+          business_id: string
+          created_at?: string
+          id?: string
+          platform: string
+          url: string
+        }
+        Update: {
+          business_id?: string
+          created_at?: string
+          id?: string
+          platform?: string
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "business_social_links_business_id_fkey"
             columns: ["business_id"]
             isOneToOne: false
             referencedRelation: "businesses"
@@ -75,9 +145,15 @@ export type Database = {
       }
       businesses: {
         Row: {
+          accepts_crypto: boolean | null
           address: string | null
+          btc_holdings_source: string | null
           category_id: string | null
+          ceo_headshot_url: string | null
+          ceo_name: string | null
+          ceo_title: string | null
           city: string | null
+          company_type: Database["public"]["Enums"]["company_type"] | null
           country: string | null
           created_at: string
           description: string
@@ -86,9 +162,17 @@ export type Database = {
           featured: boolean | null
           founded: string | null
           id: string
+          is_active: boolean | null
+          is_bfc_member: boolean | null
+          is_bitcoin_only: boolean | null
+          is_conference_sponsor: boolean | null
+          is_verified: boolean | null
+          logo_url: string | null
           long_description: string | null
+          markets: string | null
           name: string
           phone: string | null
+          referral_url: string | null
           state: string | null
           status: Database["public"]["Enums"]["business_status"] | null
           submitted_by: string | null
@@ -96,9 +180,15 @@ export type Database = {
           website: string | null
         }
         Insert: {
+          accepts_crypto?: boolean | null
           address?: string | null
+          btc_holdings_source?: string | null
           category_id?: string | null
+          ceo_headshot_url?: string | null
+          ceo_name?: string | null
+          ceo_title?: string | null
           city?: string | null
+          company_type?: Database["public"]["Enums"]["company_type"] | null
           country?: string | null
           created_at?: string
           description: string
@@ -107,9 +197,17 @@ export type Database = {
           featured?: boolean | null
           founded?: string | null
           id?: string
+          is_active?: boolean | null
+          is_bfc_member?: boolean | null
+          is_bitcoin_only?: boolean | null
+          is_conference_sponsor?: boolean | null
+          is_verified?: boolean | null
+          logo_url?: string | null
           long_description?: string | null
+          markets?: string | null
           name: string
           phone?: string | null
+          referral_url?: string | null
           state?: string | null
           status?: Database["public"]["Enums"]["business_status"] | null
           submitted_by?: string | null
@@ -117,9 +215,15 @@ export type Database = {
           website?: string | null
         }
         Update: {
+          accepts_crypto?: boolean | null
           address?: string | null
+          btc_holdings_source?: string | null
           category_id?: string | null
+          ceo_headshot_url?: string | null
+          ceo_name?: string | null
+          ceo_title?: string | null
           city?: string | null
+          company_type?: Database["public"]["Enums"]["company_type"] | null
           country?: string | null
           created_at?: string
           description?: string
@@ -128,9 +232,17 @@ export type Database = {
           featured?: boolean | null
           founded?: string | null
           id?: string
+          is_active?: boolean | null
+          is_bfc_member?: boolean | null
+          is_bitcoin_only?: boolean | null
+          is_conference_sponsor?: boolean | null
+          is_verified?: boolean | null
+          logo_url?: string | null
           long_description?: string | null
+          markets?: string | null
           name?: string
           phone?: string | null
+          referral_url?: string | null
           state?: string | null
           status?: Database["public"]["Enums"]["business_status"] | null
           submitted_by?: string | null
@@ -717,6 +829,7 @@ export type Database = {
     }
     Enums: {
       business_status: "pending" | "approved" | "rejected"
+      company_type: "public" | "private" | "subsidiary"
       event_type: "flagship" | "regional" | "secondary"
       member_tier: "silver" | "gold" | "platinum" | "chairman" | "executive"
       rsvp_status:
@@ -860,6 +973,7 @@ export const Constants = {
   public: {
     Enums: {
       business_status: ["pending", "approved", "rejected"],
+      company_type: ["public", "private", "subsidiary"],
       event_type: ["flagship", "regional", "secondary"],
       member_tier: ["silver", "gold", "platinum", "chairman", "executive"],
       rsvp_status: [
