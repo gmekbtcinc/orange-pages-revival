@@ -174,6 +174,396 @@ export type Database = {
         }
         Relationships: []
       }
+      event_allocations: {
+        Row: {
+          conference_tickets: number | null
+          created_at: string
+          event_id: string
+          id: string
+          symposium_seats: number | null
+          tier: Database["public"]["Enums"]["member_tier"]
+          vip_dinner_seats: number | null
+        }
+        Insert: {
+          conference_tickets?: number | null
+          created_at?: string
+          event_id: string
+          id?: string
+          symposium_seats?: number | null
+          tier: Database["public"]["Enums"]["member_tier"]
+          vip_dinner_seats?: number | null
+        }
+        Update: {
+          conference_tickets?: number | null
+          created_at?: string
+          event_id?: string
+          id?: string
+          symposium_seats?: number | null
+          tier?: Database["public"]["Enums"]["member_tier"]
+          vip_dinner_seats?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_allocations_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      events: {
+        Row: {
+          created_at: string
+          description: string | null
+          end_date: string | null
+          event_type: Database["public"]["Enums"]["event_type"]
+          external_url: string | null
+          has_symposium: boolean | null
+          has_vip_dinner: boolean | null
+          id: string
+          is_active: boolean | null
+          is_featured: boolean | null
+          location_city: string | null
+          location_country: string | null
+          location_name: string | null
+          name: string
+          slug: string
+          speaking_applications_open: boolean | null
+          speaking_deadline: string | null
+          start_date: string | null
+          subtitle: string | null
+          symposium_date: string | null
+          symposium_venue: string | null
+          updated_at: string
+          vip_dinner_date: string | null
+          vip_dinner_time: string | null
+          vip_dinner_venue: string | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          end_date?: string | null
+          event_type?: Database["public"]["Enums"]["event_type"]
+          external_url?: string | null
+          has_symposium?: boolean | null
+          has_vip_dinner?: boolean | null
+          id?: string
+          is_active?: boolean | null
+          is_featured?: boolean | null
+          location_city?: string | null
+          location_country?: string | null
+          location_name?: string | null
+          name: string
+          slug: string
+          speaking_applications_open?: boolean | null
+          speaking_deadline?: string | null
+          start_date?: string | null
+          subtitle?: string | null
+          symposium_date?: string | null
+          symposium_venue?: string | null
+          updated_at?: string
+          vip_dinner_date?: string | null
+          vip_dinner_time?: string | null
+          vip_dinner_venue?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          end_date?: string | null
+          event_type?: Database["public"]["Enums"]["event_type"]
+          external_url?: string | null
+          has_symposium?: boolean | null
+          has_vip_dinner?: boolean | null
+          id?: string
+          is_active?: boolean | null
+          is_featured?: boolean | null
+          location_city?: string | null
+          location_country?: string | null
+          location_name?: string | null
+          name?: string
+          slug?: string
+          speaking_applications_open?: boolean | null
+          speaking_deadline?: string | null
+          start_date?: string | null
+          subtitle?: string | null
+          symposium_date?: string | null
+          symposium_venue?: string | null
+          updated_at?: string
+          vip_dinner_date?: string | null
+          vip_dinner_time?: string | null
+          vip_dinner_venue?: string | null
+        }
+        Relationships: []
+      }
+      member_resource_requests: {
+        Row: {
+          admin_notes: string | null
+          completed_at: string | null
+          id: string
+          member_id: string
+          request_details: Json | null
+          requested_at: string
+          resource_type: string
+          status: string | null
+          updated_at: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          completed_at?: string | null
+          id?: string
+          member_id: string
+          request_details?: Json | null
+          requested_at?: string
+          resource_type: string
+          status?: string | null
+          updated_at?: string
+        }
+        Update: {
+          admin_notes?: string | null
+          completed_at?: string | null
+          id?: string
+          member_id?: string
+          request_details?: Json | null
+          requested_at?: string
+          resource_type?: string
+          status?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "member_resource_requests_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      members: {
+        Row: {
+          business_id: string | null
+          created_at: string
+          display_name: string
+          email: string
+          hubspot_contact_id: string | null
+          id: string
+          is_active: boolean | null
+          is_primary_contact: boolean | null
+          member_since: string
+          next_payment_due: string | null
+          notes: string | null
+          payment_amount_cents: number | null
+          phone: string | null
+          renewal_date: string | null
+          tier: Database["public"]["Enums"]["member_tier"]
+          title: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          business_id?: string | null
+          created_at?: string
+          display_name: string
+          email: string
+          hubspot_contact_id?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_primary_contact?: boolean | null
+          member_since?: string
+          next_payment_due?: string | null
+          notes?: string | null
+          payment_amount_cents?: number | null
+          phone?: string | null
+          renewal_date?: string | null
+          tier?: Database["public"]["Enums"]["member_tier"]
+          title?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          business_id?: string | null
+          created_at?: string
+          display_name?: string
+          email?: string
+          hubspot_contact_id?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_primary_contact?: boolean | null
+          member_since?: string
+          next_payment_due?: string | null
+          notes?: string | null
+          payment_amount_cents?: number | null
+          phone?: string | null
+          renewal_date?: string | null
+          tier?: Database["public"]["Enums"]["member_tier"]
+          title?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "members_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      speaker_applications: {
+        Row: {
+          admin_notes: string | null
+          airtable_record_id: string | null
+          av_requirements: string | null
+          created_at: string
+          event_id: string
+          format: string
+          id: string
+          member_id: string
+          previous_speaking: string | null
+          proposed_topic: string
+          session_description: string | null
+          speaker_bio: string | null
+          speaker_company: string | null
+          speaker_email: string
+          speaker_headshot_url: string | null
+          speaker_name: string
+          speaker_title: string | null
+          status: Database["public"]["Enums"]["speaker_status"] | null
+          submitted_at: string | null
+          synced_to_airtable_at: string | null
+          target_audience: string | null
+          updated_at: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          airtable_record_id?: string | null
+          av_requirements?: string | null
+          created_at?: string
+          event_id: string
+          format: string
+          id?: string
+          member_id: string
+          previous_speaking?: string | null
+          proposed_topic: string
+          session_description?: string | null
+          speaker_bio?: string | null
+          speaker_company?: string | null
+          speaker_email: string
+          speaker_headshot_url?: string | null
+          speaker_name: string
+          speaker_title?: string | null
+          status?: Database["public"]["Enums"]["speaker_status"] | null
+          submitted_at?: string | null
+          synced_to_airtable_at?: string | null
+          target_audience?: string | null
+          updated_at?: string
+        }
+        Update: {
+          admin_notes?: string | null
+          airtable_record_id?: string | null
+          av_requirements?: string | null
+          created_at?: string
+          event_id?: string
+          format?: string
+          id?: string
+          member_id?: string
+          previous_speaking?: string | null
+          proposed_topic?: string
+          session_description?: string | null
+          speaker_bio?: string | null
+          speaker_company?: string | null
+          speaker_email?: string
+          speaker_headshot_url?: string | null
+          speaker_name?: string
+          speaker_title?: string | null
+          status?: Database["public"]["Enums"]["speaker_status"] | null
+          submitted_at?: string | null
+          synced_to_airtable_at?: string | null
+          target_audience?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "speaker_applications_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "speaker_applications_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      symposium_registrations: {
+        Row: {
+          accessibility_needs: string | null
+          attendee_company: string | null
+          attendee_email: string
+          attendee_name: string
+          attendee_title: string | null
+          confirmed_at: string | null
+          dietary_requirements: string | null
+          event_id: string
+          id: string
+          member_id: string
+          registered_at: string
+          registration_code: string | null
+          status: Database["public"]["Enums"]["rsvp_status"] | null
+        }
+        Insert: {
+          accessibility_needs?: string | null
+          attendee_company?: string | null
+          attendee_email: string
+          attendee_name: string
+          attendee_title?: string | null
+          confirmed_at?: string | null
+          dietary_requirements?: string | null
+          event_id: string
+          id?: string
+          member_id: string
+          registered_at?: string
+          registration_code?: string | null
+          status?: Database["public"]["Enums"]["rsvp_status"] | null
+        }
+        Update: {
+          accessibility_needs?: string | null
+          attendee_company?: string | null
+          attendee_email?: string
+          attendee_name?: string
+          attendee_title?: string | null
+          confirmed_at?: string | null
+          dietary_requirements?: string | null
+          event_id?: string
+          id?: string
+          member_id?: string
+          registered_at?: string
+          registration_code?: string | null
+          status?: Database["public"]["Enums"]["rsvp_status"] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "symposium_registrations_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "symposium_registrations_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tags: {
         Row: {
           created_at: string
@@ -195,6 +585,129 @@ export type Database = {
         }
         Relationships: []
       }
+      ticket_claims: {
+        Row: {
+          attendee_company: string | null
+          attendee_email: string
+          attendee_name: string
+          attendee_title: string | null
+          claimed_at: string
+          confirmed_at: string | null
+          event_id: string
+          id: string
+          member_id: string
+          notes: string | null
+          status: Database["public"]["Enums"]["rsvp_status"] | null
+          ticket_code: string | null
+        }
+        Insert: {
+          attendee_company?: string | null
+          attendee_email: string
+          attendee_name: string
+          attendee_title?: string | null
+          claimed_at?: string
+          confirmed_at?: string | null
+          event_id: string
+          id?: string
+          member_id: string
+          notes?: string | null
+          status?: Database["public"]["Enums"]["rsvp_status"] | null
+          ticket_code?: string | null
+        }
+        Update: {
+          attendee_company?: string | null
+          attendee_email?: string
+          attendee_name?: string
+          attendee_title?: string | null
+          claimed_at?: string
+          confirmed_at?: string | null
+          event_id?: string
+          id?: string
+          member_id?: string
+          notes?: string | null
+          status?: Database["public"]["Enums"]["rsvp_status"] | null
+          ticket_code?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ticket_claims_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ticket_claims_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vip_dinner_rsvps: {
+        Row: {
+          confirmation_code: string | null
+          confirmed_at: string | null
+          dietary_requirements: string | null
+          event_id: string
+          guest_company: string | null
+          guest_email: string
+          guest_name: string
+          guest_title: string | null
+          id: string
+          member_id: string
+          rsvp_at: string
+          seating_preferences: string | null
+          status: Database["public"]["Enums"]["rsvp_status"] | null
+        }
+        Insert: {
+          confirmation_code?: string | null
+          confirmed_at?: string | null
+          dietary_requirements?: string | null
+          event_id: string
+          guest_company?: string | null
+          guest_email: string
+          guest_name: string
+          guest_title?: string | null
+          id?: string
+          member_id: string
+          rsvp_at?: string
+          seating_preferences?: string | null
+          status?: Database["public"]["Enums"]["rsvp_status"] | null
+        }
+        Update: {
+          confirmation_code?: string | null
+          confirmed_at?: string | null
+          dietary_requirements?: string | null
+          event_id?: string
+          guest_company?: string | null
+          guest_email?: string
+          guest_name?: string
+          guest_title?: string | null
+          id?: string
+          member_id?: string
+          rsvp_at?: string
+          seating_preferences?: string | null
+          status?: Database["public"]["Enums"]["rsvp_status"] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vip_dinner_rsvps_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vip_dinner_rsvps_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -204,6 +717,21 @@ export type Database = {
     }
     Enums: {
       business_status: "pending" | "approved" | "rejected"
+      event_type: "flagship" | "regional" | "secondary"
+      member_tier: "silver" | "gold" | "platinum" | "chairman" | "executive"
+      rsvp_status:
+        | "pending"
+        | "confirmed"
+        | "declined"
+        | "waitlisted"
+        | "cancelled"
+      speaker_status:
+        | "draft"
+        | "submitted"
+        | "under_review"
+        | "approved"
+        | "rejected"
+        | "waitlisted"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -332,6 +860,23 @@ export const Constants = {
   public: {
     Enums: {
       business_status: ["pending", "approved", "rejected"],
+      event_type: ["flagship", "regional", "secondary"],
+      member_tier: ["silver", "gold", "platinum", "chairman", "executive"],
+      rsvp_status: [
+        "pending",
+        "confirmed",
+        "declined",
+        "waitlisted",
+        "cancelled",
+      ],
+      speaker_status: [
+        "draft",
+        "submitted",
+        "under_review",
+        "approved",
+        "rejected",
+        "waitlisted",
+      ],
     },
   },
 } as const
