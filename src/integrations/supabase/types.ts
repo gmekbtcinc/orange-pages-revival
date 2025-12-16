@@ -14,6 +14,51 @@ export type Database = {
   }
   public: {
     Tables: {
+      admins: {
+        Row: {
+          can_impersonate: boolean | null
+          can_manage_admins: boolean | null
+          can_manage_content: boolean | null
+          can_manage_events: boolean | null
+          can_manage_memberships: boolean | null
+          created_at: string | null
+          display_name: string
+          email: string
+          id: string
+          is_active: boolean | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          can_impersonate?: boolean | null
+          can_manage_admins?: boolean | null
+          can_manage_content?: boolean | null
+          can_manage_events?: boolean | null
+          can_manage_memberships?: boolean | null
+          created_at?: string | null
+          display_name: string
+          email: string
+          id?: string
+          is_active?: boolean | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          can_impersonate?: boolean | null
+          can_manage_admins?: boolean | null
+          can_manage_content?: boolean | null
+          can_manage_events?: boolean | null
+          can_manage_memberships?: boolean | null
+          created_at?: string | null
+          display_name?: string
+          email?: string
+          id?: string
+          is_active?: boolean | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       business_articles: {
         Row: {
           business_id: string
@@ -48,6 +93,78 @@ export type Database = {
             columns: ["business_id"]
             isOneToOne: false
             referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      business_claims: {
+        Row: {
+          business_id: string
+          claimant_email: string
+          claimant_name: string
+          claimant_phone: string | null
+          claimant_title: string | null
+          claimant_user_id: string | null
+          created_at: string | null
+          id: string
+          rejection_reason: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: Database["public"]["Enums"]["claim_status"] | null
+          supporting_document_url: string | null
+          updated_at: string | null
+          verification_method: string | null
+          verification_notes: string | null
+        }
+        Insert: {
+          business_id: string
+          claimant_email: string
+          claimant_name: string
+          claimant_phone?: string | null
+          claimant_title?: string | null
+          claimant_user_id?: string | null
+          created_at?: string | null
+          id?: string
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: Database["public"]["Enums"]["claim_status"] | null
+          supporting_document_url?: string | null
+          updated_at?: string | null
+          verification_method?: string | null
+          verification_notes?: string | null
+        }
+        Update: {
+          business_id?: string
+          claimant_email?: string
+          claimant_name?: string
+          claimant_phone?: string | null
+          claimant_title?: string | null
+          claimant_user_id?: string | null
+          created_at?: string | null
+          id?: string
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: Database["public"]["Enums"]["claim_status"] | null
+          supporting_document_url?: string | null
+          updated_at?: string | null
+          verification_method?: string | null
+          verification_notes?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "business_claims_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "business_claims_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "admins"
             referencedColumns: ["id"]
           },
         ]
@@ -286,6 +403,93 @@ export type Database = {
         }
         Relationships: []
       }
+      company_users: {
+        Row: {
+          accepted_at: string | null
+          business_id: string
+          can_apply_speaking: boolean | null
+          can_claim_tickets: boolean | null
+          can_edit_profile: boolean | null
+          can_manage_users: boolean | null
+          can_register_events: boolean | null
+          can_request_resources: boolean | null
+          can_rsvp_dinners: boolean | null
+          created_at: string | null
+          display_name: string
+          email: string
+          id: string
+          invited_at: string | null
+          invited_by: string | null
+          is_active: boolean | null
+          phone: string | null
+          role: Database["public"]["Enums"]["user_role"]
+          title: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          accepted_at?: string | null
+          business_id: string
+          can_apply_speaking?: boolean | null
+          can_claim_tickets?: boolean | null
+          can_edit_profile?: boolean | null
+          can_manage_users?: boolean | null
+          can_register_events?: boolean | null
+          can_request_resources?: boolean | null
+          can_rsvp_dinners?: boolean | null
+          created_at?: string | null
+          display_name: string
+          email: string
+          id?: string
+          invited_at?: string | null
+          invited_by?: string | null
+          is_active?: boolean | null
+          phone?: string | null
+          role?: Database["public"]["Enums"]["user_role"]
+          title?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          accepted_at?: string | null
+          business_id?: string
+          can_apply_speaking?: boolean | null
+          can_claim_tickets?: boolean | null
+          can_edit_profile?: boolean | null
+          can_manage_users?: boolean | null
+          can_register_events?: boolean | null
+          can_request_resources?: boolean | null
+          can_rsvp_dinners?: boolean | null
+          created_at?: string | null
+          display_name?: string
+          email?: string
+          id?: string
+          invited_at?: string | null
+          invited_by?: string | null
+          is_active?: boolean | null
+          phone?: string | null
+          role?: Database["public"]["Enums"]["user_role"]
+          title?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_users_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_users_invited_by_fkey"
+            columns: ["invited_by"]
+            isOneToOne: false
+            referencedRelation: "company_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       event_allocations: {
         Row: {
           conference_tickets: number | null
@@ -523,6 +727,77 @@ export type Database = {
           },
         ]
       }
+      memberships: {
+        Row: {
+          billing_contact_name: string | null
+          billing_email: string | null
+          business_id: string
+          cancellation_reason: string | null
+          cancelled_at: string | null
+          created_at: string | null
+          hubspot_deal_id: string | null
+          id: string
+          is_active: boolean | null
+          member_since: string
+          next_payment_due: string | null
+          notes: string | null
+          payment_amount_cents: number | null
+          renewal_date: string | null
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          tier: Database["public"]["Enums"]["member_tier"]
+          updated_at: string | null
+        }
+        Insert: {
+          billing_contact_name?: string | null
+          billing_email?: string | null
+          business_id: string
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
+          created_at?: string | null
+          hubspot_deal_id?: string | null
+          id?: string
+          is_active?: boolean | null
+          member_since?: string
+          next_payment_due?: string | null
+          notes?: string | null
+          payment_amount_cents?: number | null
+          renewal_date?: string | null
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          tier?: Database["public"]["Enums"]["member_tier"]
+          updated_at?: string | null
+        }
+        Update: {
+          billing_contact_name?: string | null
+          billing_email?: string | null
+          business_id?: string
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
+          created_at?: string | null
+          hubspot_deal_id?: string | null
+          id?: string
+          is_active?: boolean | null
+          member_since?: string
+          next_payment_due?: string | null
+          notes?: string | null
+          payment_amount_cents?: number | null
+          renewal_date?: string | null
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          tier?: Database["public"]["Enums"]["member_tier"]
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "memberships_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: true
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       speaker_applications: {
         Row: {
           admin_notes: string | null
@@ -616,14 +891,17 @@ export type Database = {
       symposium_registrations: {
         Row: {
           accessibility_needs: string | null
+          assigned_by: string | null
           attendee_company: string | null
           attendee_email: string
           attendee_name: string
           attendee_title: string | null
+          company_user_id: string | null
           confirmed_at: string | null
           dietary_requirements: string | null
           event_id: string
           id: string
+          is_external_attendee: boolean | null
           member_id: string
           registered_at: string
           registration_code: string | null
@@ -631,14 +909,17 @@ export type Database = {
         }
         Insert: {
           accessibility_needs?: string | null
+          assigned_by?: string | null
           attendee_company?: string | null
           attendee_email: string
           attendee_name: string
           attendee_title?: string | null
+          company_user_id?: string | null
           confirmed_at?: string | null
           dietary_requirements?: string | null
           event_id: string
           id?: string
+          is_external_attendee?: boolean | null
           member_id: string
           registered_at?: string
           registration_code?: string | null
@@ -646,20 +927,37 @@ export type Database = {
         }
         Update: {
           accessibility_needs?: string | null
+          assigned_by?: string | null
           attendee_company?: string | null
           attendee_email?: string
           attendee_name?: string
           attendee_title?: string | null
+          company_user_id?: string | null
           confirmed_at?: string | null
           dietary_requirements?: string | null
           event_id?: string
           id?: string
+          is_external_attendee?: boolean | null
           member_id?: string
           registered_at?: string
           registration_code?: string | null
           status?: Database["public"]["Enums"]["rsvp_status"] | null
         }
         Relationships: [
+          {
+            foreignKeyName: "symposium_registrations_assigned_by_fkey"
+            columns: ["assigned_by"]
+            isOneToOne: false
+            referencedRelation: "company_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "symposium_registrations_company_user_id_fkey"
+            columns: ["company_user_id"]
+            isOneToOne: false
+            referencedRelation: "company_users"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "symposium_registrations_event_id_fkey"
             columns: ["event_id"]
@@ -699,48 +997,71 @@ export type Database = {
       }
       ticket_claims: {
         Row: {
+          assigned_by: string | null
           attendee_company: string | null
           attendee_email: string
           attendee_name: string
           attendee_title: string | null
           claimed_at: string
+          company_user_id: string | null
           confirmed_at: string | null
           event_id: string
           id: string
+          is_external_attendee: boolean | null
           member_id: string
           notes: string | null
           status: Database["public"]["Enums"]["rsvp_status"] | null
           ticket_code: string | null
         }
         Insert: {
+          assigned_by?: string | null
           attendee_company?: string | null
           attendee_email: string
           attendee_name: string
           attendee_title?: string | null
           claimed_at?: string
+          company_user_id?: string | null
           confirmed_at?: string | null
           event_id: string
           id?: string
+          is_external_attendee?: boolean | null
           member_id: string
           notes?: string | null
           status?: Database["public"]["Enums"]["rsvp_status"] | null
           ticket_code?: string | null
         }
         Update: {
+          assigned_by?: string | null
           attendee_company?: string | null
           attendee_email?: string
           attendee_name?: string
           attendee_title?: string | null
           claimed_at?: string
+          company_user_id?: string | null
           confirmed_at?: string | null
           event_id?: string
           id?: string
+          is_external_attendee?: boolean | null
           member_id?: string
           notes?: string | null
           status?: Database["public"]["Enums"]["rsvp_status"] | null
           ticket_code?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "ticket_claims_assigned_by_fkey"
+            columns: ["assigned_by"]
+            isOneToOne: false
+            referencedRelation: "company_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ticket_claims_company_user_id_fkey"
+            columns: ["company_user_id"]
+            isOneToOne: false
+            referencedRelation: "company_users"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "ticket_claims_event_id_fkey"
             columns: ["event_id"]
@@ -757,8 +1078,122 @@ export type Database = {
           },
         ]
       }
+      tier_limits: {
+        Row: {
+          description: string | null
+          max_users: number
+          tier: Database["public"]["Enums"]["member_tier"]
+        }
+        Insert: {
+          description?: string | null
+          max_users: number
+          tier: Database["public"]["Enums"]["member_tier"]
+        }
+        Update: {
+          description?: string | null
+          max_users?: number
+          tier?: Database["public"]["Enums"]["member_tier"]
+        }
+        Relationships: []
+      }
+      user_invitations: {
+        Row: {
+          accepted_at: string | null
+          business_id: string
+          can_apply_speaking: boolean | null
+          can_claim_tickets: boolean | null
+          can_edit_profile: boolean | null
+          can_manage_users: boolean | null
+          can_register_events: boolean | null
+          can_request_resources: boolean | null
+          can_rsvp_dinners: boolean | null
+          created_at: string | null
+          display_name: string | null
+          email: string
+          expires_at: string | null
+          id: string
+          invite_token: string | null
+          invited_by: string | null
+          is_self_request: boolean | null
+          revoked_at: string | null
+          revoked_by: string | null
+          role: Database["public"]["Enums"]["user_role"] | null
+          status: Database["public"]["Enums"]["invite_status"] | null
+        }
+        Insert: {
+          accepted_at?: string | null
+          business_id: string
+          can_apply_speaking?: boolean | null
+          can_claim_tickets?: boolean | null
+          can_edit_profile?: boolean | null
+          can_manage_users?: boolean | null
+          can_register_events?: boolean | null
+          can_request_resources?: boolean | null
+          can_rsvp_dinners?: boolean | null
+          created_at?: string | null
+          display_name?: string | null
+          email: string
+          expires_at?: string | null
+          id?: string
+          invite_token?: string | null
+          invited_by?: string | null
+          is_self_request?: boolean | null
+          revoked_at?: string | null
+          revoked_by?: string | null
+          role?: Database["public"]["Enums"]["user_role"] | null
+          status?: Database["public"]["Enums"]["invite_status"] | null
+        }
+        Update: {
+          accepted_at?: string | null
+          business_id?: string
+          can_apply_speaking?: boolean | null
+          can_claim_tickets?: boolean | null
+          can_edit_profile?: boolean | null
+          can_manage_users?: boolean | null
+          can_register_events?: boolean | null
+          can_request_resources?: boolean | null
+          can_rsvp_dinners?: boolean | null
+          created_at?: string | null
+          display_name?: string | null
+          email?: string
+          expires_at?: string | null
+          id?: string
+          invite_token?: string | null
+          invited_by?: string | null
+          is_self_request?: boolean | null
+          revoked_at?: string | null
+          revoked_by?: string | null
+          role?: Database["public"]["Enums"]["user_role"] | null
+          status?: Database["public"]["Enums"]["invite_status"] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_invitations_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_invitations_invited_by_fkey"
+            columns: ["invited_by"]
+            isOneToOne: false
+            referencedRelation: "company_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_invitations_revoked_by_fkey"
+            columns: ["revoked_by"]
+            isOneToOne: false
+            referencedRelation: "company_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vip_dinner_rsvps: {
         Row: {
+          assigned_by: string | null
+          company_user_id: string | null
           confirmation_code: string | null
           confirmed_at: string | null
           dietary_requirements: string | null
@@ -768,12 +1203,15 @@ export type Database = {
           guest_name: string
           guest_title: string | null
           id: string
+          is_external_attendee: boolean | null
           member_id: string
           rsvp_at: string
           seating_preferences: string | null
           status: Database["public"]["Enums"]["rsvp_status"] | null
         }
         Insert: {
+          assigned_by?: string | null
+          company_user_id?: string | null
           confirmation_code?: string | null
           confirmed_at?: string | null
           dietary_requirements?: string | null
@@ -783,12 +1221,15 @@ export type Database = {
           guest_name: string
           guest_title?: string | null
           id?: string
+          is_external_attendee?: boolean | null
           member_id: string
           rsvp_at?: string
           seating_preferences?: string | null
           status?: Database["public"]["Enums"]["rsvp_status"] | null
         }
         Update: {
+          assigned_by?: string | null
+          company_user_id?: string | null
           confirmation_code?: string | null
           confirmed_at?: string | null
           dietary_requirements?: string | null
@@ -798,12 +1239,27 @@ export type Database = {
           guest_name?: string
           guest_title?: string | null
           id?: string
+          is_external_attendee?: boolean | null
           member_id?: string
           rsvp_at?: string
           seating_preferences?: string | null
           status?: Database["public"]["Enums"]["rsvp_status"] | null
         }
         Relationships: [
+          {
+            foreignKeyName: "vip_dinner_rsvps_assigned_by_fkey"
+            columns: ["assigned_by"]
+            isOneToOne: false
+            referencedRelation: "company_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vip_dinner_rsvps_company_user_id_fkey"
+            columns: ["company_user_id"]
+            isOneToOne: false
+            referencedRelation: "company_users"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "vip_dinner_rsvps_event_id_fkey"
             columns: ["event_id"]
@@ -825,12 +1281,28 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_remaining_user_slots: {
+        Args: { _business_id: string }
+        Returns: number
+      }
+      get_user_business_id: { Args: { _user_id: string }; Returns: string }
+      is_business_user: {
+        Args: { _business_id: string; _user_id: string }
+        Returns: boolean
+      }
+      is_company_admin: {
+        Args: { _business_id: string; _user_id: string }
+        Returns: boolean
+      }
+      is_member_business: { Args: { _business_id: string }; Returns: boolean }
+      is_super_admin: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
       business_status: "pending" | "approved" | "rejected"
+      claim_status: "pending" | "approved" | "rejected"
       company_type: "public" | "private" | "subsidiary"
       event_type: "flagship" | "regional" | "secondary"
+      invite_status: "pending" | "accepted" | "expired" | "revoked"
       member_tier: "silver" | "gold" | "platinum" | "chairman" | "executive"
       rsvp_status:
         | "pending"
@@ -845,6 +1317,7 @@ export type Database = {
         | "approved"
         | "rejected"
         | "waitlisted"
+      user_role: "super_admin" | "company_admin" | "company_user"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -973,8 +1446,10 @@ export const Constants = {
   public: {
     Enums: {
       business_status: ["pending", "approved", "rejected"],
+      claim_status: ["pending", "approved", "rejected"],
       company_type: ["public", "private", "subsidiary"],
       event_type: ["flagship", "regional", "secondary"],
+      invite_status: ["pending", "accepted", "expired", "revoked"],
       member_tier: ["silver", "gold", "platinum", "chairman", "executive"],
       rsvp_status: [
         "pending",
@@ -991,6 +1466,7 @@ export const Constants = {
         "rejected",
         "waitlisted",
       ],
+      user_role: ["super_admin", "company_admin", "company_user"],
     },
   },
 } as const
