@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { MemberProvider } from "@/contexts/member/MemberContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { AdminProtectedRoute } from "@/components/AdminProtectedRoute";
 import Index from "./pages/Index";
 import BusinessDetail from "./pages/BusinessDetail";
 import NotFound from "./pages/NotFound";
@@ -13,6 +14,7 @@ import AuthCallback from "./pages/AuthCallback";
 import Dashboard from "./pages/Dashboard";
 import CompanyProfile from "./pages/CompanyProfile";
 import TeamManagement from "./pages/TeamManagement";
+import ClaimsQueue from "./pages/admin/ClaimsQueue";
 
 const queryClient = new QueryClient();
 
@@ -53,6 +55,16 @@ const App = () => (
                 <ProtectedRoute>
                   <TeamManagement />
                 </ProtectedRoute>
+              }
+            />
+
+            {/* Admin routes */}
+            <Route
+              path="/admin/claims"
+              element={
+                <AdminProtectedRoute>
+                  <ClaimsQueue />
+                </AdminProtectedRoute>
               }
             />
 
