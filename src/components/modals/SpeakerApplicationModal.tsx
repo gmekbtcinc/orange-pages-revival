@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useMember } from "@/contexts/MemberContext";
+import { useMember } from "@/contexts/member/MemberContext";
 import {
   Dialog,
   DialogContent,
@@ -20,7 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import type { Tables } from "@/integrations/supabase/types";
 
 type SpeakerApplication = Tables<"speaker_applications">;
@@ -82,7 +82,7 @@ export function SpeakerApplicationModal({
       setSpeakerName(member?.display_name || "");
       setSpeakerEmail(member?.email || "");
       setSpeakerTitle(member?.title || "");
-      setSpeakerCompany(member?.business?.name || "");
+      setSpeakerCompany("");
     }
   }, [existingApplication, member, isOpen]);
 
