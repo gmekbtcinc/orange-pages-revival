@@ -82,14 +82,15 @@ export function AdminLayout({ children }: AdminLayoutProps) {
         {/* Navigation */}
         <nav className="flex-1 p-4 space-y-1">
           {navItems.map((item) => {
-            const isActive = location.pathname === item.href;
+            const isActive = location.pathname === item.href || 
+              (item.href !== "/admin" && location.pathname.startsWith(item.href));
             return (
               <Button
                 key={item.href}
                 variant="ghost"
                 className={cn(
-                  "w-full justify-start gap-2",
-                  isActive && "bg-primary/10 text-primary"
+                  "w-full justify-start gap-2 text-foreground hover:text-foreground hover:bg-muted",
+                  isActive && "bg-primary/10 text-primary hover:text-primary"
                 )}
                 onClick={() => navigate(item.href)}
               >

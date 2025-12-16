@@ -104,7 +104,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
             {/* User Menu */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="flex items-center gap-2">
+                <Button variant="ghost" className="flex items-center gap-2 text-foreground hover:text-foreground">
                   <Avatar className="h-8 w-8">
                     <AvatarFallback className="bg-bitcoin-orange text-white text-sm">
                       {initials}
