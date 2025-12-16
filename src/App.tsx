@@ -12,6 +12,7 @@ import Login from "./pages/Login";
 import AuthCallback from "./pages/AuthCallback";
 import Dashboard from "./pages/Dashboard";
 import CompanyProfile from "./pages/CompanyProfile";
+import TeamManagement from "./pages/TeamManagement";
 
 const queryClient = new QueryClient();
 
@@ -43,6 +44,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <CompanyProfile />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard/team"
+              element={
+                <ProtectedRoute>
+                  <TeamManagement />
                 </ProtectedRoute>
               }
             />

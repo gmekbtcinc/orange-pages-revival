@@ -10,7 +10,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { LogOut, User, ChevronDown, Building2 } from "lucide-react";
+import { LogOut, User, ChevronDown, Building2, Users } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 interface DashboardLayoutProps {
@@ -34,7 +34,7 @@ const tierLabels: Record<string, string> = {
 };
 
 export function DashboardLayout({ children }: DashboardLayoutProps) {
-  const { companyUser, membership, signOut } = useMember();
+  const { member, companyUser, membership, signOut } = useMember();
   const navigate = useNavigate();
 
   const handleSignOut = async () => {
@@ -42,12 +42,15 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     navigate("/login");
   };
 
-  const initials = companyUser?.display_name
+  const initials = member?.display_name
     ?.split(" ")
     .map((n) => n[0])
     .join("")
     .toUpperCase()
     .slice(0, 2) || "BF";
+
+  const tier = membership?.tier || member?.tier || "silver";
+  const canManageUsers = companyUser?.can_manage_users || companyUser?.role === "company_admin";
 
   return (
     <div className="min-h-screen bg-background dark">
@@ -71,9 +74,9 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                 </h1>
                 <div className="flex items-center gap-2">
                   <Badge
-                    className={`${tierColors[membership?.tier || "silver"]} text-white text-xs`}
+                    className={`${tierColors[tier]} text-white text-xs`}
                   >
-                    {tierLabels[membership?.tier || "silver"]}
+                    {tierLabels[tier]}
                   </Badge>
                 </div>
               </div>
@@ -89,7 +92,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                     </AvatarFallback>
                   </Avatar>
                   <span className="hidden sm:inline text-foreground">
-                    {companyUser?.display_name}
+                    {member?.display_name}
                   </span>
                   <ChevronDown className="h-4 w-4 text-muted-foreground" />
                 </Button>
@@ -102,13 +105,22 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                   <User className="mr-2 h-4 w-4" />
                   Dashboard
                 </DropdownMenuItem>
-                {companyUser?.business_id && (
-                  <DropdownMenuItem
+                {member?.business_id && (
+                  <DropdownMenuItem 
                     className="cursor-pointer"
                     onClick={() => navigate("/dashboard/company-profile")}
                   >
                     <Building2 className="mr-2 h-4 w-4" />
                     Company Profile
+                  </DropdownMenuItem>
+                )}
+                {canManageUsers && companyUser?.business_id && (
+                  <DropdownMenuItem 
+                    className="cursor-pointer"
+                    onClick={() => navigate("/dashboard/team")}
+                  >
+                    <Users className="mr-2 h-4 w-4" />
+                    Team
                   </DropdownMenuItem>
                 )}
                 <DropdownMenuSeparator />

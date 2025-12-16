@@ -85,7 +85,7 @@ export default function CompanyProfile() {
       const { data, error } = await supabase
         .from("businesses")
         .select("*")
-        .eq("id", member.business_id)
+        .eq("id", companyUser.business_id)
         .maybeSingle();
       if (error) throw error;
       return data;
@@ -101,7 +101,7 @@ export default function CompanyProfile() {
       const { data, error } = await supabase
         .from("business_social_links")
         .select("*")
-        .eq("business_id", member.business_id);
+        .eq("business_id", companyUser.business_id);
       if (error) throw error;
       return data.map((l) => ({ platform: l.platform, url: l.url }));
     },
@@ -116,7 +116,7 @@ export default function CompanyProfile() {
       const { data, error } = await supabase
         .from("business_articles")
         .select("*")
-        .eq("business_id", member.business_id)
+        .eq("business_id", companyUser.business_id)
         .order("published_date", { ascending: false });
       if (error) throw error;
       return data;
@@ -204,7 +204,7 @@ export default function CompanyProfile() {
           btc_holdings_source: formData.btc_holdings_source || null,
           referral_url: formData.referral_url || null,
         })
-        .eq("id", member.business_id);
+        .eq("id", companyUser.business_id);
 
       if (businessError) throw businessError;
 
@@ -212,14 +212,14 @@ export default function CompanyProfile() {
       await supabase
         .from("business_social_links")
         .delete()
-        .eq("business_id", member.business_id);
+        .eq("business_id", companyUser.business_id);
 
       if (socialLinks.length > 0) {
         const { error: socialError } = await supabase
           .from("business_social_links")
           .insert(
             socialLinks.map((l) => ({
-              business_id: member.business_id,
+              business_id: companyUser.business_id,
               platform: l.platform,
               url: l.url,
             }))
@@ -231,14 +231,14 @@ export default function CompanyProfile() {
       await supabase
         .from("business_articles")
         .delete()
-        .eq("business_id", member.business_id);
+        .eq("business_id", companyUser.business_id);
 
       if (articles.length > 0) {
         const { error: articlesError } = await supabase
           .from("business_articles")
           .insert(
             articles.map((a) => ({
-              business_id: member.business_id,
+              business_id: companyUser.business_id,
               title: a.title,
               url: a.url,
               source: a.source || null,
