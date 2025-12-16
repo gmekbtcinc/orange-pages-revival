@@ -5,7 +5,7 @@ import { EventCards } from "@/components/dashboard/EventCards";
 import { MemberResources } from "@/components/dashboard/MemberResources";
 
 export default function Dashboard() {
-  const { companyUser, isMember, isLoading } = useMember();
+  const { member, companyUser, isLoading } = useMember();
 
   if (isLoading) {
     return (
@@ -18,7 +18,7 @@ export default function Dashboard() {
     );
   }
 
-  if (!companyUser) {
+  if (!member && !companyUser) {
     return (
       <DashboardLayout>
         <div className="text-center py-12">
