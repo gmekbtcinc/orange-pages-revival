@@ -1190,6 +1190,27 @@ export type Database = {
           },
         ]
       }
+      user_roles: {
+        Row: {
+          created_at: string | null
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
       vip_dinner_rsvps: {
         Row: {
           assigned_by: string | null
@@ -1286,6 +1307,14 @@ export type Database = {
         Returns: number
       }
       get_user_business_id: { Args: { _user_id: string }; Returns: string }
+      has_admin_role: { Args: { _user_id: string }; Returns: boolean }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
       is_business_user: {
         Args: { _business_id: string; _user_id: string }
         Returns: boolean
@@ -1298,6 +1327,7 @@ export type Database = {
       is_super_admin: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
+      app_role: "super_admin" | "admin" | "moderator"
       business_status: "pending" | "approved" | "rejected"
       claim_status: "pending" | "approved" | "rejected"
       company_type: "public" | "private" | "subsidiary"
@@ -1445,6 +1475,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      app_role: ["super_admin", "admin", "moderator"],
       business_status: ["pending", "approved", "rejected"],
       claim_status: ["pending", "approved", "rejected"],
       company_type: ["public", "private", "subsidiary"],

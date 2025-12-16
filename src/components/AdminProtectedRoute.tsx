@@ -18,15 +18,28 @@ export function AdminProtectedRoute({ children }: AdminProtectedRouteProps) {
         return;
       }
 
-      // Check if user is in admins table
-      const { data: admin } = await supabase
-        .from("admins")
+      // Check if user has super_admin or admin role in user_roles table
+      const { data: role } = await supabase
+        .from("user_roles")
         .select("id")
         .eq("user_id", user.id)
-        .eq("is_active", true)
+        .in("role", ["super_admin", "admin"])
         .maybeSingle();
 
-      setState(admin ? "authenticated" : "unauthorized");
+      // Fallback: also check legacy admins table for backwards compatibility
+      if (!role) {
+        const { data: admin } = await supabase
+          .from("admins")
+          .select("id")
+          .eq("user_id", user.id)
+          .eq("is_active", true)
+          .maybeSingle();
+        
+        setState(admin ? "authenticated" : "unauthorized");
+        return;
+      }
+
+      setState("authenticated");
     };
 
     checkAdmin();
