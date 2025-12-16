@@ -1,11 +1,21 @@
+import { useEffect, useState } from "react";
 import { useMember } from "@/contexts/member/MemberContext";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { MemberFastFacts } from "@/components/dashboard/MemberFastFacts";
 import { EventCards } from "@/components/dashboard/EventCards";
 import { MemberResources } from "@/components/dashboard/MemberResources";
+import { ClaimStatusCard } from "@/components/claims/ClaimStatusCard";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function Dashboard() {
   const { member, companyUser, isLoading } = useMember();
+  const [userId, setUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setUserId(user?.id || null);
+    });
+  }, []);
 
   if (isLoading) {
     return (
@@ -36,6 +46,9 @@ export default function Dashboard() {
   return (
     <DashboardLayout>
       <div className="space-y-8">
+        {/* Claim Status Cards */}
+        {userId && <ClaimStatusCard userId={userId} />}
+        
         <MemberFastFacts />
         <EventCards />
         <MemberResources />

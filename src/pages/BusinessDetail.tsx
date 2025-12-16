@@ -1,8 +1,9 @@
+import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { 
   ArrowLeft, ExternalLink, Mail, Phone, MapPin, Globe, Loader2,
-  Bitcoin, BadgeCheck, Award, Users, Calendar, Building2
+  Bitcoin, BadgeCheck, Award, Users, Calendar, Building2, Flag
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -10,6 +11,8 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { fetchBusinessById } from "@/lib/businessQueries";
+import { supabase } from "@/integrations/supabase/client";
+import { ClaimBusinessDialog } from "@/components/claims/ClaimBusinessDialog";
 
 // Social icons mapping
 const SocialIcon = ({ platform }: { platform: string }) => {
@@ -25,12 +28,61 @@ const SocialIcon = ({ platform }: { platform: string }) => {
 
 const BusinessDetail = () => {
   const { id } = useParams();
+  const [userId, setUserId] = useState<string | null>(null);
+  const [claimDialogOpen, setClaimDialogOpen] = useState(false);
+
+  // Get current user
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setUserId(user?.id || null);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
+      setUserId(session?.user?.id || null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
   
   const { data: business, isLoading, error } = useQuery({
     queryKey: ["business", id],
     queryFn: () => fetchBusinessById(id!),
     enabled: !!id,
   });
+
+  // Check if business has an active membership
+  const { data: hasMembership } = useQuery({
+    queryKey: ["business-membership", id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("memberships")
+        .select("id")
+        .eq("business_id", id!)
+        .eq("is_active", true)
+        .maybeSingle();
+      return !!data;
+    },
+    enabled: !!id,
+  });
+
+  // Check if user already has a claim for this business
+  const { data: existingClaim } = useQuery({
+    queryKey: ["business-claim-status", id, userId],
+    queryFn: async () => {
+      if (!userId) return null;
+      const { data } = await supabase
+        .from("business_claims")
+        .select("id, status")
+        .eq("business_id", id!)
+        .eq("claimant_user_id", userId)
+        .in("status", ["pending", "approved"])
+        .maybeSingle();
+      return data;
+    },
+    enabled: !!id && !!userId,
+  });
+
+  const canClaim = userId && !hasMembership && !existingClaim;
 
   if (isLoading) {
     return (
@@ -63,13 +115,19 @@ const BusinessDetail = () => {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-10">
-        <div className="container mx-auto px-4 py-4">
+        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <Link to="/">
             <Button variant="ghost" size="sm">
               <ArrowLeft className="mr-2 h-4 w-4" />
               Back to Directory
             </Button>
           </Link>
+          {canClaim && (
+            <Button onClick={() => setClaimDialogOpen(true)} variant="outline" size="sm">
+              <Flag className="mr-2 h-4 w-4" />
+              Claim this Business
+            </Button>
+          )}
         </div>
       </header>
 
@@ -394,6 +452,15 @@ const BusinessDetail = () => {
           </div>
         </div>
       </main>
+
+      {/* Claim Dialog */}
+      <ClaimBusinessDialog
+        businessId={id!}
+        businessName={business.name}
+        isOpen={claimDialogOpen}
+        onClose={() => setClaimDialogOpen(false)}
+        userId={userId}
+      />
     </div>
   );
 };
