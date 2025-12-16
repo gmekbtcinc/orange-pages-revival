@@ -34,7 +34,7 @@ const tierLabels: Record<string, string> = {
 };
 
 export function DashboardLayout({ children }: DashboardLayoutProps) {
-  const { member, signOut } = useMember();
+  const { companyUser, membership, signOut } = useMember();
   const navigate = useNavigate();
 
   const handleSignOut = async () => {
@@ -42,7 +42,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     navigate("/login");
   };
 
-  const initials = member?.display_name
+  const initials = companyUser?.display_name
     ?.split(" ")
     .map((n) => n[0])
     .join("")
@@ -71,9 +71,9 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                 </h1>
                 <div className="flex items-center gap-2">
                   <Badge
-                    className={`${tierColors[member?.tier || "silver"]} text-white text-xs`}
+                    className={`${tierColors[membership?.tier || "silver"]} text-white text-xs`}
                   >
-                    {tierLabels[member?.tier || "silver"]}
+                    {tierLabels[membership?.tier || "silver"]}
                   </Badge>
                 </div>
               </div>
@@ -89,7 +89,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                     </AvatarFallback>
                   </Avatar>
                   <span className="hidden sm:inline text-foreground">
-                    {member?.display_name}
+                    {companyUser?.display_name}
                   </span>
                   <ChevronDown className="h-4 w-4 text-muted-foreground" />
                 </Button>
@@ -102,8 +102,8 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                   <User className="mr-2 h-4 w-4" />
                   Dashboard
                 </DropdownMenuItem>
-                {member?.business_id && (
-                  <DropdownMenuItem 
+                {companyUser?.business_id && (
+                  <DropdownMenuItem
                     className="cursor-pointer"
                     onClick={() => navigate("/dashboard/company-profile")}
                   >

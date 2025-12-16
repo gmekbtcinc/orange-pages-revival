@@ -3,7 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Calendar, CreditCard, Clock, DollarSign } from "lucide-react";
 
 export function MemberFastFacts() {
-  const { member } = useMember();
+  const { membership } = useMember();
 
   const formatDate = (dateStr: string | null) => {
     if (!dateStr) return "N/A";
@@ -26,22 +26,22 @@ export function MemberFastFacts() {
   const facts = [
     {
       label: "Member Since",
-      value: formatDate(member?.member_since || null),
+      value: formatDate(membership?.member_since || null),
       icon: Calendar,
     },
     {
       label: "Renewal Date",
-      value: formatDate(member?.renewal_date || null),
+      value: formatDate(membership?.renewal_date || null),
       icon: Clock,
     },
     {
       label: "Next Payment Due",
-      value: formatDate(member?.next_payment_due || null),
+      value: formatDate(membership?.next_payment_due || null),
       icon: CreditCard,
     },
     {
       label: "Amount Due",
-      value: formatCurrency(member?.payment_amount_cents || null),
+      value: formatCurrency(membership?.payment_amount_cents || null),
       icon: DollarSign,
     },
   ];

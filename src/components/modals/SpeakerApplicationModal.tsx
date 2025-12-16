@@ -50,7 +50,7 @@ export function SpeakerApplicationModal({
   memberId,
   existingApplication,
 }: SpeakerApplicationModalProps) {
-  const { member } = useMember();
+  const { companyUser } = useMember();
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -78,13 +78,13 @@ export function SpeakerApplicationModal({
       setTargetAudience(existingApplication.target_audience || "");
       setPreviousSpeaking(existingApplication.previous_speaking || "");
     } else {
-      // Pre-fill from member data
-      setSpeakerName(member?.display_name || "");
-      setSpeakerEmail(member?.email || "");
-      setSpeakerTitle(member?.title || "");
+      // Pre-fill from company user data
+      setSpeakerName(companyUser?.display_name || "");
+      setSpeakerEmail(companyUser?.email || "");
+      setSpeakerTitle(companyUser?.title || "");
       setSpeakerCompany("");
     }
-  }, [existingApplication, member, isOpen]);
+  }, [existingApplication, companyUser, isOpen]);
 
   const applicationMutation = useMutation({
     mutationFn: async () => {

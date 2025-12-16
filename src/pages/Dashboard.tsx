@@ -5,7 +5,7 @@ import { EventCards } from "@/components/dashboard/EventCards";
 import { MemberResources } from "@/components/dashboard/MemberResources";
 
 export default function Dashboard() {
-  const { member, isLoading } = useMember();
+  const { companyUser, isMember, isLoading } = useMember();
 
   if (isLoading) {
     return (
@@ -18,15 +18,15 @@ export default function Dashboard() {
     );
   }
 
-  if (!member) {
+  if (!companyUser) {
     return (
       <DashboardLayout>
         <div className="text-center py-12">
           <h2 className="text-xl font-semibold text-foreground mb-2">
-            Member Profile Not Found
+            Account Not Linked
           </h2>
           <p className="text-muted-foreground">
-            Your account is not linked to a BFC membership. Please contact support.
+            Your account is not linked to a company. Please contact support.
           </p>
         </div>
       </DashboardLayout>

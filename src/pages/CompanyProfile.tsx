@@ -27,7 +27,7 @@ interface Article {
 }
 
 export default function CompanyProfile() {
-  const { member, isLoading: memberLoading } = useMember();
+  const { companyUser, isLoading: memberLoading } = useMember();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -79,9 +79,9 @@ export default function CompanyProfile() {
 
   // Fetch business data linked to member
   const { data: business, isLoading: businessLoading } = useQuery({
-    queryKey: ["member-business", member?.business_id],
+    queryKey: ["member-business", companyUser?.business_id],
     queryFn: async () => {
-      if (!member?.business_id) return null;
+      if (!companyUser?.business_id) return null;
       const { data, error } = await supabase
         .from("businesses")
         .select("*")
@@ -90,14 +90,14 @@ export default function CompanyProfile() {
       if (error) throw error;
       return data;
     },
-    enabled: !!member?.business_id,
+    enabled: !!companyUser?.business_id,
   });
 
   // Fetch social links
   const { data: existingSocialLinks = [] } = useQuery({
-    queryKey: ["business-social-links", member?.business_id],
+    queryKey: ["business-social-links", companyUser?.business_id],
     queryFn: async () => {
-      if (!member?.business_id) return [];
+      if (!companyUser?.business_id) return [];
       const { data, error } = await supabase
         .from("business_social_links")
         .select("*")
@@ -105,14 +105,14 @@ export default function CompanyProfile() {
       if (error) throw error;
       return data.map((l) => ({ platform: l.platform, url: l.url }));
     },
-    enabled: !!member?.business_id,
+    enabled: !!companyUser?.business_id,
   });
 
   // Fetch articles
   const { data: existingArticles = [] } = useQuery({
-    queryKey: ["business-articles", member?.business_id],
+    queryKey: ["business-articles", companyUser?.business_id],
     queryFn: async () => {
-      if (!member?.business_id) return [];
+      if (!companyUser?.business_id) return [];
       const { data, error } = await supabase
         .from("business_articles")
         .select("*")
@@ -121,7 +121,7 @@ export default function CompanyProfile() {
       if (error) throw error;
       return data;
     },
-    enabled: !!member?.business_id,
+    enabled: !!companyUser?.business_id,
   });
 
   // Populate form when data loads
@@ -170,7 +170,7 @@ export default function CompanyProfile() {
   // Save mutation
   const saveMutation = useMutation({
     mutationFn: async () => {
-      if (!member?.business_id) throw new Error("No business linked");
+      if (!companyUser?.business_id) throw new Error("No business linked");
 
       // Update business
       const { error: businessError } = await supabase
@@ -281,7 +281,7 @@ export default function CompanyProfile() {
     );
   }
 
-  if (!member?.business_id) {
+  if (!companyUser?.business_id) {
     return (
       <DashboardLayout>
         <Card className="max-w-2xl mx-auto">
