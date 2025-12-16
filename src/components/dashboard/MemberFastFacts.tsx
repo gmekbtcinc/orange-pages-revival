@@ -1,4 +1,4 @@
-import { useMember } from "@/contexts/MemberContext";
+import { useMember } from "@/contexts/member/MemberContext";
 import { Card, CardContent } from "@/components/ui/card";
 import { Calendar, CreditCard, Clock, DollarSign } from "lucide-react";
 

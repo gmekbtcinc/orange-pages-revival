@@ -1,4 +1,4 @@
-import { useMember } from "@/contexts/MemberContext";
+import { useMember } from "@/contexts/member/MemberContext";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { MemberFastFacts } from "@/components/dashboard/MemberFastFacts";
 import { EventCards } from "@/components/dashboard/EventCards";

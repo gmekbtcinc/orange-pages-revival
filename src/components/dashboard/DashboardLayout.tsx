@@ -1,5 +1,5 @@
 import { ReactNode } from "react";
-import { useMember } from "@/contexts/MemberContext";
+import { useMember } from "@/contexts/member/MemberContext";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -65,8 +65,8 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                 }}
               />
               <div className="hidden sm:block">
-                <h1 className="text-lg font-semibold text-foreground">
-                  {member?.business?.name || "BFC Member"}
+              <h1 className="text-lg font-semibold text-foreground">
+                  BFC Member Portal
                 </h1>
                 <div className="flex items-center gap-2">
                   <Badge
