@@ -6,10 +6,11 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { LogOut, User, ChevronDown } from "lucide-react";
+import { LogOut, User, ChevronDown, Building2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 interface DashboardLayoutProps {
@@ -94,10 +95,23 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuItem className="cursor-pointer">
+                <DropdownMenuItem 
+                  className="cursor-pointer"
+                  onClick={() => navigate("/dashboard")}
+                >
                   <User className="mr-2 h-4 w-4" />
-                  Profile
+                  Dashboard
                 </DropdownMenuItem>
+                {member?.business_id && (
+                  <DropdownMenuItem 
+                    className="cursor-pointer"
+                    onClick={() => navigate("/dashboard/company-profile")}
+                  >
+                    <Building2 className="mr-2 h-4 w-4" />
+                    Company Profile
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuSeparator />
                 <DropdownMenuItem
                   onClick={handleSignOut}
                   className="cursor-pointer text-destructive"
