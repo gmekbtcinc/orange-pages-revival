@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Users, UserCheck, Mail, Shield, Search, MoreHorizontal, Eye, Edit, Building2, UserX, UserPlus, Trash2, Ticket, Calendar, Mic, Utensils, BookOpen } from "lucide-react";
+import { Users, UserCheck, Mail, Shield, Search, MoreHorizontal, Eye, Edit, Building2, UserX, UserPlus, Trash2, Ticket, Calendar, Mic, Utensils, BookOpen, ShieldCheck, ShieldAlert, UserCog } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
@@ -18,6 +18,10 @@ import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { UserDetailDialog } from "@/components/admin/UserDetailDialog";
 import { EditUserPermissionsDialog } from "@/components/admin/EditUserPermissionsDialog";
+import { ManageRolesDialog } from "@/components/admin/ManageRolesDialog";
+import { Database } from "@/integrations/supabase/types";
+
+type AppRole = Database["public"]["Enums"]["app_role"];
 
 type UserWithBusiness = {
   id: string;
@@ -54,6 +58,9 @@ export default function UsersAdmin() {
   const [permissionsOpen, setPermissionsOpen] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState<UserWithBusiness | null>(null);
+  const [rolesDialogOpen, setRolesDialogOpen] = useState(false);
+  const [editingRole, setEditingRole] = useState<{ id: string; user_id: string; role: AppRole; email?: string } | null>(null);
+  const [roleToRevoke, setRoleToRevoke] = useState<{ id: string; email: string; role: string } | null>(null);
   const pageSize = 25;
 
   // Fetch stats
@@ -107,16 +114,65 @@ export default function UsersAdmin() {
     },
   });
 
-  // Fetch super admins
-  const { data: superAdmins } = useQuery({
-    queryKey: ["super-admins"],
+  // Fetch admin roles from user_roles table
+  const { data: adminRoles, isLoading: rolesLoading } = useQuery({
+    queryKey: ["admin-roles"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("admins")
+        .from("user_roles")
         .select("*")
         .order("created_at", { ascending: false });
       if (error) throw error;
-      return data;
+
+      // Get email info for each role
+      const rolesWithEmail = await Promise.all(
+        data.map(async (role) => {
+          // Try to find email from company_users
+          const { data: companyUser } = await supabase
+            .from("company_users")
+            .select("email, display_name")
+            .eq("user_id", role.user_id)
+            .maybeSingle();
+          
+          if (companyUser) {
+            return { ...role, email: companyUser.email, display_name: companyUser.display_name };
+          }
+
+          // Try members table
+          const { data: member } = await supabase
+            .from("members")
+            .select("email, display_name")
+            .eq("user_id", role.user_id)
+            .maybeSingle();
+
+          if (member) {
+            return { ...role, email: member.email, display_name: member.display_name };
+          }
+
+          return { ...role, email: "Unknown", display_name: "Unknown User" };
+        })
+      );
+
+      return rolesWithEmail;
+    },
+  });
+
+  // Revoke role mutation
+  const revokeRoleMutation = useMutation({
+    mutationFn: async (roleId: string) => {
+      const { error } = await supabase
+        .from("user_roles")
+        .delete()
+        .eq("id", roleId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-roles"] });
+      toast.success("Role revoked successfully");
+      setRoleToRevoke(null);
+    },
+    onError: (error) => {
+      toast.error("Failed to revoke role: " + error.message);
     },
   });
 
@@ -438,51 +494,100 @@ export default function UsersAdmin() {
           </CardContent>
         </Card>
 
-        {/* Super Admins Section */}
+        {/* Admin Roles Section */}
         <Card>
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="flex items-center gap-2">
-              <Shield className="h-5 w-5 text-primary" />
-              Super Admins
+              <ShieldCheck className="h-5 w-5 text-primary" />
+              Admin Roles
             </CardTitle>
+            <Button onClick={() => { setEditingRole(null); setRolesDialogOpen(true); }}>
+              <UserPlus className="h-4 w-4 mr-2" />
+              Assign Role
+            </Button>
           </CardHeader>
           <CardContent>
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Permissions</TableHead>
-                  <TableHead>Status</TableHead>
+                  <TableHead>User</TableHead>
+                  <TableHead>Role</TableHead>
+                  <TableHead>Assigned</TableHead>
+                  <TableHead className="w-[100px]">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {superAdmins?.length === 0 ? (
+                {rolesLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={4} className="text-center py-4">
+                      Loading...
+                    </TableCell>
+                  </TableRow>
+                ) : adminRoles?.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={4} className="text-center py-4 text-muted-foreground">
-                      No super admins found
+                      No admin roles assigned
                     </TableCell>
                   </TableRow>
                 ) : (
-                  superAdmins?.map((admin) => (
-                    <TableRow key={admin.id}>
-                      <TableCell className="font-medium">{admin.display_name}</TableCell>
-                      <TableCell>{admin.email}</TableCell>
+                  adminRoles?.map((roleEntry) => (
+                    <TableRow key={roleEntry.id}>
                       <TableCell>
-                        <div className="flex gap-1 flex-wrap">
-                          {admin.can_manage_memberships && <Badge variant="outline" className="text-xs">Memberships</Badge>}
-                          {admin.can_manage_events && <Badge variant="outline" className="text-xs">Events</Badge>}
-                          {admin.can_manage_content && <Badge variant="outline" className="text-xs">Content</Badge>}
-                          {admin.can_manage_admins && <Badge variant="outline" className="text-xs">Admins</Badge>}
-                          {admin.can_impersonate && <Badge variant="outline" className="text-xs">Impersonate</Badge>}
+                        <div>
+                          <p className="font-medium">{roleEntry.display_name}</p>
+                          <p className="text-sm text-muted-foreground">{roleEntry.email}</p>
                         </div>
                       </TableCell>
                       <TableCell>
-                        {admin.is_active ? (
-                          <Badge className="bg-green-500">Active</Badge>
-                        ) : (
-                          <Badge variant="destructive">Inactive</Badge>
-                        )}
+                        <Badge 
+                          variant={roleEntry.role === "super_admin" ? "default" : "secondary"}
+                          className={
+                            roleEntry.role === "super_admin" 
+                              ? "bg-red-500 hover:bg-red-600" 
+                              : roleEntry.role === "admin" 
+                                ? "bg-blue-500 hover:bg-blue-600" 
+                                : ""
+                          }
+                        >
+                          {roleEntry.role === "super_admin" && <ShieldAlert className="h-3 w-3 mr-1" />}
+                          {roleEntry.role === "admin" && <Shield className="h-3 w-3 mr-1" />}
+                          {roleEntry.role === "moderator" && <UserCog className="h-3 w-3 mr-1" />}
+                          {roleEntry.role.replace("_", " ").replace(/\b\w/g, (l) => l.toUpperCase())}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {roleEntry.created_at ? format(new Date(roleEntry.created_at), "MMM d, yyyy") : "N/A"}
+                      </TableCell>
+                      <TableCell>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => { 
+                              setEditingRole({ 
+                                id: roleEntry.id, 
+                                user_id: roleEntry.user_id, 
+                                role: roleEntry.role as AppRole,
+                                email: roleEntry.email 
+                              }); 
+                              setRolesDialogOpen(true); 
+                            }}>
+                              <Edit className="h-4 w-4 mr-2" />
+                              Edit Role
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              className="text-destructive"
+                              onClick={() => setRoleToRevoke({ id: roleEntry.id, email: roleEntry.email, role: roleEntry.role })}
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Revoke Role
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </TableCell>
                     </TableRow>
                   ))
@@ -496,8 +601,13 @@ export default function UsersAdmin() {
       {/* Dialogs */}
       <UserDetailDialog user={selectedUser} open={detailOpen} onOpenChange={setDetailOpen} />
       <EditUserPermissionsDialog user={selectedUser} open={permissionsOpen} onOpenChange={setPermissionsOpen} />
+      <ManageRolesDialog 
+        open={rolesDialogOpen} 
+        onOpenChange={setRolesDialogOpen}
+        existingRole={editingRole}
+      />
 
-      {/* Delete Confirmation */}
+      {/* Delete User Confirmation */}
       <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -513,6 +623,27 @@ export default function UsersAdmin() {
               onClick={() => userToDelete && deleteMutation.mutate(userToDelete.id)}
             >
               Remove
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Revoke Role Confirmation */}
+      <AlertDialog open={!!roleToRevoke} onOpenChange={(open) => !open && setRoleToRevoke(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Revoke Admin Role</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to revoke the <strong>{roleToRevoke?.role.replace("_", " ")}</strong> role from <strong>{roleToRevoke?.email}</strong>? They will lose all associated admin privileges.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => roleToRevoke && revokeRoleMutation.mutate(roleToRevoke.id)}
+            >
+              Revoke Role
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
