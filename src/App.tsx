@@ -21,6 +21,7 @@ import CompanyDetail from "./pages/admin/CompanyDetail";
 import MembershipsAdmin from "./pages/admin/MembershipsAdmin";
 import UsersAdmin from "./pages/admin/UsersAdmin";
 import EventsAdmin from "./pages/admin/EventsAdmin";
+import EventDetail from "./pages/admin/EventDetail";
 
 const queryClient = new QueryClient();
 
@@ -118,6 +119,14 @@ const App = () => (
               element={
                 <AdminProtectedRoute>
                   <EventsAdmin />
+                </AdminProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/events/:id"
+              element={
+                <AdminProtectedRoute>
+                  <EventDetail />
                 </AdminProtectedRoute>
               }
             />
