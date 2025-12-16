@@ -17,6 +17,7 @@ import TeamManagement from "./pages/TeamManagement";
 import ClaimsQueue from "./pages/admin/ClaimsQueue";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import CompaniesAdmin from "./pages/admin/CompaniesAdmin";
+import CompanyDetail from "./pages/admin/CompanyDetail";
 import MembershipsAdmin from "./pages/admin/MembershipsAdmin";
 import UsersAdmin from "./pages/admin/UsersAdmin";
 import EventsAdmin from "./pages/admin/EventsAdmin";
@@ -85,6 +86,14 @@ const App = () => (
               element={
                 <AdminProtectedRoute>
                   <CompaniesAdmin />
+                </AdminProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/companies/:id"
+              element={
+                <AdminProtectedRoute>
+                  <CompanyDetail />
                 </AdminProtectedRoute>
               }
             />
