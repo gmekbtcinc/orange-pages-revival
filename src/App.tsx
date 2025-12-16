@@ -15,6 +15,11 @@ import Dashboard from "./pages/Dashboard";
 import CompanyProfile from "./pages/CompanyProfile";
 import TeamManagement from "./pages/TeamManagement";
 import ClaimsQueue from "./pages/admin/ClaimsQueue";
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import CompaniesAdmin from "./pages/admin/CompaniesAdmin";
+import MembershipsAdmin from "./pages/admin/MembershipsAdmin";
+import UsersAdmin from "./pages/admin/UsersAdmin";
+import EventsAdmin from "./pages/admin/EventsAdmin";
 
 const queryClient = new QueryClient();
 
@@ -60,10 +65,50 @@ const App = () => (
 
             {/* Admin routes */}
             <Route
+              path="/admin"
+              element={
+                <AdminProtectedRoute>
+                  <AdminDashboard />
+                </AdminProtectedRoute>
+              }
+            />
+            <Route
               path="/admin/claims"
               element={
                 <AdminProtectedRoute>
                   <ClaimsQueue />
+                </AdminProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/companies"
+              element={
+                <AdminProtectedRoute>
+                  <CompaniesAdmin />
+                </AdminProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/memberships"
+              element={
+                <AdminProtectedRoute>
+                  <MembershipsAdmin />
+                </AdminProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/users"
+              element={
+                <AdminProtectedRoute>
+                  <UsersAdmin />
+                </AdminProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/events"
+              element={
+                <AdminProtectedRoute>
+                  <EventsAdmin />
                 </AdminProtectedRoute>
               }
             />

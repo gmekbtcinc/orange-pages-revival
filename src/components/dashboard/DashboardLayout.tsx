@@ -10,8 +10,10 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { LogOut, User, ChevronDown, Building2, Users } from "lucide-react";
+import { LogOut, User, ChevronDown, Building2, Users, Shield } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -51,6 +53,23 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
   const tier = membership?.tier || member?.tier || "silver";
   const canManageUsers = companyUser?.can_manage_users || companyUser?.role === "company_admin";
+
+  const { data: isAdmin } = useQuery({
+    queryKey: ["user-is-admin"],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return false;
+
+      const { data } = await supabase
+        .from("admins")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("is_active", true)
+        .maybeSingle();
+
+      return !!data;
+    },
+  });
 
   return (
     <div className="min-h-screen bg-background dark">
@@ -121,6 +140,15 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                   >
                     <Users className="mr-2 h-4 w-4" />
                     Team
+                  </DropdownMenuItem>
+                )}
+                {isAdmin && (
+                  <DropdownMenuItem 
+                    className="cursor-pointer"
+                    onClick={() => navigate("/admin")}
+                  >
+                    <Shield className="mr-2 h-4 w-4" />
+                    Admin Portal
                   </DropdownMenuItem>
                 )}
                 <DropdownMenuSeparator />
