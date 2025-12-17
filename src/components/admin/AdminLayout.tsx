@@ -23,6 +23,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { AdminBreadcrumb, BreadcrumbItem } from "./AdminBreadcrumb";
+import bfcLogo from "@/assets/bfc-profile-icon.png";
 
 interface AdminLayoutProps {
   children: ReactNode;
@@ -82,8 +83,17 @@ export function AdminLayout({ children, breadcrumbs }: AdminLayoutProps) {
       <aside className="w-64 border-r border-border bg-card flex flex-col">
         {/* Logo */}
         <div className="p-4 border-b border-border">
-          <h1 className="text-lg font-bold text-foreground">BFC Admin Portal</h1>
-          <p className="text-xs text-muted-foreground">Management Console</p>
+          <div className="flex items-center gap-3">
+            <img
+              src={bfcLogo}
+              alt="BFC"
+              className="h-10 w-10 rounded-lg"
+            />
+            <div>
+              <h1 className="text-lg font-bold text-foreground">BFC Admin</h1>
+              <p className="text-xs text-muted-foreground">Management Console</p>
+            </div>
+          </div>
         </div>
 
         {/* Navigation */}
