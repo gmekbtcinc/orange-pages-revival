@@ -271,9 +271,11 @@ export default function CompanyProfile() {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
+  const breadcrumbs = [{ label: "Company Profile" }];
+
   if (memberLoading || businessLoading) {
     return (
-      <DashboardLayout>
+      <DashboardLayout breadcrumbs={breadcrumbs}>
         <div className="flex items-center justify-center py-12">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
@@ -283,7 +285,7 @@ export default function CompanyProfile() {
 
   if (!companyUser?.business_id) {
     return (
-      <DashboardLayout>
+      <DashboardLayout breadcrumbs={breadcrumbs}>
         <Card className="max-w-2xl mx-auto">
           <CardContent className="py-12 text-center">
             <Building2 className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
@@ -303,7 +305,7 @@ export default function CompanyProfile() {
   }
 
   return (
-    <DashboardLayout>
+    <DashboardLayout breadcrumbs={breadcrumbs}>
       <div className="max-w-4xl mx-auto space-y-6">
         <div className="flex items-center justify-between">
           <div>

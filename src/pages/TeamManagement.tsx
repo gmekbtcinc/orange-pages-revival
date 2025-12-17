@@ -118,9 +118,11 @@ export default function TeamManagement() {
     return permissions;
   };
 
+  const breadcrumbs = [{ label: "Team Management" }];
+
   if (memberLoading || teamLoading) {
     return (
-      <DashboardLayout>
+      <DashboardLayout breadcrumbs={breadcrumbs}>
         <div className="flex items-center justify-center py-12">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
@@ -130,7 +132,7 @@ export default function TeamManagement() {
 
   if (!companyUser || !canManageUsers) {
     return (
-      <DashboardLayout>
+      <DashboardLayout breadcrumbs={breadcrumbs}>
         <Card className="max-w-2xl mx-auto">
           <CardContent className="py-12 text-center">
             <Shield className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
@@ -150,7 +152,7 @@ export default function TeamManagement() {
   }
 
   return (
-    <DashboardLayout>
+    <DashboardLayout breadcrumbs={breadcrumbs}>
       <div className="max-w-5xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
