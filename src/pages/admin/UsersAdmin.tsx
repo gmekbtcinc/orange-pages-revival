@@ -19,6 +19,7 @@ import { toast } from "sonner";
 import { UserDetailDialog } from "@/components/admin/UserDetailDialog";
 import { EditUserPermissionsDialog } from "@/components/admin/EditUserPermissionsDialog";
 import { ManageRolesDialog } from "@/components/admin/ManageRolesDialog";
+import { AddUserDialog } from "@/components/admin/AddUserDialog";
 import { Database } from "@/integrations/supabase/types";
 
 type AppRole = Database["public"]["Enums"]["app_role"];
@@ -61,6 +62,7 @@ export default function UsersAdmin() {
   const [rolesDialogOpen, setRolesDialogOpen] = useState(false);
   const [editingRole, setEditingRole] = useState<{ id: string; user_id: string; role: AppRole; email?: string } | null>(null);
   const [roleToRevoke, setRoleToRevoke] = useState<{ id: string; email: string; role: string } | null>(null);
+  const [addUserOpen, setAddUserOpen] = useState(false);
   const pageSize = 25;
 
   // Fetch stats
@@ -241,12 +243,18 @@ export default function UsersAdmin() {
   return (
     <AdminLayout breadcrumbs={[{ label: "Users" }]}>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-            <Users className="h-6 w-6" />
-            Users
-          </h1>
-          <p className="text-muted-foreground">Manage platform users and permissions</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
+              <Users className="h-6 w-6" />
+              Users
+            </h1>
+            <p className="text-muted-foreground">Manage platform users and permissions</p>
+          </div>
+          <Button onClick={() => setAddUserOpen(true)}>
+            <UserPlus className="h-4 w-4 mr-2" />
+            Add User
+          </Button>
         </div>
 
         {/* Stats Cards */}
@@ -594,6 +602,7 @@ export default function UsersAdmin() {
         onOpenChange={setRolesDialogOpen}
         existingRole={editingRole}
       />
+      <AddUserDialog open={addUserOpen} onOpenChange={setAddUserOpen} />
 
       {/* Delete User Confirmation */}
       <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>

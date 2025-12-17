@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -49,6 +49,18 @@ export function ManageRolesDialog({
   const [searching, setSearching] = useState(false);
 
   const isEditing = !!existingRole;
+
+  // Sync state when existingRole changes
+  useEffect(() => {
+    if (existingRole) {
+      setUserId(existingRole.user_id);
+      setRole(existingRole.role);
+    } else {
+      setUserId("");
+      setRole("admin");
+    }
+  }, [existingRole]);
+
 
   // Search for user by email
   const searchUser = async () => {
