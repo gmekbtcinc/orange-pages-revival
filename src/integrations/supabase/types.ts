@@ -809,6 +809,7 @@ export type Database = {
       member_resource_requests: {
         Row: {
           admin_notes: string | null
+          company_user_id: string | null
           completed_at: string | null
           id: string
           member_id: string
@@ -820,6 +821,7 @@ export type Database = {
         }
         Insert: {
           admin_notes?: string | null
+          company_user_id?: string | null
           completed_at?: string | null
           id?: string
           member_id: string
@@ -831,6 +833,7 @@ export type Database = {
         }
         Update: {
           admin_notes?: string | null
+          company_user_id?: string | null
           completed_at?: string | null
           id?: string
           member_id?: string
@@ -841,6 +844,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "member_resource_requests_company_user_id_fkey"
+            columns: ["company_user_id"]
+            isOneToOne: false
+            referencedRelation: "company_users"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "member_resource_requests_member_id_fkey"
             columns: ["member_id"]
@@ -1144,6 +1154,7 @@ export type Database = {
           admin_notes: string | null
           airtable_record_id: string | null
           av_requirements: string | null
+          company_user_id: string | null
           created_at: string
           event_id: string
           format: string
@@ -1168,6 +1179,7 @@ export type Database = {
           admin_notes?: string | null
           airtable_record_id?: string | null
           av_requirements?: string | null
+          company_user_id?: string | null
           created_at?: string
           event_id: string
           format: string
@@ -1192,6 +1204,7 @@ export type Database = {
           admin_notes?: string | null
           airtable_record_id?: string | null
           av_requirements?: string | null
+          company_user_id?: string | null
           created_at?: string
           event_id?: string
           format?: string
@@ -1213,6 +1226,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "speaker_applications_company_user_id_fkey"
+            columns: ["company_user_id"]
+            isOneToOne: false
+            referencedRelation: "company_users"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "speaker_applications_event_id_fkey"
             columns: ["event_id"]
