@@ -14,17 +14,22 @@ import { LogOut, User, ChevronDown, Building2, Users, Shield } from "lucide-reac
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import bfcLogo from "@/assets/bfc-profile-icon.png";
 
 interface DashboardLayoutProps {
   children: ReactNode;
 }
 
 const tierColors: Record<string, string> = {
+  industry: "bg-slate-500",
+  premier: "bg-blue-600",
+  executive: "bg-purple-600",
+  sponsor: "bg-green-600",
+  chairman: "bg-bitcoin-orange",
+  // Legacy tiers
   silver: "bg-gray-400",
   gold: "bg-yellow-500",
   platinum: "bg-slate-300",
-  chairman: "bg-bitcoin-orange",
-  executive: "bg-purple-600",
 };
 
 const tierLabels: Record<string, string> = {
@@ -84,15 +89,12 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
             {/* Logo and Company */}
             <div className="flex items-center gap-4">
               <img
-                src="/bfc-logo.svg"
+                src={bfcLogo}
                 alt="BFC"
-                className="h-10 w-auto"
-                onError={(e) => {
-                  e.currentTarget.src = "https://placehold.co/120x40/1D1D1D/FA660E?text=BFC";
-                }}
+                className="h-10 w-10 rounded-lg"
               />
               <div className="hidden sm:block">
-              <h1 className="text-lg font-semibold text-foreground">
+                <h1 className="text-lg font-semibold text-foreground">
                   BFC Member Portal
                 </h1>
                 <div className="flex items-center gap-2">

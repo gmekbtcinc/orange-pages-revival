@@ -3,7 +3,8 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, Ticket } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Calendar, Ticket, Building2 } from "lucide-react";
 
 const tierLabels: Record<string, string> = {
   silver: "Silver Member",
@@ -16,14 +17,14 @@ const tierLabels: Record<string, string> = {
 export function WelcomeHeader() {
   const { member, companyUser, membership, allocations } = useMember();
 
-  // Fetch company name
+  // Fetch company name and logo
   const { data: business } = useQuery({
     queryKey: ["business", companyUser?.business_id],
     queryFn: async () => {
       if (!companyUser?.business_id) return null;
       const { data } = await supabase
         .from("businesses")
-        .select("name")
+        .select("name, logo_url")
         .eq("id", companyUser.business_id)
         .single();
       return data;
@@ -70,21 +71,33 @@ export function WelcomeHeader() {
   const firstName = displayName.split(" ")[0];
   const tier = membership?.tier || member?.tier || "industry";
   const companyName = business?.name || "Your Company";
+  const companyLogo = business?.logo_url;
+  const companyInitials = companyName.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
 
   return (
     <Card className="bg-gradient-to-r from-bitcoin-orange/10 via-card to-card border-bitcoin-orange/20">
       <CardContent className="p-6">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div>
-            <h1 className="text-2xl md:text-3xl font-bold text-foreground">
-              {getGreeting()}, {firstName}!
-            </h1>
-            <div className="flex items-center gap-2 mt-2">
-              <span className="text-muted-foreground">{companyName}</span>
-              <span className="text-muted-foreground">•</span>
-              <Badge variant="outline" className="border-bitcoin-orange/50 text-bitcoin-orange">
-                {tierLabels[tier]}
-              </Badge>
+          <div className="flex items-center gap-4">
+            {/* Company Logo */}
+            <Avatar className="h-14 w-14 rounded-lg border border-border">
+              <AvatarImage src={companyLogo || undefined} alt={companyName} className="object-cover" />
+              <AvatarFallback className="bg-muted text-muted-foreground rounded-lg">
+                <Building2 className="h-6 w-6" />
+              </AvatarFallback>
+            </Avatar>
+            
+            <div>
+              <h1 className="text-2xl md:text-3xl font-bold text-foreground">
+                {getGreeting()}, {firstName}!
+              </h1>
+              <div className="flex items-center gap-2 mt-1">
+                <span className="text-muted-foreground">{companyName}</span>
+                <span className="text-muted-foreground">•</span>
+                <Badge variant="outline" className="border-bitcoin-orange/50 text-bitcoin-orange">
+                  {tierLabels[tier]}
+                </Badge>
+              </div>
             </div>
           </div>
 
