@@ -12,11 +12,11 @@ import type { Database } from "@/integrations/supabase/types";
 type MemberTier = Database["public"]["Enums"]["member_tier"];
 
 const TIERS: { value: MemberTier; label: string; color: string }[] = [
-  { value: "silver", label: "Silver", color: "bg-slate-400" },
-  { value: "gold", label: "Gold", color: "bg-yellow-500" },
-  { value: "platinum", label: "Platinum", color: "bg-slate-600" },
-  { value: "chairman", label: "Chairman's Circle", color: "bg-orange-500" },
+  { value: "industry", label: "Industry", color: "bg-blue-500" },
+  { value: "premier", label: "Premier", color: "bg-emerald-500" },
   { value: "executive", label: "Executive", color: "bg-purple-500" },
+  { value: "sponsor", label: "Sponsor", color: "bg-amber-500" },
+  { value: "chairman", label: "Chairman's Circle", color: "bg-orange-500" },
 ];
 
 interface AllocationsDialogProps {
