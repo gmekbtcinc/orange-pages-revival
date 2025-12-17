@@ -6,7 +6,7 @@ import { Progress } from "@/components/ui/progress";
 import { CheckCircle2, Ticket } from "lucide-react";
 
 export function TicketProgress() {
-  const { member, allocations } = useMember();
+  const { companyUserId, allocations } = useMember();
 
   // Fetch events for allocations
   const { data: events } = useQuery({
@@ -25,18 +25,18 @@ export function TicketProgress() {
     enabled: allocations.length > 0,
   });
 
-  // Fetch ticket claims for this member
+  // Fetch ticket claims for this company user
   const { data: ticketClaims } = useQuery({
-    queryKey: ["ticket-claims-progress", member?.id],
+    queryKey: ["ticket-claims-progress", companyUserId],
     queryFn: async () => {
-      if (!member?.id) return [];
+      if (!companyUserId) return [];
       const { data } = await supabase
         .from("ticket_claims")
         .select("event_id")
-        .eq("member_id", member.id);
+        .eq("company_user_id", companyUserId);
       return data || [];
     },
-    enabled: !!member?.id,
+    enabled: !!companyUserId,
   });
 
   // Calculate progress for each event

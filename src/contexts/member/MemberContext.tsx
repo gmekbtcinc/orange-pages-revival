@@ -2,15 +2,11 @@ import { createContext, useContext, useState, useEffect, ReactNode } from "react
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 
-/** @deprecated Use companyUser instead - will be removed in future migration */
-type Member = Tables<"members">;
 type EventAllocation = Tables<"event_allocations">;
 type CompanyUser = Tables<"company_users">;
 type Membership = Tables<"memberships">;
 
 interface MemberContextType {
-  /** @deprecated Use companyUser instead */
-  member: Member | null;
   /** Primary source of truth for user identity */
   companyUser: CompanyUser | null;
   /** Convenience property: companyUser?.id for activity table operations */
@@ -27,7 +23,6 @@ interface MemberContextType {
 const MemberContext = createContext<MemberContextType | undefined>(undefined);
 
 export function MemberProvider({ children }: { children: ReactNode }) {
-  const [member, setMember] = useState<Member | null>(null);
   const [companyUser, setCompanyUser] = useState<CompanyUser | null>(null);
   const [membership, setMembership] = useState<Membership | null>(null);
   const [allocations, setAllocations] = useState<EventAllocation[]>([]);
@@ -42,7 +37,6 @@ export function MemberProvider({ children }: { children: ReactNode }) {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        setMember(null);
         setCompanyUser(null);
         setMembership(null);
         setAllocations([]);
@@ -65,25 +59,12 @@ export function MemberProvider({ children }: { children: ReactNode }) {
 
       setCompanyUser(companyUserData || null);
 
-      // Fetch member record (DEPRECATED - for backward compatibility)
-      const { data: memberData, error: memberError } = await supabase
-        .from("members")
-        .select("*")
-        .eq("user_id", user.id)
-        .maybeSingle();
-
-      if (memberError && memberError.code !== "PGRST116") {
-        console.error("Error fetching member:", memberError);
-      }
-      setMember(memberData || null);
-
-      // Fetch membership based on companyUser's business_id (primary) or member's business_id (fallback)
-      const businessId = companyUserData?.business_id || memberData?.business_id;
-      if (businessId) {
+      // Fetch membership based on companyUser's business_id
+      if (companyUserData?.business_id) {
         const { data: membershipData } = await supabase
           .from("memberships")
           .select("*")
-          .eq("business_id", businessId)
+          .eq("business_id", companyUserData.business_id)
           .eq("is_active", true)
           .maybeSingle();
 
@@ -98,18 +79,9 @@ export function MemberProvider({ children }: { children: ReactNode }) {
           
           setAllocations(allocationData || []);
         }
-      } else if (memberData?.tier) {
-        // Fallback to member tier if no membership (deprecated path)
-        const { data: allocationData } = await supabase
-          .from("event_allocations")
-          .select("*")
-          .eq("tier", memberData.tier);
-        
-        setAllocations(allocationData || []);
       }
     } catch (error) {
       console.error("Error in fetchMember:", error);
-      setMember(null);
       setCompanyUser(null);
       setMembership(null);
       setAllocations([]);
@@ -121,7 +93,6 @@ export function MemberProvider({ children }: { children: ReactNode }) {
 
   const signOut = async () => {
     await supabase.auth.signOut();
-    setMember(null);
     setCompanyUser(null);
     setMembership(null);
     setAllocations([]);
@@ -135,7 +106,6 @@ export function MemberProvider({ children }: { children: ReactNode }) {
       if (event === "SIGNED_IN") {
         setTimeout(() => fetchMember(), 0);
       } else if (event === "SIGNED_OUT") {
-        setMember(null);
         setCompanyUser(null);
         setMembership(null);
         setAllocations([]);
@@ -148,7 +118,6 @@ export function MemberProvider({ children }: { children: ReactNode }) {
 
   return (
     <MemberContext.Provider value={{ 
-      member, 
       companyUser, 
       companyUserId,
       membership, 

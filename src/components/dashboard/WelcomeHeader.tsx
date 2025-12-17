@@ -15,7 +15,7 @@ const tierLabels: Record<string, string> = {
 };
 
 export function WelcomeHeader() {
-  const { member, companyUser, membership, allocations } = useMember();
+  const { companyUser, membership, allocations } = useMember();
 
   // Fetch company name and logo
   const { data: business } = useQuery({
@@ -67,9 +67,9 @@ export function WelcomeHeader() {
     return "Good evening";
   };
 
-  const displayName = companyUser?.display_name || member?.display_name || "there";
+  const displayName = companyUser?.display_name || "there";
   const firstName = displayName.split(" ")[0];
-  const tier = membership?.tier || member?.tier || "industry";
+  const tier = membership?.tier || "industry";
   const companyName = business?.name || "Your Company";
   const companyLogo = business?.logo_url;
   const companyInitials = companyName.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();

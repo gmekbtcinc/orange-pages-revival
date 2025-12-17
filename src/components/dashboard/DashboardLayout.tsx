@@ -47,7 +47,7 @@ const tierLabels: Record<string, string> = {
 };
 
 export function DashboardLayout({ children, breadcrumbs }: DashboardLayoutProps) {
-  const { member, companyUser, membership, signOut } = useMember();
+  const { companyUser, membership, signOut } = useMember();
   const navigate = useNavigate();
 
   const handleSignOut = async () => {
@@ -55,14 +55,14 @@ export function DashboardLayout({ children, breadcrumbs }: DashboardLayoutProps)
     navigate("/login");
   };
 
-  const initials = member?.display_name
+  const initials = companyUser?.display_name
     ?.split(" ")
     .map((n) => n[0])
     .join("")
     .toUpperCase()
     .slice(0, 2) || "BF";
 
-  const tier = membership?.tier || member?.tier || "industry";
+  const tier = membership?.tier || "industry";
   const canManageUsers = companyUser?.can_manage_users || companyUser?.role === "company_admin";
 
   const { data: isAdmin } = useQuery({
@@ -119,7 +119,7 @@ export function DashboardLayout({ children, breadcrumbs }: DashboardLayoutProps)
                     </AvatarFallback>
                   </Avatar>
                   <span className="hidden sm:inline text-foreground">
-                    {member?.display_name}
+                    {companyUser?.display_name}
                   </span>
                   <ChevronDown className="h-4 w-4 text-muted-foreground" />
                 </Button>
@@ -132,7 +132,7 @@ export function DashboardLayout({ children, breadcrumbs }: DashboardLayoutProps)
                   <User className="mr-2 h-4 w-4" />
                   Dashboard
                 </DropdownMenuItem>
-                {member?.business_id && (
+                {companyUser?.business_id && (
                   <DropdownMenuItem 
                     className="cursor-pointer"
                     onClick={() => navigate("/dashboard/company-profile")}

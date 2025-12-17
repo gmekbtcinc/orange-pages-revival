@@ -39,7 +39,7 @@ const permissionLabels: Record<string, string> = {
 };
 
 export default function TeamManagement() {
-  const { member, companyUser, isLoading: memberLoading } = useMember();
+  const { companyUser, isLoading: memberLoading } = useMember();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);

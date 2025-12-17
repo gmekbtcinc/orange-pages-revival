@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 
 export function QuickActions() {
-  const { companyUser, member } = useMember();
+  const { companyUser } = useMember();
   const navigate = useNavigate();
 
   const actions = [
