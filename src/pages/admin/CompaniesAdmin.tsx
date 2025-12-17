@@ -122,7 +122,7 @@ export default function CompaniesAdmin() {
   const total = data?.total || 0;
 
   return (
-    <AdminLayout>
+    <AdminLayout breadcrumbs={[{ label: "Companies" }]}>
       <div className="space-y-6">
         <div>
           <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">

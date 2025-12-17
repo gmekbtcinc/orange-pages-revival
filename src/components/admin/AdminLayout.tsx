@@ -22,9 +22,11 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
+import { AdminBreadcrumb, BreadcrumbItem } from "./AdminBreadcrumb";
 
 interface AdminLayoutProps {
   children: ReactNode;
+  breadcrumbs?: BreadcrumbItem[];
 }
 
 const navItems = [
@@ -36,7 +38,7 @@ const navItems = [
   { label: "Events", href: "/admin/events", icon: Calendar },
 ];
 
-export function AdminLayout({ children }: AdminLayoutProps) {
+export function AdminLayout({ children, breadcrumbs }: AdminLayoutProps) {
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -138,6 +140,9 @@ export function AdminLayout({ children }: AdminLayoutProps) {
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col">
+        {breadcrumbs && breadcrumbs.length > 0 && (
+          <AdminBreadcrumb items={breadcrumbs} />
+        )}
         <main className="flex-1 p-8">{children}</main>
 
         {/* Footer */}
