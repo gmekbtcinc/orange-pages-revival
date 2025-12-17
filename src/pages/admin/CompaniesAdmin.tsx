@@ -8,6 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Table,
   TableBody,
@@ -21,7 +22,15 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Building2,
@@ -37,7 +46,15 @@ import {
   CheckCircle,
   Bitcoin,
   Shield,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
+  X,
+  FileDown,
+  Mail,
+  Trash2,
 } from "lucide-react";
+import { toast } from "sonner";
 
 interface CompanyWithMembership {
   id: string;
@@ -52,6 +69,9 @@ interface CompanyWithMembership {
   memberships: { tier: string; is_active: boolean; member_since: string | null } | null;
   company_users: { id: string }[];
 }
+
+type SortField = "name" | "joined" | "tier";
+type SortDirection = "asc" | "desc";
 
 const ITEMS_PER_PAGE = 20;
 
@@ -78,14 +98,28 @@ const tierLabels: Record<string, string> = {
   platinum: "Platinum",
 };
 
+const tierOrder: Record<string, number> = {
+  chairman: 1,
+  sponsor: 2,
+  executive: 3,
+  premier: 4,
+  industry: 5,
+  platinum: 6,
+  gold: 7,
+  silver: 8,
+};
+
 export default function CompaniesAdmin() {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [filter, setFilter] = useState<"all" | "members" | "non-members">("all");
   const [page, setPage] = useState(1);
+  const [sortField, setSortField] = useState<SortField>("name");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   const { data, isLoading } = useQuery({
-    queryKey: ["admin-companies", searchQuery, filter, page],
+    queryKey: ["admin-companies", searchQuery, filter, page, sortField, sortDirection],
     queryFn: async () => {
       let query = supabase
         .from("businesses")
@@ -101,8 +135,7 @@ export default function CompaniesAdmin() {
           created_at,
           memberships (tier, is_active, member_since),
           company_users (id)
-        `, { count: "exact" })
-        .order("created_at", { ascending: false });
+        `, { count: "exact" });
 
       if (searchQuery) {
         query = query.ilike("name", `%${searchQuery}%`);
@@ -119,6 +152,29 @@ export default function CompaniesAdmin() {
         filtered = filtered.filter((c) => !c.memberships?.is_active);
       }
 
+      // Sort
+      filtered.sort((a, b) => {
+        let comparison = 0;
+        
+        switch (sortField) {
+          case "name":
+            comparison = a.name.localeCompare(b.name);
+            break;
+          case "joined":
+            const dateA = a.memberships?.member_since || "9999-12-31";
+            const dateB = b.memberships?.member_since || "9999-12-31";
+            comparison = dateA.localeCompare(dateB);
+            break;
+          case "tier":
+            const tierA = tierOrder[a.memberships?.tier || ""] || 99;
+            const tierB = tierOrder[b.memberships?.tier || ""] || 99;
+            comparison = tierA - tierB;
+            break;
+        }
+        
+        return sortDirection === "asc" ? comparison : -comparison;
+      });
+
       // Paginate
       const start = (page - 1) * ITEMS_PER_PAGE;
       const paginated = filtered.slice(start, start + ITEMS_PER_PAGE);
@@ -127,6 +183,7 @@ export default function CompaniesAdmin() {
         companies: paginated,
         total: filtered.length,
         totalPages: Math.ceil(filtered.length / ITEMS_PER_PAGE),
+        allIds: filtered.map(c => c.id),
       };
     },
   });
@@ -134,6 +191,82 @@ export default function CompaniesAdmin() {
   const companies = data?.companies || [];
   const totalPages = data?.totalPages || 1;
   const total = data?.total || 0;
+  const allFilteredIds = data?.allIds || [];
+
+  const toggleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortDirection(d => d === "asc" ? "desc" : "asc");
+    } else {
+      setSortField(field);
+      setSortDirection("asc");
+    }
+    setPage(1);
+  };
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === companies.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(companies.map(c => c.id)));
+    }
+  };
+
+  const selectAllFiltered = () => {
+    setSelectedIds(new Set(allFilteredIds));
+  };
+
+  const clearSelection = () => {
+    setSelectedIds(new Set());
+  };
+
+  const handleBulkExport = () => {
+    const selectedCompanies = companies.filter(c => selectedIds.has(c.id));
+    const csvContent = [
+      ["Name", "Tier", "Location", "Joined", "Team Size"].join(","),
+      ...selectedCompanies.map(c => [
+        `"${c.name}"`,
+        c.memberships?.tier || "non-member",
+        `"${[c.city, c.country].filter(Boolean).join(", ")}"`,
+        c.memberships?.member_since || "",
+        c.company_users?.length || 0,
+      ].join(","))
+    ].join("\n");
+    
+    const blob = new Blob([csvContent], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `companies-export-${new Date().toISOString().split("T")[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    
+    toast.success(`Exported ${selectedIds.size} companies`);
+  };
+
+  const handleBulkEmail = () => {
+    toast.info("Email feature coming soon", {
+      description: `${selectedIds.size} companies selected for outreach`,
+    });
+  };
+
+  const SortIcon = ({ field }: { field: SortField }) => {
+    if (sortField !== field) return <ArrowUpDown className="h-4 w-4 ml-1 opacity-50" />;
+    return sortDirection === "asc" 
+      ? <ArrowUp className="h-4 w-4 ml-1" /> 
+      : <ArrowDown className="h-4 w-4 ml-1" />;
+  };
 
   return (
     <AdminLayout breadcrumbs={[{ label: "Companies" }]}>
@@ -148,22 +281,47 @@ export default function CompaniesAdmin() {
           </p>
         </div>
 
-        {/* Filters */}
+        {/* Filters & Sort */}
         <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
-          <div className="relative w-full md:w-80">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search companies..."
-              value={searchQuery}
-              onChange={(e) => {
-                setSearchQuery(e.target.value);
+          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+            <div className="relative w-full sm:w-80">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search companies..."
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setPage(1);
+                }}
+                className="pl-10"
+              />
+            </div>
+            
+            <Select
+              value={`${sortField}-${sortDirection}`}
+              onValueChange={(value) => {
+                const [field, dir] = value.split("-") as [SortField, SortDirection];
+                setSortField(field);
+                setSortDirection(dir);
                 setPage(1);
               }}
-              className="pl-10"
-            />
+            >
+              <SelectTrigger className="w-[180px]">
+                <ArrowUpDown className="h-4 w-4 mr-2" />
+                <SelectValue placeholder="Sort by..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="name-asc">Name A-Z</SelectItem>
+                <SelectItem value="name-desc">Name Z-A</SelectItem>
+                <SelectItem value="joined-asc">Oldest Members</SelectItem>
+                <SelectItem value="joined-desc">Newest Members</SelectItem>
+                <SelectItem value="tier-asc">Tier (Highest First)</SelectItem>
+                <SelectItem value="tier-desc">Tier (Lowest First)</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
-          <Tabs value={filter} onValueChange={(v) => { setFilter(v as any); setPage(1); }}>
+          <Tabs value={filter} onValueChange={(v) => { setFilter(v as any); setPage(1); setSelectedIds(new Set()); }}>
             <TabsList>
               <TabsTrigger value="all">All</TabsTrigger>
               <TabsTrigger value="members">Members</TabsTrigger>
@@ -171,6 +329,39 @@ export default function CompaniesAdmin() {
             </TabsList>
           </Tabs>
         </div>
+
+        {/* Bulk Actions Bar */}
+        {selectedIds.size > 0 && (
+          <Card className="bg-primary/5 border-primary/20">
+            <CardContent className="py-3 px-4">
+              <div className="flex items-center justify-between gap-4 flex-wrap">
+                <div className="flex items-center gap-3">
+                  <span className="text-sm font-medium">
+                    {selectedIds.size} {selectedIds.size === 1 ? "company" : "companies"} selected
+                  </span>
+                  {selectedIds.size < allFilteredIds.length && (
+                    <Button variant="link" size="sm" className="h-auto p-0" onClick={selectAllFiltered}>
+                      Select all {allFilteredIds.length}
+                    </Button>
+                  )}
+                  <Button variant="link" size="sm" className="h-auto p-0 text-muted-foreground" onClick={clearSelection}>
+                    Clear selection
+                  </Button>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button variant="outline" size="sm" onClick={handleBulkExport}>
+                    <FileDown className="h-4 w-4 mr-2" />
+                    Export CSV
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={handleBulkEmail}>
+                    <Mail className="h-4 w-4 mr-2" />
+                    Send Email
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Table */}
         <Card className="bg-card border-border">
@@ -191,10 +382,41 @@ export default function CompaniesAdmin() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Company</TableHead>
-                    <TableHead>Joined</TableHead>
+                    <TableHead className="w-12">
+                      <Checkbox
+                        checked={selectedIds.size === companies.length && companies.length > 0}
+                        onCheckedChange={toggleSelectAll}
+                        aria-label="Select all"
+                      />
+                    </TableHead>
+                    <TableHead>
+                      <button
+                        className="flex items-center hover:text-foreground transition-colors"
+                        onClick={() => toggleSort("name")}
+                      >
+                        Company
+                        <SortIcon field="name" />
+                      </button>
+                    </TableHead>
+                    <TableHead>
+                      <button
+                        className="flex items-center hover:text-foreground transition-colors"
+                        onClick={() => toggleSort("joined")}
+                      >
+                        Joined
+                        <SortIcon field="joined" />
+                      </button>
+                    </TableHead>
                     <TableHead>Location</TableHead>
-                    <TableHead>Membership</TableHead>
+                    <TableHead>
+                      <button
+                        className="flex items-center hover:text-foreground transition-colors"
+                        onClick={() => toggleSort("tier")}
+                      >
+                        Membership
+                        <SortIcon field="tier" />
+                      </button>
+                    </TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Team</TableHead>
                     <TableHead className="w-12"></TableHead>
@@ -204,9 +426,16 @@ export default function CompaniesAdmin() {
                   {companies.map((company) => (
                     <TableRow
                       key={company.id}
-                      className="cursor-pointer hover:bg-muted/50"
+                      className={`cursor-pointer hover:bg-muted/50 ${selectedIds.has(company.id) ? "bg-primary/5" : ""}`}
                       onClick={() => navigate(`/admin/companies/${company.id}`)}
                     >
+                      <TableCell onClick={(e) => e.stopPropagation()}>
+                        <Checkbox
+                          checked={selectedIds.has(company.id)}
+                          onCheckedChange={() => toggleSelect(company.id)}
+                          aria-label={`Select ${company.name}`}
+                        />
+                      </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-3">
                           {company.logo_url ? (
