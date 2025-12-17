@@ -4,37 +4,25 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Loader2, Pencil, Plus, Copy, Archive, CheckCircle2 } from 'lucide-react';
+import { Loader2, Pencil, Plus } from 'lucide-react';
 import { AdminLayout } from '@/components/admin/AdminLayout';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { PackageStatusBadge } from '@/components/ui/package-status-badge';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useMember } from '@/contexts/member/MemberContext';
 
 interface TierTrackPackage {
   id: string;
   tier_id: string;
   track_id: string;
-  display_name: string;
+  name: string;
   description: string | null;
-  annual_price_override: number | null;
-  term_default_years: number;
-  benefits: unknown;
-  status: 'active' | 'draft' | 'archived';
-  usage_count: number;
-  cloned_from_id: string | null;
+  base_price: number;
+  annual_price: number | null;
+  is_featured: boolean;
+  is_active: boolean;
   membership_tiers: { name: string };
   membership_tracks: { name: string };
 }
@@ -55,7 +43,6 @@ export default function PackagesAdmin() {
   const { toast } = useToast();
   const [packages, setPackages] = useState<TierTrackPackage[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'active' | 'draft' | 'archived'>('active');
   const [tiers, setTiers] = useState<Tier[]>([]);
   const [tracks, setTracks] = useState<Track[]>([]);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
@@ -63,9 +50,9 @@ export default function PackagesAdmin() {
   const [newPackage, setNewPackage] = useState({
     tier_id: '',
     track_id: '',
-    display_name: '',
-    annual_price_override: '',
-    term_default_years: '1',
+    name: '',
+    base_price: '',
+    description: '',
   });
 
   useEffect(() => {
@@ -76,22 +63,16 @@ export default function PackagesAdmin() {
     loadPackages();
   }, [isSuperAdmin, navigate]);
 
-  useEffect(() => {
-    if (isSuperAdmin) {
-      loadPackages();
-    }
-  }, [activeTab, isSuperAdmin]);
-
   const loadPackages = async () => {
     try {
       const { data, error } = await supabase
         .from('tier_track_packages')
         .select('*, membership_tiers(name), membership_tracks(name)')
-        .eq('status', activeTab)
-        .order('usage_count', { ascending: false });
+        .eq('is_active', true)
+        .order('name');
 
       if (error) throw error;
-      if (data) setPackages(data as TierTrackPackage[]);
+      if (data) setPackages(data as unknown as TierTrackPackage[]);
 
       const [tiersRes, tracksRes] = await Promise.all([
         supabase.from('membership_tiers').select('id, name').order('display_order'),
@@ -108,7 +89,7 @@ export default function PackagesAdmin() {
   };
 
   const handleCreatePackage = async () => {
-    if (!newPackage.tier_id || !newPackage.track_id || !newPackage.display_name) {
+    if (!newPackage.tier_id || !newPackage.track_id || !newPackage.name) {
       toast({
         title: 'Missing fields',
         description: 'Please fill in all required fields',
@@ -119,14 +100,13 @@ export default function PackagesAdmin() {
 
     setCreating(true);
     try {
-      const { error } = await supabase.from('tier_track_packages').insert({
+      const { error } = await supabase.from('tier_track_packages').insert([{
         tier_id: newPackage.tier_id,
         track_id: newPackage.track_id,
-        display_name: newPackage.display_name,
-        annual_price_override: newPackage.annual_price_override ? Number(newPackage.annual_price_override) : null,
-        term_default_years: Number(newPackage.term_default_years),
-        benefits: [],
-      });
+        name: newPackage.name,
+        base_price: newPackage.base_price ? Number(newPackage.base_price) : 0,
+        description: newPackage.description || null,
+      }]);
 
       if (error) throw error;
 
@@ -139,9 +119,9 @@ export default function PackagesAdmin() {
       setNewPackage({
         tier_id: '',
         track_id: '',
-        display_name: '',
-        annual_price_override: '',
-        term_default_years: '1',
+        name: '',
+        base_price: '',
+        description: '',
       });
       loadPackages();
     } catch (error) {
@@ -154,69 +134,6 @@ export default function PackagesAdmin() {
     } finally {
       setCreating(false);
     }
-  };
-
-  const handleClonePackage = async (pkg: TierTrackPackage) => {
-    try {
-      const { error } = await supabase.from('tier_track_packages').insert({
-        tier_id: pkg.tier_id,
-        track_id: pkg.track_id,
-        display_name: `${pkg.display_name} (Copy)`,
-        description: pkg.description,
-        annual_price_override: pkg.annual_price_override,
-        term_default_years: pkg.term_default_years,
-        benefits: pkg.benefits,
-        status: 'draft',
-        cloned_from_id: pkg.id,
-      });
-
-      if (error) throw error;
-
-      toast({
-        title: 'Package cloned',
-        description: 'Package cloned as draft successfully',
-      });
-
-      loadPackages();
-    } catch (error) {
-      console.error('Error cloning package:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to clone package',
-        variant: 'destructive',
-      });
-    }
-  };
-
-  const handleChangeStatus = async (packageId: string, newStatus: 'active' | 'draft' | 'archived') => {
-    try {
-      const { error } = await supabase
-        .from('tier_track_packages')
-        .update({ status: newStatus })
-        .eq('id', packageId);
-
-      if (error) throw error;
-
-      toast({
-        title: 'Status updated',
-        description: `Package marked as ${newStatus}`,
-      });
-
-      loadPackages();
-    } catch (error) {
-      console.error('Error updating status:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to update status',
-        variant: 'destructive',
-      });
-    }
-  };
-
-  const getBenefitCount = (benefits: unknown): number => {
-    if (!benefits) return 0;
-    if (Array.isArray(benefits)) return benefits.length;
-    return 0;
   };
 
   if (loading) {
@@ -291,29 +208,20 @@ export default function PackagesAdmin() {
                     </Select>
                   </div>
                   <div>
-                    <Label>Display Name</Label>
+                    <Label>Package Name</Label>
                     <Input
-                      value={newPackage.display_name}
-                      onChange={(e) => setNewPackage({ ...newPackage, display_name: e.target.value })}
+                      value={newPackage.name}
+                      onChange={(e) => setNewPackage({ ...newPackage, name: e.target.value })}
                       placeholder="Package name"
                     />
                   </div>
                   <div>
-                    <Label>Annual Price Override</Label>
+                    <Label>Base Price ($)</Label>
                     <Input
                       type="number"
-                      value={newPackage.annual_price_override}
-                      onChange={(e) => setNewPackage({ ...newPackage, annual_price_override: e.target.value })}
-                      placeholder="Leave empty for default"
-                    />
-                  </div>
-                  <div>
-                    <Label>Default Term (Years)</Label>
-                    <Input
-                      type="number"
-                      min="1"
-                      value={newPackage.term_default_years}
-                      onChange={(e) => setNewPackage({ ...newPackage, term_default_years: e.target.value })}
+                      value={newPackage.base_price}
+                      onChange={(e) => setNewPackage({ ...newPackage, base_price: e.target.value })}
+                      placeholder="0"
                     />
                   </div>
                   <div className="flex gap-3 pt-4">
@@ -330,105 +238,50 @@ export default function PackagesAdmin() {
             </Dialog>
           </CardHeader>
           <CardContent>
-            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'active' | 'draft' | 'archived')} className="space-y-4">
-              <TabsList>
-                <TabsTrigger value="active">Active</TabsTrigger>
-                <TabsTrigger value="draft">Draft</TabsTrigger>
-                <TabsTrigger value="archived">Archived</TabsTrigger>
-              </TabsList>
-
-              <TabsContent value={activeTab} className="space-y-4">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Display Name</TableHead>
-                      <TableHead>Tier</TableHead>
-                      <TableHead>Track</TableHead>
-                      <TableHead>Annual Price</TableHead>
-                      <TableHead>Term</TableHead>
-                      <TableHead># Benefits</TableHead>
-                      <TableHead>Usage</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Tier</TableHead>
+                  <TableHead>Track</TableHead>
+                  <TableHead>Base Price</TableHead>
+                  <TableHead>Annual Price</TableHead>
+                  <TableHead>Featured</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {packages.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                      No packages found
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  packages.map((pkg) => (
+                    <TableRow key={pkg.id}>
+                      <TableCell className="font-medium">{pkg.name}</TableCell>
+                      <TableCell className="capitalize">{pkg.membership_tiers.name}</TableCell>
+                      <TableCell>{pkg.membership_tracks.name}</TableCell>
+                      <TableCell>${(pkg.base_price || 0).toLocaleString()}</TableCell>
+                      <TableCell>${(pkg.annual_price || 0).toLocaleString()}</TableCell>
+                      <TableCell>{pkg.is_featured ? 'Yes' : 'No'}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center justify-end gap-2">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => navigate(`/admin/packages/${pkg.id}`)}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
                     </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {packages.length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
-                          No packages found with status "{activeTab}"
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      packages.map((pkg) => (
-                        <TableRow key={pkg.id}>
-                          <TableCell>
-                            <PackageStatusBadge status={pkg.status} />
-                          </TableCell>
-                          <TableCell className="font-medium">{pkg.display_name}</TableCell>
-                          <TableCell className="capitalize">{pkg.membership_tiers.name}</TableCell>
-                          <TableCell>{pkg.membership_tracks.name}</TableCell>
-                          <TableCell>
-                            ${(pkg.annual_price_override || 0).toLocaleString()}
-                          </TableCell>
-                          <TableCell>{pkg.term_default_years}y</TableCell>
-                          <TableCell>{getBenefitCount(pkg.benefits)}</TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-1">
-                              <span className="font-medium">{pkg.usage_count}</span>
-                              <span className="text-xs text-muted-foreground">used</span>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center justify-end gap-2">
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={() => navigate(`/admin/packages/${pkg.id}`)}
-                              >
-                                <Pencil className="h-4 w-4" />
-                              </Button>
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button size="sm" variant="ghost">
-                                    ⋮
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                  <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                  <DropdownMenuSeparator />
-                                  <DropdownMenuItem onClick={() => handleClonePackage(pkg)}>
-                                    <Copy className="h-4 w-4 mr-2" />
-                                    Clone Package
-                                  </DropdownMenuItem>
-                                  {pkg.status !== 'active' && (
-                                    <DropdownMenuItem onClick={() => handleChangeStatus(pkg.id, 'active')}>
-                                      <CheckCircle2 className="h-4 w-4 mr-2" />
-                                      Mark as Active
-                                    </DropdownMenuItem>
-                                  )}
-                                  {pkg.status !== 'draft' && (
-                                    <DropdownMenuItem onClick={() => handleChangeStatus(pkg.id, 'draft')}>
-                                      Move to Draft
-                                    </DropdownMenuItem>
-                                  )}
-                                  {pkg.status !== 'archived' && (
-                                    <DropdownMenuItem onClick={() => handleChangeStatus(pkg.id, 'archived')}>
-                                      <Archive className="h-4 w-4 mr-2" />
-                                      Archive
-                                    </DropdownMenuItem>
-                                  )}
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
-              </TabsContent>
-            </Tabs>
+                  ))
+                )}
+              </TableBody>
+            </Table>
           </CardContent>
         </Card>
       </div>

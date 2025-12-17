@@ -22,16 +22,17 @@ interface Benefit {
   id: string;
   label: string;
   description: string | null;
-  benefit_category_id: string;
-  sub_category: string | null;
-  block_value: number | null;
+  category_id: string | null;
+  long_description: string | null;
   base_price: number;
   region_multiplier: number | null;
-  is_add_on: boolean | null;
-  inventory_limit: string | null;
-  internal_notes: string | null;
   image_url: string | null;
-  benefit_categories: { name: string };
+  icon: string | null;
+  is_quantifiable: boolean;
+  unit_label: string | null;
+  display_order: number;
+  is_active: boolean;
+  benefit_categories: { name: string } | null;
 }
 
 interface BenefitCategory {
@@ -43,7 +44,6 @@ interface BrandTag {
   id: string;
   name: string;
   logo_url: string | null;
-  website_url: string | null;
 }
 
 export default function BenefitsAdmin() {
@@ -58,14 +58,15 @@ export default function BenefitsAdmin() {
   const [formData, setFormData] = useState({
     label: '',
     description: '',
-    benefit_category_id: '',
-    sub_category: '',
-    block_value: 0,
+    category_id: '',
+    long_description: '',
     base_price: 0,
     region_multiplier: 1.0,
-    is_add_on: false,
-    inventory_limit: '',
-    internal_notes: '',
+    icon: '',
+    is_quantifiable: false,
+    unit_label: '',
+    display_order: 0,
+    is_active: true,
     image_url: null as string | null,
   });
   const [searchQuery, setSearchQuery] = useState('');
@@ -113,7 +114,7 @@ export default function BenefitsAdmin() {
     try {
       const { data } = await supabase
         .from('benefit_brand_tags')
-        .select('benefit_id, brand_tag_id, brand_tags(id, name, logo_url, website_url)')
+        .select('benefit_id, brand_tag_id, brand_tags(id, name, logo_url)')
         .in('benefit_id', benefitIds);
 
       if (data) {
@@ -139,10 +140,10 @@ export default function BenefitsAdmin() {
     try {
       const dataToSave = {
         ...formData,
-        sub_category: formData.sub_category || null,
-        inventory_limit: formData.inventory_limit || null,
-        internal_notes: formData.internal_notes || null,
+        category_id: formData.category_id || null,
+        long_description: formData.long_description || null,
         description: formData.description || null,
+        unit_label: formData.unit_label || null,
       };
 
       let benefitId: string;
@@ -200,14 +201,15 @@ export default function BenefitsAdmin() {
     setFormData({
       label: '',
       description: '',
-      benefit_category_id: '',
-      sub_category: '',
-      block_value: 0,
+      category_id: '',
+      long_description: '',
       base_price: 0,
       region_multiplier: 1.0,
-      is_add_on: false,
-      inventory_limit: '',
-      internal_notes: '',
+      icon: '',
+      is_quantifiable: false,
+      unit_label: '',
+      display_order: 0,
+      is_active: true,
       image_url: null,
     });
     setSelectedBrandIds([]);
@@ -218,14 +220,15 @@ export default function BenefitsAdmin() {
     setFormData({
       label: benefit.label,
       description: benefit.description || '',
-      benefit_category_id: benefit.benefit_category_id,
-      sub_category: benefit.sub_category || '',
-      block_value: benefit.block_value || 0,
+      category_id: benefit.category_id || '',
+      long_description: benefit.long_description || '',
       base_price: benefit.base_price || 0,
       region_multiplier: benefit.region_multiplier || 1.0,
-      is_add_on: benefit.is_add_on || false,
-      inventory_limit: benefit.inventory_limit || '',
-      internal_notes: benefit.internal_notes || '',
+      icon: benefit.icon || '',
+      is_quantifiable: benefit.is_quantifiable || false,
+      unit_label: benefit.unit_label || '',
+      display_order: benefit.display_order || 0,
+      is_active: benefit.is_active,
       image_url: benefit.image_url || null,
     });
 
@@ -248,7 +251,7 @@ export default function BenefitsAdmin() {
         benefit.description?.toLowerCase().includes(searchQuery.toLowerCase());
 
       const matchesCategory =
-        filterCategory === 'all' || benefit.benefit_categories.name === filterCategory;
+        filterCategory === 'all' || benefit.benefit_categories?.name === filterCategory;
 
       return matchesSearch && matchesCategory;
     });
@@ -262,8 +265,8 @@ export default function BenefitsAdmin() {
           bVal = b.label.toLowerCase();
           break;
         case 'category':
-          aVal = a.benefit_categories.name.toLowerCase();
-          bVal = b.benefit_categories.name.toLowerCase();
+          aVal = (a.benefit_categories?.name || '').toLowerCase();
+          bVal = (b.benefit_categories?.name || '').toLowerCase();
           break;
         case 'price':
           aVal = a.base_price;
@@ -333,10 +336,10 @@ export default function BenefitsAdmin() {
                 </div>
 
                 <div>
-                  <Label htmlFor="category">Category *</Label>
+                  <Label htmlFor="category">Category</Label>
                   <Select
-                    value={formData.benefit_category_id}
-                    onValueChange={(value) => setFormData({ ...formData, benefit_category_id: value })}
+                    value={formData.category_id}
+                    onValueChange={(value) => setFormData({ ...formData, category_id: value })}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select category" />
@@ -352,12 +355,13 @@ export default function BenefitsAdmin() {
                 </div>
 
                 <div>
-                  <Label htmlFor="sub_category">Sub-Category</Label>
-                  <Input
-                    id="sub_category"
-                    value={formData.sub_category}
-                    onChange={(e) => setFormData({ ...formData, sub_category: e.target.value })}
-                    placeholder="e.g., Display Ads, Booth Space"
+                  <Label htmlFor="long_description">Long Description</Label>
+                  <Textarea
+                    id="long_description"
+                    value={formData.long_description}
+                    onChange={(e) => setFormData({ ...formData, long_description: e.target.value })}
+                    rows={2}
+                    placeholder="Extended description for the benefit"
                   />
                 </div>
 
@@ -382,15 +386,6 @@ export default function BenefitsAdmin() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="block_value">Block Value</Label>
-                    <Input
-                      id="block_value"
-                      type="number"
-                      value={formData.block_value}
-                      onChange={(e) => setFormData({ ...formData, block_value: parseFloat(e.target.value) })}
-                    />
-                  </div>
-                  <div>
                     <Label htmlFor="base_price">Base Price ($)</Label>
                     <Input
                       id="base_price"
@@ -400,9 +395,6 @@ export default function BenefitsAdmin() {
                       onChange={(e) => setFormData({ ...formData, base_price: parseFloat(e.target.value) || 0 })}
                     />
                   </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="region_multiplier">Region Multiplier</Label>
                     <Input
@@ -413,34 +405,56 @@ export default function BenefitsAdmin() {
                       onChange={(e) => setFormData({ ...formData, region_multiplier: parseFloat(e.target.value) })}
                     />
                   </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="inventory_limit">Inventory Limit</Label>
+                    <Label htmlFor="icon">Icon</Label>
                     <Input
-                      id="inventory_limit"
-                      value={formData.inventory_limit}
-                      onChange={(e) => setFormData({ ...formData, inventory_limit: e.target.value })}
-                      placeholder="e.g., 10 spots"
+                      id="icon"
+                      value={formData.icon}
+                      onChange={(e) => setFormData({ ...formData, icon: e.target.value })}
+                      placeholder="Icon name or URL"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="display_order">Display Order</Label>
+                    <Input
+                      id="display_order"
+                      type="number"
+                      value={formData.display_order}
+                      onChange={(e) => setFormData({ ...formData, display_order: parseInt(e.target.value) || 0 })}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      id="is_quantifiable"
+                      checked={formData.is_quantifiable}
+                      onCheckedChange={(checked) => setFormData({ ...formData, is_quantifiable: checked })}
+                    />
+                    <Label htmlFor="is_quantifiable">Is Quantifiable?</Label>
+                  </div>
+                  <div>
+                    <Label htmlFor="unit_label">Unit Label</Label>
+                    <Input
+                      id="unit_label"
+                      value={formData.unit_label}
+                      onChange={(e) => setFormData({ ...formData, unit_label: e.target.value })}
+                      placeholder="e.g., tickets, seats"
                     />
                   </div>
                 </div>
 
                 <div className="flex items-center space-x-2">
                   <Switch
-                    id="is_add_on"
-                    checked={formData.is_add_on}
-                    onCheckedChange={(checked) => setFormData({ ...formData, is_add_on: checked })}
+                    id="is_active"
+                    checked={formData.is_active}
+                    onCheckedChange={(checked) => setFormData({ ...formData, is_active: checked })}
                   />
-                  <Label htmlFor="is_add_on">Is Add-On?</Label>
-                </div>
-
-                <div>
-                  <Label htmlFor="internal_notes">Internal Notes</Label>
-                  <Textarea
-                    id="internal_notes"
-                    value={formData.internal_notes}
-                    onChange={(e) => setFormData({ ...formData, internal_notes: e.target.value })}
-                    rows={2}
-                  />
+                  <Label htmlFor="is_active">Active</Label>
                 </div>
 
                 <div>
@@ -448,7 +462,7 @@ export default function BenefitsAdmin() {
                   <BrandSelector
                     selectedBrandIds={selectedBrandIds}
                     onChange={setSelectedBrandIds}
-                    categoryFilter={formData.benefit_category_id}
+                    categoryFilter={formData.category_id}
                   />
                 </div>
 
@@ -499,7 +513,7 @@ export default function BenefitsAdmin() {
                     <SelectContent>
                       <SelectItem value="all">All Categories ({benefits.length})</SelectItem>
                       {categories.map((cat) => {
-                        const count = benefits.filter(b => b.benefit_category_id === cat.id).length;
+                        const count = benefits.filter(b => b.category_id === cat.id).length;
                         return (
                           <SelectItem key={cat.id} value={cat.name}>
                             {cat.name} ({count})
@@ -596,7 +610,7 @@ export default function BenefitsAdmin() {
                       )}
                     </TableCell>
                     <TableCell className="font-medium">{benefit.label}</TableCell>
-                    <TableCell>{benefit.benefit_categories.name}</TableCell>
+                    <TableCell>{benefit.benefit_categories?.name || '—'}</TableCell>
                     <TableCell>
                       <div className="flex flex-wrap gap-1">
                         {brandTags[benefit.id]?.map((brand) => (
@@ -604,7 +618,6 @@ export default function BenefitsAdmin() {
                             key={brand.id}
                             name={brand.name}
                             logoUrl={brand.logo_url}
-                            websiteUrl={brand.website_url}
                             size="sm"
                             showLogo={false}
                           />
