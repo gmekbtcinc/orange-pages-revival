@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { MapPin, Calendar } from "lucide-react";
@@ -14,11 +13,11 @@ type EventAllocation = Tables<"event_allocations">;
 interface EventCardProps {
   event: Event;
   allocation: EventAllocation | undefined;
-  memberId: string;
+  companyUserId: string;
   isPrimary: boolean;
 }
 
-export function EventCard({ event, allocation, memberId, isPrimary }: EventCardProps) {
+export function EventCard({ event, allocation, companyUserId, isPrimary }: EventCardProps) {
   const formatDate = (dateStr: string | null) => {
     if (!dateStr) return "";
     return new Date(dateStr).toLocaleDateString("en-US", {
@@ -78,7 +77,7 @@ export function EventCard({ event, allocation, memberId, isPrimary }: EventCardP
         {/* Conference Tickets - Always shown */}
         <TicketClaimModule
           eventId={event.id}
-          memberId={memberId}
+          companyUserId={companyUserId}
           allocated={allocation?.conference_tickets || 0}
         />
 
@@ -88,7 +87,7 @@ export function EventCard({ event, allocation, memberId, isPrimary }: EventCardP
             {event.has_symposium && (
               <SymposiumModule
                 eventId={event.id}
-                memberId={memberId}
+                companyUserId={companyUserId}
                 allocated={allocation?.symposium_seats || 0}
                 symposiumDate={event.symposium_date}
                 symposiumVenue={event.symposium_venue}
@@ -99,7 +98,7 @@ export function EventCard({ event, allocation, memberId, isPrimary }: EventCardP
               <SpeakingModule
                 eventId={event.id}
                 eventName={event.name}
-                memberId={memberId}
+                companyUserId={companyUserId}
                 deadline={event.speaking_deadline}
               />
             )}
@@ -107,7 +106,7 @@ export function EventCard({ event, allocation, memberId, isPrimary }: EventCardP
             {event.has_vip_dinner && (
               <VipDinnerModule
                 eventId={event.id}
-                memberId={memberId}
+                companyUserId={companyUserId}
                 allocated={allocation?.vip_dinner_seats || 0}
                 dinnerDate={event.vip_dinner_date}
                 dinnerTime={event.vip_dinner_time}

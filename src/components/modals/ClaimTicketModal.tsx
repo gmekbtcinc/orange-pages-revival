@@ -17,7 +17,7 @@ interface ClaimTicketModalProps {
   isOpen: boolean;
   onClose: () => void;
   eventId: string;
-  memberId: string;
+  companyUserId: string;
   remaining: number;
 }
 
@@ -25,7 +25,7 @@ export function ClaimTicketModal({
   isOpen,
   onClose,
   eventId,
-  memberId,
+  companyUserId,
   remaining,
 }: ClaimTicketModalProps) {
   const [attendeeName, setAttendeeName] = useState("");
@@ -39,7 +39,8 @@ export function ClaimTicketModal({
     mutationFn: async () => {
       const { error } = await supabase.from("ticket_claims").insert({
         event_id: eventId,
-        member_id: memberId,
+        member_id: companyUserId, // Temporary: using companyUserId until member_id column is removed
+        company_user_id: companyUserId,
         attendee_name: attendeeName,
         attendee_email: attendeeEmail,
         attendee_title: attendeeTitle || null,
@@ -50,7 +51,7 @@ export function ClaimTicketModal({
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["ticket_claims", memberId, eventId] });
+      queryClient.invalidateQueries({ queryKey: ["ticket_claims", companyUserId, eventId] });
       toast({
         title: "Ticket claimed!",
         description: `Ticket claimed for ${attendeeName}`,

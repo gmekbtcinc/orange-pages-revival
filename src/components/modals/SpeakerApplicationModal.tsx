@@ -30,7 +30,7 @@ interface SpeakerApplicationModalProps {
   onClose: () => void;
   eventId: string;
   eventName: string;
-  memberId: string;
+  companyUserId: string;
   existingApplication?: SpeakerApplication;
 }
 
@@ -47,7 +47,7 @@ export function SpeakerApplicationModal({
   onClose,
   eventId,
   eventName,
-  memberId,
+  companyUserId,
   existingApplication,
 }: SpeakerApplicationModalProps) {
   const { companyUser } = useMember();
@@ -90,7 +90,8 @@ export function SpeakerApplicationModal({
     mutationFn: async () => {
       const data = {
         event_id: eventId,
-        member_id: memberId,
+        member_id: companyUserId, // Temporary: using companyUserId until member_id column is removed
+        company_user_id: companyUserId,
         speaker_name: speakerName,
         speaker_email: speakerEmail,
         speaker_title: speakerTitle || null,
@@ -118,7 +119,7 @@ export function SpeakerApplicationModal({
     },
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: ["speaker_applications", memberId, eventId],
+        queryKey: ["speaker_applications", companyUserId, eventId],
       });
       toast({
         title: existingApplication ? "Application updated!" : "Application submitted!",
