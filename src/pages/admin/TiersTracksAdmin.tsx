@@ -20,10 +20,12 @@ import { useMember } from '@/contexts/member/MemberContext';
 interface Tier {
   id: string;
   name: string;
-  base_annual_price: number;
+  slug: string;
   display_order: number;
   icon_url: string | null;
   description: string | null;
+  tagline: string | null;
+  color_hex: string | null;
 }
 
 interface Track {
@@ -38,7 +40,6 @@ interface BrandTag {
   id: string;
   name: string;
   logo_url: string | null;
-  website_url: string | null;
 }
 
 export default function TiersTracksAdmin() {
@@ -55,10 +56,11 @@ export default function TiersTracksAdmin() {
 
   const [tierForm, setTierForm] = useState({
     name: '',
-    base_annual_price: 0,
     display_order: 0,
     icon_url: null as string | null,
     description: '',
+    tagline: '',
+    color_hex: '',
   });
 
   const [trackForm, setTrackForm] = useState({
@@ -102,7 +104,7 @@ export default function TiersTracksAdmin() {
     try {
       const { data } = await supabase
         .from('track_brand_tags')
-        .select('track_id, brand_tag_id, brand_tags(id, name, logo_url, website_url)')
+        .select('track_id, brand_tag_id, brand_tags(id, name, logo_url)')
         .in('track_id', trackIds);
 
       if (data) {
@@ -189,7 +191,7 @@ export default function TiersTracksAdmin() {
 
   const resetTierForm = () => {
     setEditingTier(null);
-    setTierForm({ name: '', base_annual_price: 0, display_order: 0, icon_url: null, description: '' });
+    setTierForm({ name: '', display_order: 0, icon_url: null, description: '', tagline: '', color_hex: '' });
   };
 
   const resetTrackForm = () => {
@@ -202,10 +204,11 @@ export default function TiersTracksAdmin() {
     setEditingTier(tier);
     setTierForm({
       name: tier.name,
-      base_annual_price: tier.base_annual_price,
       display_order: tier.display_order,
       icon_url: tier.icon_url,
       description: tier.description || '',
+      tagline: tier.tagline || '',
+      color_hex: tier.color_hex || '',
     });
     setTierDialogOpen(true);
   };
@@ -279,7 +282,7 @@ export default function TiersTracksAdmin() {
                     <TableRow>
                       <TableHead>Icon</TableHead>
                       <TableHead>Name</TableHead>
-                      <TableHead>Base Annual Price</TableHead>
+                      <TableHead>Tagline</TableHead>
                       <TableHead>Display Order</TableHead>
                       <TableHead></TableHead>
                     </TableRow>
@@ -297,7 +300,7 @@ export default function TiersTracksAdmin() {
                           )}
                         </TableCell>
                         <TableCell className="font-medium capitalize">{tier.name}</TableCell>
-                        <TableCell>${tier.base_annual_price.toLocaleString()}</TableCell>
+                        <TableCell>{tier.tagline || '—'}</TableCell>
                         <TableCell>{tier.display_order}</TableCell>
                         <TableCell>
                           <Dialog open={tierDialogOpen && editingTier?.id === tier.id} onOpenChange={setTierDialogOpen}>
@@ -330,13 +333,11 @@ export default function TiersTracksAdmin() {
                                   />
                                 </div>
                                 <div>
-                                  <Label htmlFor="tier-price">Base Annual Price</Label>
+                                  <Label htmlFor="tier-tagline">Tagline</Label>
                                   <Input
-                                    id="tier-price"
-                                    type="number"
-                                    value={tierForm.base_annual_price}
-                                    onChange={(e) => setTierForm({ ...tierForm, base_annual_price: parseFloat(e.target.value) })}
-                                    required
+                                    id="tier-tagline"
+                                    value={tierForm.tagline}
+                                    onChange={(e) => setTierForm({ ...tierForm, tagline: e.target.value })}
                                   />
                                 </div>
                                 <div>
@@ -412,7 +413,6 @@ export default function TiersTracksAdmin() {
                                 key={brand.id}
                                 name={brand.name}
                                 logoUrl={brand.logo_url}
-                                websiteUrl={brand.website_url}
                                 size="sm"
                                 showLogo={false}
                               />

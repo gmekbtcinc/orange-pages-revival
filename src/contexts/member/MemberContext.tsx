@@ -13,6 +13,7 @@ interface MemberContextType {
   membership: Membership | null;
   allocations: EventAllocation[];
   isLoading: boolean;
+  isSuperAdmin: boolean;
   refetch: () => Promise<void>;
   signOut: () => Promise<void>;
 }
@@ -25,6 +26,7 @@ export function MemberProvider({ children }: { children: ReactNode }) {
   const [membership, setMembership] = useState<Membership | null>(null);
   const [allocations, setAllocations] = useState<EventAllocation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
 
   const fetchMember = async () => {
     setIsLoading(true);
@@ -35,9 +37,14 @@ export function MemberProvider({ children }: { children: ReactNode }) {
         setCompanyUser(null);
         setMembership(null);
         setAllocations([]);
+        setIsSuperAdmin(false);
         setIsLoading(false);
         return;
       }
+
+      // Check if user is super admin
+      const { data: adminCheck } = await supabase.rpc('is_super_admin', { _user_id: user.id });
+      setIsSuperAdmin(adminCheck || false);
 
       // Fetch member record
       const { data: memberData, error: memberError } = await supabase
@@ -97,6 +104,7 @@ export function MemberProvider({ children }: { children: ReactNode }) {
       setCompanyUser(null);
       setMembership(null);
       setAllocations([]);
+      setIsSuperAdmin(false);
     } finally {
       setIsLoading(false);
     }
@@ -108,6 +116,7 @@ export function MemberProvider({ children }: { children: ReactNode }) {
     setCompanyUser(null);
     setMembership(null);
     setAllocations([]);
+    setIsSuperAdmin(false);
   };
 
   useEffect(() => {
@@ -121,6 +130,7 @@ export function MemberProvider({ children }: { children: ReactNode }) {
         setCompanyUser(null);
         setMembership(null);
         setAllocations([]);
+        setIsSuperAdmin(false);
       }
     });
 
@@ -128,7 +138,7 @@ export function MemberProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <MemberContext.Provider value={{ member, companyUser, membership, allocations, isLoading, refetch: fetchMember, signOut }}>
+    <MemberContext.Provider value={{ member, companyUser, membership, allocations, isLoading, isSuperAdmin, refetch: fetchMember, signOut }}>
       {children}
     </MemberContext.Provider>
   );

@@ -10,7 +10,7 @@ interface BrandTag {
   id: string;
   name: string;
   logo_url: string | null;
-  website_url: string | null;
+  slug: string;
   is_active: boolean;
 }
 
@@ -48,7 +48,7 @@ export function BrandSelector({
         const { data: mappings } = await supabase
           .from('brand_tag_category_mappings')
           .select('brand_tag_id')
-          .eq('benefit_category_id', categoryFilter);
+          .eq('category_id', categoryFilter);
 
         if (mappings) {
           const brandIds = mappings.map(m => m.brand_tag_id);
@@ -102,7 +102,6 @@ export function BrandSelector({
                 key={id}
                 name={brand.name}
                 logoUrl={brand.logo_url}
-                websiteUrl={brand.website_url}
                 size="sm"
               />
             );

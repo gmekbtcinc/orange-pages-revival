@@ -59,6 +59,200 @@ export type Database = {
         }
         Relationships: []
       }
+      benefit_brand_tags: {
+        Row: {
+          benefit_id: string
+          brand_tag_id: string
+        }
+        Insert: {
+          benefit_id: string
+          brand_tag_id: string
+        }
+        Update: {
+          benefit_id?: string
+          brand_tag_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "benefit_brand_tags_benefit_id_fkey"
+            columns: ["benefit_id"]
+            isOneToOne: false
+            referencedRelation: "benefits"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "benefit_brand_tags_brand_tag_id_fkey"
+            columns: ["brand_tag_id"]
+            isOneToOne: false
+            referencedRelation: "brand_tags"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      benefit_categories: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          display_order: number | null
+          icon: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          slug: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          display_order?: number | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          slug: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          display_order?: number | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          slug?: string
+        }
+        Relationships: []
+      }
+      benefits: {
+        Row: {
+          base_price: number | null
+          category_id: string | null
+          created_at: string | null
+          description: string | null
+          display_order: number | null
+          icon: string | null
+          id: string
+          image_url: string | null
+          is_active: boolean | null
+          is_quantifiable: boolean | null
+          label: string
+          long_description: string | null
+          region_multiplier: number | null
+          unit_label: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          base_price?: number | null
+          category_id?: string | null
+          created_at?: string | null
+          description?: string | null
+          display_order?: number | null
+          icon?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          is_quantifiable?: boolean | null
+          label: string
+          long_description?: string | null
+          region_multiplier?: number | null
+          unit_label?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          base_price?: number | null
+          category_id?: string | null
+          created_at?: string | null
+          description?: string | null
+          display_order?: number | null
+          icon?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          is_quantifiable?: boolean | null
+          label?: string
+          long_description?: string | null
+          region_multiplier?: number | null
+          unit_label?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "benefits_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "benefit_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      brand_tag_category_mappings: {
+        Row: {
+          brand_tag_id: string
+          category_id: string
+          display_order: number | null
+        }
+        Insert: {
+          brand_tag_id: string
+          category_id: string
+          display_order?: number | null
+        }
+        Update: {
+          brand_tag_id?: string
+          category_id?: string
+          display_order?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "brand_tag_category_mappings_brand_tag_id_fkey"
+            columns: ["brand_tag_id"]
+            isOneToOne: false
+            referencedRelation: "brand_tags"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "brand_tag_category_mappings_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "benefit_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      brand_tags: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          display_order: number | null
+          id: string
+          is_active: boolean | null
+          logo_url: string | null
+          name: string
+          slug: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          display_order?: number | null
+          id?: string
+          is_active?: boolean | null
+          logo_url?: string | null
+          name: string
+          slug: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          display_order?: number | null
+          id?: string
+          is_active?: boolean | null
+          logo_url?: string | null
+          name?: string
+          slug?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       business_articles: {
         Row: {
           business_id: string
@@ -727,6 +921,81 @@ export type Database = {
           },
         ]
       }
+      membership_tiers: {
+        Row: {
+          color_hex: string | null
+          created_at: string | null
+          description: string | null
+          display_order: number | null
+          icon_url: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          slug: string
+          tagline: string | null
+        }
+        Insert: {
+          color_hex?: string | null
+          created_at?: string | null
+          description?: string | null
+          display_order?: number | null
+          icon_url?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          slug: string
+          tagline?: string | null
+        }
+        Update: {
+          color_hex?: string | null
+          created_at?: string | null
+          description?: string | null
+          display_order?: number | null
+          icon_url?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          slug?: string
+          tagline?: string | null
+        }
+        Relationships: []
+      }
+      membership_tracks: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          display_order: number | null
+          icon_url: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          slug: string
+          target_audience: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          display_order?: number | null
+          icon_url?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          slug: string
+          target_audience?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          display_order?: number | null
+          icon_url?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          slug?: string
+          target_audience?: string | null
+        }
+        Relationships: []
+      }
       memberships: {
         Row: {
           billing_contact_name: string | null
@@ -797,6 +1066,78 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      package_benefits: {
+        Row: {
+          benefit_id: string
+          is_unlimited: boolean | null
+          notes: string | null
+          package_id: string
+          quantity: number | null
+        }
+        Insert: {
+          benefit_id: string
+          is_unlimited?: boolean | null
+          notes?: string | null
+          package_id: string
+          quantity?: number | null
+        }
+        Update: {
+          benefit_id?: string
+          is_unlimited?: boolean | null
+          notes?: string | null
+          package_id?: string
+          quantity?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "package_benefits_benefit_id_fkey"
+            columns: ["benefit_id"]
+            isOneToOne: false
+            referencedRelation: "benefits"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "package_benefits_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "tier_track_packages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pricing_thresholds: {
+        Row: {
+          created_at: string | null
+          discount_label: string
+          discount_percentage: number
+          display_order: number | null
+          id: string
+          is_active: boolean | null
+          threshold_type: string
+          threshold_value: number
+        }
+        Insert: {
+          created_at?: string | null
+          discount_label: string
+          discount_percentage: number
+          display_order?: number | null
+          id?: string
+          is_active?: boolean | null
+          threshold_type: string
+          threshold_value: number
+        }
+        Update: {
+          created_at?: string | null
+          discount_label?: string
+          discount_percentage?: number
+          display_order?: number | null
+          id?: string
+          is_active?: boolean | null
+          threshold_type?: string
+          threshold_value?: number
+        }
+        Relationships: []
       }
       speaker_applications: {
         Row: {
@@ -1095,6 +1436,93 @@ export type Database = {
           tier?: Database["public"]["Enums"]["member_tier"]
         }
         Relationships: []
+      }
+      tier_track_packages: {
+        Row: {
+          annual_price: number | null
+          base_price: number
+          created_at: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          is_featured: boolean | null
+          name: string
+          tier_id: string
+          track_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          annual_price?: number | null
+          base_price?: number
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_featured?: boolean | null
+          name: string
+          tier_id: string
+          track_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          annual_price?: number | null
+          base_price?: number
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_featured?: boolean | null
+          name?: string
+          tier_id?: string
+          track_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tier_track_packages_tier_id_fkey"
+            columns: ["tier_id"]
+            isOneToOne: false
+            referencedRelation: "membership_tiers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tier_track_packages_track_id_fkey"
+            columns: ["track_id"]
+            isOneToOne: false
+            referencedRelation: "membership_tracks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      track_brand_tags: {
+        Row: {
+          brand_tag_id: string
+          track_id: string
+        }
+        Insert: {
+          brand_tag_id: string
+          track_id: string
+        }
+        Update: {
+          brand_tag_id?: string
+          track_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "track_brand_tags_brand_tag_id_fkey"
+            columns: ["brand_tag_id"]
+            isOneToOne: false
+            referencedRelation: "brand_tags"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "track_brand_tags_track_id_fkey"
+            columns: ["track_id"]
+            isOneToOne: false
+            referencedRelation: "membership_tracks"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_invitations: {
         Row: {
