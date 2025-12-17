@@ -114,7 +114,7 @@ export function InviteUserDialog({
       onOpenChange(false);
       resetForm();
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
         variant: "destructive",
         title: "Error sending invitation",

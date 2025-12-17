@@ -91,7 +91,7 @@ export function ChangeTierDialog({
       onOpenChange(false);
       onSuccess();
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({ variant: "destructive", title: "Error", description: error.message });
     },
   });

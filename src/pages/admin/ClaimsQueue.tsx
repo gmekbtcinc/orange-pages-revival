@@ -137,7 +137,7 @@ export default function ClaimsQueue() {
         description: "The business claim has been approved and the user has been granted access.",
       });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
         variant: "destructive",
         title: "Error approving claim",
@@ -171,7 +171,7 @@ export default function ClaimsQueue() {
         description: "The business claim has been rejected.",
       });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
         variant: "destructive",
         title: "Error rejecting claim",

@@ -12,7 +12,7 @@ interface BitcoinAttributesTabProps {
     is_conference_sponsor: boolean;
     btc_holdings_source: string;
   };
-  onChange: (field: string, value: any) => void;
+  onChange: (field: string, value: string | boolean) => void;
 }
 
 export function BitcoinAttributesTab({ formData, onChange }: BitcoinAttributesTabProps) {

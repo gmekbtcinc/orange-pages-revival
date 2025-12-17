@@ -8,7 +8,7 @@ interface LeadershipTabProps {
     ceo_title: string;
     ceo_headshot_url: string;
   };
-  onChange: (field: string, value: any) => void;
+  onChange: (field: string, value: string) => void;
 }
 
 export function LeadershipTab({ formData, onChange }: LeadershipTabProps) {

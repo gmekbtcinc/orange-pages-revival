@@ -88,7 +88,7 @@ export function ClaimBusinessDialog({
       onClose();
       resetForm();
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
         variant: "destructive",
         title: "Error submitting claim",

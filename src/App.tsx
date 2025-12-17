@@ -1,5 +1,5 @@
+import { lazy, Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
@@ -14,22 +14,33 @@ import AuthCallback from "./pages/AuthCallback";
 import Dashboard from "./pages/Dashboard";
 import CompanyProfile from "./pages/CompanyProfile";
 import TeamManagement from "./pages/TeamManagement";
-import ClaimsQueue from "./pages/admin/ClaimsQueue";
-import AdminDashboard from "./pages/admin/AdminDashboard";
-import CompaniesAdmin from "./pages/admin/CompaniesAdmin";
-import CompanyDetail from "./pages/admin/CompanyDetail";
-import MembershipsAdmin from "./pages/admin/MembershipsAdmin";
-import UsersAdmin from "./pages/admin/UsersAdmin";
-import EventsAdmin from "./pages/admin/EventsAdmin";
-import EventDetail from "./pages/admin/EventDetail";
+
+// Lazy load admin routes for code splitting
+const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
+const ClaimsQueue = lazy(() => import("./pages/admin/ClaimsQueue"));
+const CompaniesAdmin = lazy(() => import("./pages/admin/CompaniesAdmin"));
+const CompanyDetail = lazy(() => import("./pages/admin/CompanyDetail"));
+const MembershipsAdmin = lazy(() => import("./pages/admin/MembershipsAdmin"));
+const UsersAdmin = lazy(() => import("./pages/admin/UsersAdmin"));
+const EventsAdmin = lazy(() => import("./pages/admin/EventsAdmin"));
+const EventDetail = lazy(() => import("./pages/admin/EventDetail"));
 
 const queryClient = new QueryClient();
+
+// Loading fallback for lazy-loaded components
+const AdminLoadingFallback = () => (
+  <div className="min-h-screen bg-background flex items-center justify-center">
+    <div className="text-center">
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-bitcoin-orange mx-auto mb-4" />
+      <p className="text-muted-foreground">Loading...</p>
+    </div>
+  </div>
+);
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
-      <Sonner />
       <BrowserRouter>
         <MemberProvider>
           <Routes>
@@ -65,12 +76,14 @@ const App = () => (
               }
             />
 
-            {/* Admin routes */}
+            {/* Admin routes - lazy loaded */}
             <Route
               path="/admin"
               element={
                 <AdminProtectedRoute>
-                  <AdminDashboard />
+                  <Suspense fallback={<AdminLoadingFallback />}>
+                    <AdminDashboard />
+                  </Suspense>
                 </AdminProtectedRoute>
               }
             />
@@ -78,7 +91,9 @@ const App = () => (
               path="/admin/claims"
               element={
                 <AdminProtectedRoute>
-                  <ClaimsQueue />
+                  <Suspense fallback={<AdminLoadingFallback />}>
+                    <ClaimsQueue />
+                  </Suspense>
                 </AdminProtectedRoute>
               }
             />
@@ -86,7 +101,9 @@ const App = () => (
               path="/admin/companies"
               element={
                 <AdminProtectedRoute>
-                  <CompaniesAdmin />
+                  <Suspense fallback={<AdminLoadingFallback />}>
+                    <CompaniesAdmin />
+                  </Suspense>
                 </AdminProtectedRoute>
               }
             />
@@ -94,7 +111,9 @@ const App = () => (
               path="/admin/companies/:id"
               element={
                 <AdminProtectedRoute>
-                  <CompanyDetail />
+                  <Suspense fallback={<AdminLoadingFallback />}>
+                    <CompanyDetail />
+                  </Suspense>
                 </AdminProtectedRoute>
               }
             />
@@ -102,7 +121,9 @@ const App = () => (
               path="/admin/memberships"
               element={
                 <AdminProtectedRoute>
-                  <MembershipsAdmin />
+                  <Suspense fallback={<AdminLoadingFallback />}>
+                    <MembershipsAdmin />
+                  </Suspense>
                 </AdminProtectedRoute>
               }
             />
@@ -110,7 +131,9 @@ const App = () => (
               path="/admin/users"
               element={
                 <AdminProtectedRoute>
-                  <UsersAdmin />
+                  <Suspense fallback={<AdminLoadingFallback />}>
+                    <UsersAdmin />
+                  </Suspense>
                 </AdminProtectedRoute>
               }
             />
@@ -118,7 +141,9 @@ const App = () => (
               path="/admin/events"
               element={
                 <AdminProtectedRoute>
-                  <EventsAdmin />
+                  <Suspense fallback={<AdminLoadingFallback />}>
+                    <EventsAdmin />
+                  </Suspense>
                 </AdminProtectedRoute>
               }
             />
@@ -126,7 +151,9 @@ const App = () => (
               path="/admin/events/:id"
               element={
                 <AdminProtectedRoute>
-                  <EventDetail />
+                  <Suspense fallback={<AdminLoadingFallback />}>
+                    <EventDetail />
+                  </Suspense>
                 </AdminProtectedRoute>
               }
             />

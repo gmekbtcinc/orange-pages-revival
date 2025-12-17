@@ -90,7 +90,7 @@ export function EditUserDialog({
       });
       onOpenChange(false);
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
         variant: "destructive",
         title: "Error updating user",

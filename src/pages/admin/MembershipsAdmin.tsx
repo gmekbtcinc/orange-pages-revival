@@ -232,7 +232,7 @@ export default function MembershipsAdmin() {
       setSelectedMembership(null);
       toast({ title: "Membership cancelled", description: "The membership has been cancelled." });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({ variant: "destructive", title: "Error", description: error.message });
     },
   });
@@ -259,7 +259,7 @@ export default function MembershipsAdmin() {
       setSelectedMembership(null);
       toast({ title: "Membership reactivated", description: "The membership is now active." });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({ variant: "destructive", title: "Error", description: error.message });
     },
   });

@@ -30,7 +30,7 @@ interface CoreInfoTabProps {
     category_id: string;
   };
   categories: Array<{ id: string; name: string }>;
-  onChange: (field: string, value: any) => void;
+  onChange: (field: string, value: string | boolean) => void;
 }
 
 export function CoreInfoTab({ formData, categories, onChange }: CoreInfoTabProps) {

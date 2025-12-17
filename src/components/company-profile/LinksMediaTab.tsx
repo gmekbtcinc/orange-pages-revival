@@ -25,7 +25,7 @@ interface LinksMediaTabProps {
   };
   socialLinks: SocialLink[];
   articles: Article[];
-  onFieldChange: (field: string, value: any) => void;
+  onFieldChange: (field: string, value: string) => void;
   onSocialLinksChange: (links: SocialLink[]) => void;
   onArticlesChange: (articles: Article[]) => void;
 }
