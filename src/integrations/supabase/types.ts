@@ -1761,7 +1761,15 @@ export type Database = {
       company_type: "public" | "private" | "subsidiary"
       event_type: "flagship" | "regional" | "secondary"
       invite_status: "pending" | "accepted" | "expired" | "revoked"
-      member_tier: "silver" | "gold" | "platinum" | "chairman" | "executive"
+      member_tier:
+        | "silver"
+        | "gold"
+        | "platinum"
+        | "chairman"
+        | "executive"
+        | "industry"
+        | "premier"
+        | "sponsor"
       rsvp_status:
         | "pending"
         | "confirmed"
@@ -1909,7 +1917,16 @@ export const Constants = {
       company_type: ["public", "private", "subsidiary"],
       event_type: ["flagship", "regional", "secondary"],
       invite_status: ["pending", "accepted", "expired", "revoked"],
-      member_tier: ["silver", "gold", "platinum", "chairman", "executive"],
+      member_tier: [
+        "silver",
+        "gold",
+        "platinum",
+        "chairman",
+        "executive",
+        "industry",
+        "premier",
+        "sponsor",
+      ],
       rsvp_status: [
         "pending",
         "confirmed",

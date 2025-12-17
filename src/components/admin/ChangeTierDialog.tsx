@@ -43,19 +43,25 @@ interface ChangeTierDialogProps {
 }
 
 const tierColors: Record<string, string> = {
+  industry: "bg-slate-500/10 text-slate-400 border-slate-500/30",
+  premier: "bg-blue-500/10 text-blue-400 border-blue-500/30",
+  executive: "bg-purple-500/10 text-purple-400 border-purple-500/30",
+  sponsor: "bg-emerald-500/10 text-emerald-400 border-emerald-500/30",
+  chairman: "bg-amber-500/10 text-amber-500 border-amber-500/30",
   silver: "bg-gray-500/10 text-gray-400 border-gray-500/30",
   gold: "bg-yellow-500/10 text-yellow-500 border-yellow-500/30",
-  platinum: "bg-purple-500/10 text-purple-400 border-purple-500/30",
-  chairman: "bg-orange-500/10 text-orange-500 border-orange-500/30",
-  executive: "bg-amber-500/10 text-amber-400 border-amber-500/30",
+  platinum: "bg-orange-500/10 text-orange-400 border-orange-500/30",
 };
 
 const tierLabels: Record<string, string> = {
+  industry: "Industry",
+  premier: "Premier",
+  executive: "Executive",
+  sponsor: "Sponsor",
+  chairman: "Chairman's Circle",
   silver: "Silver",
   gold: "Gold",
   platinum: "Platinum",
-  chairman: "Chairman's Circle",
-  executive: "Executive",
 };
 
 export function ChangeTierDialog({
@@ -71,7 +77,7 @@ export function ChangeTierDialog({
 
   const mutation = useMutation({
     mutationFn: async () => {
-      const tierValue = newTier as "silver" | "gold" | "platinum" | "chairman" | "executive";
+      const tierValue = newTier as "industry" | "premier" | "executive" | "sponsor" | "chairman" | "silver" | "gold" | "platinum";
       const { error } = await supabase
         .from("memberships")
         .update({
@@ -98,11 +104,14 @@ export function ChangeTierDialog({
 
   const getTierLevel = (tier: string): number => {
     const levels: Record<string, number> = {
+      industry: 1,
+      premier: 2,
+      executive: 3,
+      sponsor: 4,
+      chairman: 5,
       silver: 1,
       gold: 2,
       platinum: 3,
-      chairman: 4,
-      executive: 5,
     };
     return levels[tier] || 0;
   };
@@ -135,11 +144,11 @@ export function ChangeTierDialog({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="silver">Silver</SelectItem>
-                <SelectItem value="gold">Gold</SelectItem>
-                <SelectItem value="platinum">Platinum</SelectItem>
-                <SelectItem value="chairman">Chairman's Circle</SelectItem>
+                <SelectItem value="industry">Industry</SelectItem>
+                <SelectItem value="premier">Premier</SelectItem>
                 <SelectItem value="executive">Executive</SelectItem>
+                <SelectItem value="sponsor">Sponsor</SelectItem>
+                <SelectItem value="chairman">Chairman's Circle</SelectItem>
               </SelectContent>
             </Select>
           </div>
