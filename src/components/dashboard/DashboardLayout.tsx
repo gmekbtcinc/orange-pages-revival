@@ -15,9 +15,11 @@ import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import bfcLogo from "@/assets/bfc-profile-icon.png";
+import { DashboardBreadcrumb, BreadcrumbItem } from "./DashboardBreadcrumb";
 
 interface DashboardLayoutProps {
   children: ReactNode;
+  breadcrumbs?: BreadcrumbItem[];
 }
 
 const tierColors: Record<string, string> = {
@@ -44,7 +46,7 @@ const tierLabels: Record<string, string> = {
   platinum: "Platinum",
 };
 
-export function DashboardLayout({ children }: DashboardLayoutProps) {
+export function DashboardLayout({ children, breadcrumbs }: DashboardLayoutProps) {
   const { member, companyUser, membership, signOut } = useMember();
   const navigate = useNavigate();
 
@@ -170,6 +172,11 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           </div>
         </div>
       </header>
+
+      {/* Breadcrumbs */}
+      {breadcrumbs && breadcrumbs.length > 0 && (
+        <DashboardBreadcrumb items={breadcrumbs} />
+      )}
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">{children}</main>
