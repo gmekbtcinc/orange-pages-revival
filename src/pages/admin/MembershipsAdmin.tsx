@@ -282,7 +282,7 @@ export default function MembershipsAdmin() {
   };
 
   return (
-    <AdminLayout>
+    <AdminLayout breadcrumbs={[{ label: "Memberships" }]}>
       <div className="space-y-6">
         <div>
           <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">

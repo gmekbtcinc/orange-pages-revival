@@ -258,46 +258,52 @@ export default function CompanyDetail() {
   const pendingClaimsCount = claims.filter((c) => c.status === "pending").length;
 
   return (
-    <AdminLayout>
+    <AdminLayout
+      breadcrumbs={[
+        { label: "Companies", href: "/admin/companies" },
+        { label: company.name },
+      ]}
+    >
       <div className="space-y-6">
+        {/* Back Button */}
+        <Button variant="ghost" size="sm" onClick={() => navigate("/admin/companies")} className="gap-1">
+          <ArrowLeft className="h-4 w-4" />
+          Back to Companies
+        </Button>
+
         {/* Header */}
         <div className="flex items-start justify-between">
-          <div className="flex items-start gap-4">
-            <Button variant="ghost" size="icon" onClick={() => navigate("/admin/companies")}>
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-            <div className="flex items-center gap-4">
-              {company.logo_url ? (
-                <img
-                  src={company.logo_url}
-                  alt={company.name}
-                  className="h-16 w-16 rounded-lg object-contain bg-white"
-                />
-              ) : (
-                <div className="h-16 w-16 rounded-lg bg-muted flex items-center justify-center">
-                  <Building2 className="h-8 w-8 text-muted-foreground" />
-                </div>
-              )}
-              <div>
-                <div className="flex items-center gap-2">
-                  <h1 className="text-2xl font-bold text-foreground">{company.name}</h1>
-                  {company.categories && (
-                    <Badge variant="secondary">{company.categories.name}</Badge>
-                  )}
-                </div>
-                {company.website && (
-                  <a
-                    href={company.website}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-sm text-muted-foreground hover:text-primary flex items-center gap-1"
-                  >
-                    <Globe className="h-3 w-3" />
-                    {company.website}
-                    <ExternalLink className="h-3 w-3" />
-                  </a>
+          <div className="flex items-center gap-4">
+            {company.logo_url ? (
+              <img
+                src={company.logo_url}
+                alt={company.name}
+                className="h-16 w-16 rounded-lg object-contain bg-white"
+              />
+            ) : (
+              <div className="h-16 w-16 rounded-lg bg-muted flex items-center justify-center">
+                <Building2 className="h-8 w-8 text-muted-foreground" />
+              </div>
+            )}
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-2xl font-bold text-foreground">{company.name}</h1>
+                {company.categories && (
+                  <Badge variant="secondary">{company.categories.name}</Badge>
                 )}
               </div>
+              {company.website && (
+                <a
+                  href={company.website}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-muted-foreground hover:text-primary flex items-center gap-1"
+                >
+                  <Globe className="h-3 w-3" />
+                  {company.website}
+                  <ExternalLink className="h-3 w-3" />
+                </a>
+              )}
             </div>
           </div>
 

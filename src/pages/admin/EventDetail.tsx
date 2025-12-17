@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,7 @@ import { AllocationsDialog } from "@/components/admin/AllocationsDialog";
 
 export default function EventDetail() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [editOpen, setEditOpen] = useState(false);
   const [allocationsOpen, setAllocationsOpen] = useState(false);
@@ -200,15 +201,20 @@ export default function EventDetail() {
   };
 
   return (
-    <AdminLayout>
+    <AdminLayout
+      breadcrumbs={[
+        { label: "Events", href: "/admin/events" },
+        { label: event.name },
+      ]}
+    >
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-start justify-between">
           <div>
-            <Link to="/admin/events" className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-1 mb-2">
+            <Button variant="ghost" size="sm" onClick={() => navigate("/admin/events")} className="gap-1 mb-2">
               <ArrowLeft className="h-4 w-4" />
               Back to Events
-            </Link>
+            </Button>
             <div className="flex items-center gap-3">
               <h1 className="text-2xl font-bold">{event.name}</h1>
               {getTypeBadge(event.event_type)}
