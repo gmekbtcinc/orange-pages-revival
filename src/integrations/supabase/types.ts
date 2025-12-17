@@ -812,7 +812,6 @@ export type Database = {
           company_user_id: string | null
           completed_at: string | null
           id: string
-          member_id: string | null
           request_details: Json | null
           requested_at: string
           resource_type: string
@@ -824,7 +823,6 @@ export type Database = {
           company_user_id?: string | null
           completed_at?: string | null
           id?: string
-          member_id?: string | null
           request_details?: Json | null
           requested_at?: string
           resource_type: string
@@ -836,7 +834,6 @@ export type Database = {
           company_user_id?: string | null
           completed_at?: string | null
           id?: string
-          member_id?: string | null
           request_details?: Json | null
           requested_at?: string
           resource_type?: string
@@ -849,13 +846,6 @@ export type Database = {
             columns: ["company_user_id"]
             isOneToOne: false
             referencedRelation: "company_users"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "member_resource_requests_member_id_fkey"
-            columns: ["member_id"]
-            isOneToOne: false
-            referencedRelation: "members"
             referencedColumns: ["id"]
           },
         ]
@@ -1159,7 +1149,6 @@ export type Database = {
           event_id: string
           format: string
           id: string
-          member_id: string | null
           previous_speaking: string | null
           proposed_topic: string
           session_description: string | null
@@ -1184,7 +1173,6 @@ export type Database = {
           event_id: string
           format: string
           id?: string
-          member_id?: string | null
           previous_speaking?: string | null
           proposed_topic: string
           session_description?: string | null
@@ -1209,7 +1197,6 @@ export type Database = {
           event_id?: string
           format?: string
           id?: string
-          member_id?: string | null
           previous_speaking?: string | null
           proposed_topic?: string
           session_description?: string | null
@@ -1240,13 +1227,6 @@ export type Database = {
             referencedRelation: "events"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "speaker_applications_member_id_fkey"
-            columns: ["member_id"]
-            isOneToOne: false
-            referencedRelation: "members"
-            referencedColumns: ["id"]
-          },
         ]
       }
       symposium_registrations: {
@@ -1263,7 +1243,6 @@ export type Database = {
           event_id: string
           id: string
           is_external_attendee: boolean | null
-          member_id: string | null
           registered_at: string
           registration_code: string | null
           status: Database["public"]["Enums"]["rsvp_status"] | null
@@ -1281,7 +1260,6 @@ export type Database = {
           event_id: string
           id?: string
           is_external_attendee?: boolean | null
-          member_id?: string | null
           registered_at?: string
           registration_code?: string | null
           status?: Database["public"]["Enums"]["rsvp_status"] | null
@@ -1299,7 +1277,6 @@ export type Database = {
           event_id?: string
           id?: string
           is_external_attendee?: boolean | null
-          member_id?: string | null
           registered_at?: string
           registration_code?: string | null
           status?: Database["public"]["Enums"]["rsvp_status"] | null
@@ -1324,13 +1301,6 @@ export type Database = {
             columns: ["event_id"]
             isOneToOne: false
             referencedRelation: "events"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "symposium_registrations_member_id_fkey"
-            columns: ["member_id"]
-            isOneToOne: false
-            referencedRelation: "members"
             referencedColumns: ["id"]
           },
         ]
@@ -1369,7 +1339,6 @@ export type Database = {
           event_id: string
           id: string
           is_external_attendee: boolean | null
-          member_id: string | null
           notes: string | null
           status: Database["public"]["Enums"]["rsvp_status"] | null
           ticket_code: string | null
@@ -1386,7 +1355,6 @@ export type Database = {
           event_id: string
           id?: string
           is_external_attendee?: boolean | null
-          member_id?: string | null
           notes?: string | null
           status?: Database["public"]["Enums"]["rsvp_status"] | null
           ticket_code?: string | null
@@ -1403,7 +1371,6 @@ export type Database = {
           event_id?: string
           id?: string
           is_external_attendee?: boolean | null
-          member_id?: string | null
           notes?: string | null
           status?: Database["public"]["Enums"]["rsvp_status"] | null
           ticket_code?: string | null
@@ -1428,13 +1395,6 @@ export type Database = {
             columns: ["event_id"]
             isOneToOne: false
             referencedRelation: "events"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "ticket_claims_member_id_fkey"
-            columns: ["member_id"]
-            isOneToOne: false
-            referencedRelation: "members"
             referencedColumns: ["id"]
           },
         ]
@@ -1673,7 +1633,6 @@ export type Database = {
           guest_title: string | null
           id: string
           is_external_attendee: boolean | null
-          member_id: string | null
           rsvp_at: string
           seating_preferences: string | null
           status: Database["public"]["Enums"]["rsvp_status"] | null
@@ -1691,7 +1650,6 @@ export type Database = {
           guest_title?: string | null
           id?: string
           is_external_attendee?: boolean | null
-          member_id?: string | null
           rsvp_at?: string
           seating_preferences?: string | null
           status?: Database["public"]["Enums"]["rsvp_status"] | null
@@ -1709,7 +1667,6 @@ export type Database = {
           guest_title?: string | null
           id?: string
           is_external_attendee?: boolean | null
-          member_id?: string | null
           rsvp_at?: string
           seating_preferences?: string | null
           status?: Database["public"]["Enums"]["rsvp_status"] | null
@@ -1734,13 +1691,6 @@ export type Database = {
             columns: ["event_id"]
             isOneToOne: false
             referencedRelation: "events"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "vip_dinner_rsvps_member_id_fkey"
-            columns: ["member_id"]
-            isOneToOne: false
-            referencedRelation: "members"
             referencedColumns: ["id"]
           },
         ]
