@@ -44,6 +44,25 @@ export default function EventDetail() {
     enabled: !!id,
   });
 
+  // Fetch membership counts by tier for fulfillment projections
+  const { data: membershipCounts } = useQuery({
+    queryKey: ["membership-counts-by-tier"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("memberships")
+        .select("tier")
+        .eq("is_active", true);
+      if (error) throw error;
+      
+      // Count memberships per tier
+      const counts: Record<string, number> = {};
+      data?.forEach((m) => {
+        counts[m.tier] = (counts[m.tier] || 0) + 1;
+      });
+      return counts;
+    },
+  });
+
   // Fetch ticket claims
   const { data: ticketClaims } = useQuery({
     queryKey: ["event-ticket-claims", id],
@@ -191,11 +210,11 @@ export default function EventDetail() {
 
   const getTierLabel = (tier: string) => {
     const labels: Record<string, string> = {
-      silver: "Silver",
-      gold: "Gold",
-      platinum: "Platinum",
-      chairman: "Chairman's Circle",
+      industry: "Industry",
+      premier: "Premier",
       executive: "Executive",
+      sponsor: "Sponsor",
+      chairman: "Chairman's Circle",
     };
     return labels[tier] || tier;
   };
@@ -211,12 +230,12 @@ export default function EventDetail() {
         {/* Header */}
         <div className="flex items-start justify-between">
           <div>
-            <Button variant="ghost" size="sm" onClick={() => navigate("/admin/events")} className="gap-1 mb-2">
+            <Button variant="ghost" size="sm" onClick={() => navigate("/admin/events")} className="gap-1 mb-2 text-foreground hover:text-foreground">
               <ArrowLeft className="h-4 w-4" />
               Back to Events
             </Button>
             <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold">{event.name}</h1>
+              <h1 className="text-2xl font-bold text-foreground">{event.name}</h1>
               {getTypeBadge(event.event_type)}
               {event.is_active ? (
                 <Badge className="bg-green-500">Active</Badge>
@@ -227,11 +246,11 @@ export default function EventDetail() {
             {event.subtitle && <p className="text-muted-foreground mt-1">{event.subtitle}</p>}
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => setEditOpen(true)}>
+            <Button variant="outline" onClick={() => setEditOpen(true)} className="text-foreground border-border">
               <Edit className="h-4 w-4 mr-2" />
               Edit Event
             </Button>
-            <Button variant="outline" onClick={() => setAllocationsOpen(true)}>
+            <Button variant="outline" onClick={() => setAllocationsOpen(true)} className="text-foreground border-border">
               <Settings className="h-4 w-4 mr-2" />
               Allocations
             </Button>
@@ -361,10 +380,79 @@ export default function EventDetail() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="allocations">
+          <TabsContent value="allocations" className="space-y-4">
+            {/* Fulfillment Projections Calculator */}
             <Card>
               <CardHeader>
-                <CardTitle>Tier Allocations</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                  <Ticket className="h-5 w-5" />
+                  Fulfillment Projections (100% Claim Rate)
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Tier</TableHead>
+                      <TableHead className="text-center">Members</TableHead>
+                      <TableHead className="text-center">Tickets Required</TableHead>
+                      <TableHead className="text-center">Symposium Required</TableHead>
+                      <TableHead className="text-center">VIP Dinner Required</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {["industry", "premier", "executive", "sponsor", "chairman"].map((tier) => {
+                      const alloc = allocations?.find((a) => a.tier === tier);
+                      const memberCount = membershipCounts?.[tier] || 0;
+                      const ticketsRequired = memberCount * (alloc?.conference_tickets ?? 0);
+                      const symposiumRequired = memberCount * (alloc?.symposium_seats ?? 0);
+                      const dinnerRequired = memberCount * (alloc?.vip_dinner_seats ?? 0);
+                      return (
+                        <TableRow key={tier}>
+                          <TableCell className="font-medium">{getTierLabel(tier)}</TableCell>
+                          <TableCell className="text-center">{memberCount}</TableCell>
+                          <TableCell className="text-center">{ticketsRequired}</TableCell>
+                          <TableCell className="text-center">{symposiumRequired}</TableCell>
+                          <TableCell className="text-center">{dinnerRequired}</TableCell>
+                        </TableRow>
+                      );
+                    })}
+                    {/* Totals Row */}
+                    <TableRow className="bg-muted/50 font-semibold">
+                      <TableCell>TOTAL</TableCell>
+                      <TableCell className="text-center">
+                        {["industry", "premier", "executive", "sponsor", "chairman"].reduce(
+                          (sum, tier) => sum + (membershipCounts?.[tier] || 0), 0
+                        )}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {["industry", "premier", "executive", "sponsor", "chairman"].reduce((sum, tier) => {
+                          const alloc = allocations?.find((a) => a.tier === tier);
+                          return sum + (membershipCounts?.[tier] || 0) * (alloc?.conference_tickets ?? 0);
+                        }, 0)}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {["industry", "premier", "executive", "sponsor", "chairman"].reduce((sum, tier) => {
+                          const alloc = allocations?.find((a) => a.tier === tier);
+                          return sum + (membershipCounts?.[tier] || 0) * (alloc?.symposium_seats ?? 0);
+                        }, 0)}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {["industry", "premier", "executive", "sponsor", "chairman"].reduce((sum, tier) => {
+                          const alloc = allocations?.find((a) => a.tier === tier);
+                          return sum + (membershipCounts?.[tier] || 0) * (alloc?.vip_dinner_seats ?? 0);
+                        }, 0)}
+                      </TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+
+            {/* Tier Allocations */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Tier Allocations (Per Member)</CardTitle>
               </CardHeader>
               <CardContent>
                 <Table>
@@ -377,7 +465,7 @@ export default function EventDetail() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {["silver", "gold", "platinum", "chairman", "executive"].map((tier) => {
+                    {["industry", "premier", "executive", "sponsor", "chairman"].map((tier) => {
                       const alloc = allocations?.find((a) => a.tier === tier);
                       return (
                         <TableRow key={tier}>
