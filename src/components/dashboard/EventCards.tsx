@@ -9,7 +9,7 @@ import type { Tables } from "@/integrations/supabase/types";
 type Event = Tables<"events">;
 
 export function EventCards() {
-  const { companyUser, allocations } = useMember();
+  const { companyUserId, allocations } = useMember();
 
   const { data: events, isLoading } = useQuery({
     queryKey: ["events"],
@@ -73,7 +73,7 @@ export function EventCards() {
                 key={event.id}
                 event={event}
                 allocation={getAllocationForEvent(event.id)}
-                memberId={companyUser?.id || ""}
+                companyUserId={companyUserId || ""}
                 isPrimary
               />
             ))}
@@ -93,7 +93,7 @@ export function EventCards() {
                 key={event.id}
                 event={event}
                 allocation={getAllocationForEvent(event.id)}
-                memberId={companyUser?.id || ""}
+                companyUserId={companyUserId || ""}
                 isPrimary={false}
               />
             ))}

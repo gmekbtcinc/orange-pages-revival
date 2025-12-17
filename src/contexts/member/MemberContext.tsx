@@ -2,14 +2,20 @@ import { createContext, useContext, useState, useEffect, ReactNode } from "react
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 
+/** @deprecated Use companyUser instead - will be removed in future migration */
 type Member = Tables<"members">;
 type EventAllocation = Tables<"event_allocations">;
 type CompanyUser = Tables<"company_users">;
 type Membership = Tables<"memberships">;
 
 interface MemberContextType {
+  /** @deprecated Use companyUser instead */
   member: Member | null;
+  /** Primary source of truth for user identity */
   companyUser: CompanyUser | null;
+  /** Convenience property: companyUser?.id for activity table operations */
+  companyUserId: string | null;
+  /** Company's membership tier and billing info */
   membership: Membership | null;
   allocations: EventAllocation[];
   isLoading: boolean;
@@ -27,6 +33,9 @@ export function MemberProvider({ children }: { children: ReactNode }) {
   const [allocations, setAllocations] = useState<EventAllocation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+
+  // Derived convenience property
+  const companyUserId = companyUser?.id || null;
 
   const fetchMember = async () => {
     setIsLoading(true);
@@ -46,7 +55,17 @@ export function MemberProvider({ children }: { children: ReactNode }) {
       const { data: adminCheck } = await supabase.rpc('is_super_admin', { _user_id: user.id });
       setIsSuperAdmin(adminCheck || false);
 
-      // Fetch member record
+      // Fetch company_user record (PRIMARY source of truth)
+      const { data: companyUserData } = await supabase
+        .from("company_users")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("is_active", true)
+        .maybeSingle();
+
+      setCompanyUser(companyUserData || null);
+
+      // Fetch member record (DEPRECATED - for backward compatibility)
       const { data: memberData, error: memberError } = await supabase
         .from("members")
         .select("*")
@@ -58,17 +77,7 @@ export function MemberProvider({ children }: { children: ReactNode }) {
       }
       setMember(memberData || null);
 
-      // Fetch company_user record
-      const { data: companyUserData } = await supabase
-        .from("company_users")
-        .select("*")
-        .eq("user_id", user.id)
-        .eq("is_active", true)
-        .maybeSingle();
-
-      setCompanyUser(companyUserData || null);
-
-      // Fetch membership if we have a business_id
+      // Fetch membership based on companyUser's business_id (primary) or member's business_id (fallback)
       const businessId = companyUserData?.business_id || memberData?.business_id;
       if (businessId) {
         const { data: membershipData } = await supabase
@@ -90,7 +99,7 @@ export function MemberProvider({ children }: { children: ReactNode }) {
           setAllocations(allocationData || []);
         }
       } else if (memberData?.tier) {
-        // Fallback to member tier if no membership
+        // Fallback to member tier if no membership (deprecated path)
         const { data: allocationData } = await supabase
           .from("event_allocations")
           .select("*")
@@ -138,7 +147,17 @@ export function MemberProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <MemberContext.Provider value={{ member, companyUser, membership, allocations, isLoading, isSuperAdmin, refetch: fetchMember, signOut }}>
+    <MemberContext.Provider value={{ 
+      member, 
+      companyUser, 
+      companyUserId,
+      membership, 
+      allocations, 
+      isLoading, 
+      isSuperAdmin, 
+      refetch: fetchMember, 
+      signOut 
+    }}>
       {children}
     </MemberContext.Provider>
   );

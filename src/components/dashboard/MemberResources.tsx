@@ -48,7 +48,7 @@ const resources = [
 ];
 
 export function MemberResources() {
-  const { companyUser } = useMember();
+  const { companyUserId } = useMember();
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [loadingResource, setLoadingResource] = useState<string | null>(null);
@@ -56,7 +56,8 @@ export function MemberResources() {
   const requestMutation = useMutation({
     mutationFn: async (resourceType: string) => {
       const { error } = await supabase.from("member_resource_requests").insert({
-        member_id: companyUser?.id,
+        member_id: companyUserId!, // Temporary: using companyUserId until member_id column is removed
+        company_user_id: companyUserId,
         resource_type: resourceType,
         status: "pending",
       });

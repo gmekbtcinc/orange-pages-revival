@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -11,27 +11,26 @@ type TicketClaim = Tables<"ticket_claims">;
 
 interface TicketClaimModuleProps {
   eventId: string;
-  memberId: string;
+  companyUserId: string;
   allocated: number;
 }
 
-export function TicketClaimModule({ eventId, memberId, allocated }: TicketClaimModuleProps) {
+export function TicketClaimModule({ eventId, companyUserId, allocated }: TicketClaimModuleProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const queryClient = useQueryClient();
 
   const { data: claims = [], isLoading } = useQuery({
-    queryKey: ["ticket_claims", memberId, eventId],
+    queryKey: ["ticket_claims", companyUserId, eventId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("ticket_claims")
         .select("*")
-        .eq("member_id", memberId)
+        .eq("company_user_id", companyUserId)
         .eq("event_id", eventId);
 
       if (error) throw error;
       return data as TicketClaim[];
     },
-    enabled: !!memberId,
+    enabled: !!companyUserId,
   });
 
   const claimed = claims.length;
@@ -70,7 +69,7 @@ export function TicketClaimModule({ eventId, memberId, allocated }: TicketClaimM
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         eventId={eventId}
-        memberId={memberId}
+        companyUserId={companyUserId}
         remaining={remaining}
       />
     </div>
