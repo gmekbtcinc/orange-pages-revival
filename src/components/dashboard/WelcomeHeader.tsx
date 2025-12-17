@@ -48,16 +48,16 @@ export function WelcomeHeader() {
 
   // Fetch ticket claims count
   const { data: ticketClaims } = useQuery({
-    queryKey: ["ticket-claims-count", member?.id],
+    queryKey: ["ticket-claims-count", companyUser?.id],
     queryFn: async () => {
-      if (!member?.id) return [];
+      if (!companyUser?.id) return [];
       const { data } = await supabase
         .from("ticket_claims")
         .select("id")
-        .eq("member_id", member.id);
+        .eq("company_user_id", companyUser.id);
       return data || [];
     },
-    enabled: !!member?.id,
+    enabled: !!companyUser?.id,
   });
 
   const getGreeting = () => {

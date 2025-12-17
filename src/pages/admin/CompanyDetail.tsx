@@ -139,28 +139,30 @@ export default function CompanyDetail() {
 
   // Fetch activity (ticket claims, symposium registrations, speaker applications)
   const { data: activity = [] } = useQuery({
-    queryKey: ["admin-company-activity", id],
+    queryKey: ["admin-company-activity", id, teamMembers],
     queryFn: async () => {
-      const memberships = company?.memberships;
-      if (!memberships) return [];
+      if (!teamMembers.length) return [];
+      
+      // Get all company_user IDs for this business
+      const companyUserIds = teamMembers.map(m => m.id);
 
       const [tickets, symposiums, speakers] = await Promise.all([
         supabase
           .from("ticket_claims")
           .select("*, events(name)")
-          .eq("member_id", memberships.id)
+          .in("company_user_id", companyUserIds)
           .order("claimed_at", { ascending: false })
           .limit(10),
         supabase
           .from("symposium_registrations")
           .select("*, events(name)")
-          .eq("member_id", memberships.id)
+          .in("company_user_id", companyUserIds)
           .order("registered_at", { ascending: false })
           .limit(10),
         supabase
           .from("speaker_applications")
           .select("*, events(name)")
-          .eq("member_id", memberships.id)
+          .in("company_user_id", companyUserIds)
           .order("created_at", { ascending: false })
           .limit(10),
       ]);
@@ -173,7 +175,7 @@ export default function CompanyDetail() {
 
       return combined.slice(0, 20);
     },
-    enabled: !!company?.memberships,
+    enabled: teamMembers.length > 0,
   });
 
   // Edit company mutation
