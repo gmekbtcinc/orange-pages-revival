@@ -812,7 +812,7 @@ export type Database = {
           company_user_id: string | null
           completed_at: string | null
           id: string
-          member_id: string
+          member_id: string | null
           request_details: Json | null
           requested_at: string
           resource_type: string
@@ -824,7 +824,7 @@ export type Database = {
           company_user_id?: string | null
           completed_at?: string | null
           id?: string
-          member_id: string
+          member_id?: string | null
           request_details?: Json | null
           requested_at?: string
           resource_type: string
@@ -836,7 +836,7 @@ export type Database = {
           company_user_id?: string | null
           completed_at?: string | null
           id?: string
-          member_id?: string
+          member_id?: string | null
           request_details?: Json | null
           requested_at?: string
           resource_type?: string
@@ -1159,7 +1159,7 @@ export type Database = {
           event_id: string
           format: string
           id: string
-          member_id: string
+          member_id: string | null
           previous_speaking: string | null
           proposed_topic: string
           session_description: string | null
@@ -1184,7 +1184,7 @@ export type Database = {
           event_id: string
           format: string
           id?: string
-          member_id: string
+          member_id?: string | null
           previous_speaking?: string | null
           proposed_topic: string
           session_description?: string | null
@@ -1209,7 +1209,7 @@ export type Database = {
           event_id?: string
           format?: string
           id?: string
-          member_id?: string
+          member_id?: string | null
           previous_speaking?: string | null
           proposed_topic?: string
           session_description?: string | null
@@ -1263,7 +1263,7 @@ export type Database = {
           event_id: string
           id: string
           is_external_attendee: boolean | null
-          member_id: string
+          member_id: string | null
           registered_at: string
           registration_code: string | null
           status: Database["public"]["Enums"]["rsvp_status"] | null
@@ -1281,7 +1281,7 @@ export type Database = {
           event_id: string
           id?: string
           is_external_attendee?: boolean | null
-          member_id: string
+          member_id?: string | null
           registered_at?: string
           registration_code?: string | null
           status?: Database["public"]["Enums"]["rsvp_status"] | null
@@ -1299,7 +1299,7 @@ export type Database = {
           event_id?: string
           id?: string
           is_external_attendee?: boolean | null
-          member_id?: string
+          member_id?: string | null
           registered_at?: string
           registration_code?: string | null
           status?: Database["public"]["Enums"]["rsvp_status"] | null
@@ -1369,7 +1369,7 @@ export type Database = {
           event_id: string
           id: string
           is_external_attendee: boolean | null
-          member_id: string
+          member_id: string | null
           notes: string | null
           status: Database["public"]["Enums"]["rsvp_status"] | null
           ticket_code: string | null
@@ -1386,7 +1386,7 @@ export type Database = {
           event_id: string
           id?: string
           is_external_attendee?: boolean | null
-          member_id: string
+          member_id?: string | null
           notes?: string | null
           status?: Database["public"]["Enums"]["rsvp_status"] | null
           ticket_code?: string | null
@@ -1403,7 +1403,7 @@ export type Database = {
           event_id?: string
           id?: string
           is_external_attendee?: boolean | null
-          member_id?: string
+          member_id?: string | null
           notes?: string | null
           status?: Database["public"]["Enums"]["rsvp_status"] | null
           ticket_code?: string | null
@@ -1673,7 +1673,7 @@ export type Database = {
           guest_title: string | null
           id: string
           is_external_attendee: boolean | null
-          member_id: string
+          member_id: string | null
           rsvp_at: string
           seating_preferences: string | null
           status: Database["public"]["Enums"]["rsvp_status"] | null
@@ -1691,7 +1691,7 @@ export type Database = {
           guest_title?: string | null
           id?: string
           is_external_attendee?: boolean | null
-          member_id: string
+          member_id?: string | null
           rsvp_at?: string
           seating_preferences?: string | null
           status?: Database["public"]["Enums"]["rsvp_status"] | null
@@ -1709,7 +1709,7 @@ export type Database = {
           guest_title?: string | null
           id?: string
           is_external_attendee?: boolean | null
-          member_id?: string
+          member_id?: string | null
           rsvp_at?: string
           seating_preferences?: string | null
           status?: Database["public"]["Enums"]["rsvp_status"] | null
