@@ -56,11 +56,26 @@ interface CompanyWithMembership {
 const ITEMS_PER_PAGE = 20;
 
 const tierColors: Record<string, string> = {
+  industry: "bg-slate-500/10 text-slate-400 border-slate-500/30",
+  premier: "bg-blue-500/10 text-blue-400 border-blue-500/30",
+  executive: "bg-purple-500/10 text-purple-400 border-purple-500/30",
+  sponsor: "bg-emerald-500/10 text-emerald-400 border-emerald-500/30",
+  chairman: "bg-amber-500/10 text-amber-500 border-amber-500/30",
+  // Legacy
   silver: "bg-gray-500/10 text-gray-400 border-gray-500/30",
   gold: "bg-yellow-500/10 text-yellow-500 border-yellow-500/30",
-  platinum: "bg-purple-500/10 text-purple-400 border-purple-500/30",
-  chairman: "bg-amber-500/10 text-amber-500 border-amber-500/30",
-  executive: "bg-orange-500/10 text-orange-500 border-orange-500/30",
+  platinum: "bg-orange-500/10 text-orange-400 border-orange-500/30",
+};
+
+const tierLabels: Record<string, string> = {
+  industry: "Industry",
+  premier: "Premier",
+  executive: "Executive",
+  sponsor: "Sponsor",
+  chairman: "Chairman's Circle",
+  silver: "Silver",
+  gold: "Gold",
+  platinum: "Platinum",
 };
 
 export default function CompaniesAdmin() {
@@ -226,8 +241,7 @@ export default function CompaniesAdmin() {
                             className={tierColors[company.memberships.tier] || ""}
                           >
                             <Crown className="h-3 w-3 mr-1" />
-                            {company.memberships.tier.charAt(0).toUpperCase() +
-                              company.memberships.tier.slice(1)}
+                            {tierLabels[company.memberships.tier] || company.memberships.tier}
                           </Badge>
                         ) : (
                           <Badge variant="secondary">Non-Member</Badge>
