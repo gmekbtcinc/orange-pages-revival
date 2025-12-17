@@ -20,12 +20,12 @@ interface AdminBreadcrumbProps {
 
 export function AdminBreadcrumb({ items }: AdminBreadcrumbProps) {
   return (
-    <div className="py-2 px-4 bg-muted/30 border-b border-border">
+    <div className="py-3 px-8 bg-card border-b border-border">
       <Breadcrumb>
         <BreadcrumbList>
           <BreadcrumbItem>
             <BreadcrumbLink asChild>
-              <Link to="/admin" className="flex items-center gap-1 hover:underline">
+              <Link to="/admin" className="flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors">
                 <Home className="h-3.5 w-3.5" />
                 <span>Admin</span>
               </Link>
@@ -33,16 +33,16 @@ export function AdminBreadcrumb({ items }: AdminBreadcrumbProps) {
           </BreadcrumbItem>
           {items.map((item, index) => (
             <span key={index} className="contents">
-              <BreadcrumbSeparator />
+              <BreadcrumbSeparator className="text-muted-foreground" />
               <BreadcrumbItem>
                 {item.href ? (
                   <BreadcrumbLink asChild>
-                    <Link to={item.href} className="hover:underline">
+                    <Link to={item.href} className="text-muted-foreground hover:text-foreground transition-colors">
                       {item.label}
                     </Link>
                   </BreadcrumbLink>
                 ) : (
-                  <BreadcrumbPage className="font-medium">
+                  <BreadcrumbPage className="font-medium text-foreground">
                     {item.label}
                   </BreadcrumbPage>
                 )}
