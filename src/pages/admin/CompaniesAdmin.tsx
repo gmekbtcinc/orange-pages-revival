@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
@@ -9,6 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Table,
   TableBody,
@@ -31,6 +33,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Building2,
@@ -53,6 +64,7 @@ import {
   FileDown,
   Mail,
   Trash2,
+  Plus,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -111,12 +123,49 @@ const tierOrder: Record<string, number> = {
 
 export default function CompaniesAdmin() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState("");
   const [filter, setFilter] = useState<"all" | "members" | "non-members">("all");
   const [page, setPage] = useState(1);
   const [sortField, setSortField] = useState<SortField>("name");
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [newCompany, setNewCompany] = useState({
+    name: "",
+    description: "",
+    website: "",
+    city: "",
+    country: "",
+  });
+
+  const addCompanyMutation = useMutation({
+    mutationFn: async (company: typeof newCompany) => {
+      const { data, error } = await supabase
+        .from("businesses")
+        .insert({
+          name: company.name,
+          description: company.description || "No description provided",
+          website: company.website || null,
+          city: company.city || null,
+          country: company.country || null,
+        })
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      toast.success("Company added successfully");
+      queryClient.invalidateQueries({ queryKey: ["admin-companies"] });
+      setAddDialogOpen(false);
+      setNewCompany({ name: "", description: "", website: "", city: "", country: "" });
+      navigate(`/admin/companies/${data.id}`);
+    },
+    onError: (error: any) => {
+      toast.error("Failed to add company", { description: error.message });
+    },
+  });
 
   const { data, isLoading } = useQuery({
     queryKey: ["admin-companies", searchQuery, filter, page, sortField, sortDirection],
@@ -306,7 +355,7 @@ export default function CompaniesAdmin() {
                 setPage(1);
               }}
             >
-              <SelectTrigger className="w-[180px]">
+              <SelectTrigger className="w-[180px] text-foreground">
                 <ArrowUpDown className="h-4 w-4 mr-2" />
                 <SelectValue placeholder="Sort by..." />
               </SelectTrigger>
@@ -319,6 +368,85 @@ export default function CompaniesAdmin() {
                 <SelectItem value="tier-desc">Tier (Lowest First)</SelectItem>
               </SelectContent>
             </Select>
+
+            <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
+              <DialogTrigger asChild>
+                <Button>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Company
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[500px]">
+                <DialogHeader>
+                  <DialogTitle>Add New Company</DialogTitle>
+                  <DialogDescription>
+                    Add a new company to the directory. You can edit additional details after creation.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="name">Company Name *</Label>
+                    <Input
+                      id="name"
+                      value={newCompany.name}
+                      onChange={(e) => setNewCompany(prev => ({ ...prev, name: e.target.value }))}
+                      placeholder="Enter company name"
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="description">Description</Label>
+                    <Textarea
+                      id="description"
+                      value={newCompany.description}
+                      onChange={(e) => setNewCompany(prev => ({ ...prev, description: e.target.value }))}
+                      placeholder="Brief description of the company"
+                      rows={3}
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="website">Website</Label>
+                    <Input
+                      id="website"
+                      value={newCompany.website}
+                      onChange={(e) => setNewCompany(prev => ({ ...prev, website: e.target.value }))}
+                      placeholder="https://example.com"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="city">City</Label>
+                      <Input
+                        id="city"
+                        value={newCompany.city}
+                        onChange={(e) => setNewCompany(prev => ({ ...prev, city: e.target.value }))}
+                        placeholder="City"
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="country">Country</Label>
+                      <Input
+                        id="country"
+                        value={newCompany.country}
+                        onChange={(e) => setNewCompany(prev => ({ ...prev, country: e.target.value }))}
+                        placeholder="Country"
+                      />
+                    </div>
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setAddDialogOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button 
+                    onClick={() => addCompanyMutation.mutate(newCompany)}
+                    disabled={!newCompany.name.trim() || addCompanyMutation.isPending}
+                  >
+                    {addCompanyMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                    Add Company
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </div>
 
           <Tabs value={filter} onValueChange={(v) => { setFilter(v as any); setPage(1); setSelectedIds(new Set()); }}>
