@@ -28,11 +28,15 @@ const tierColors: Record<string, string> = {
 };
 
 const tierLabels: Record<string, string> = {
+  industry: "Industry",
+  premier: "Premier",
+  executive: "Executive",
+  sponsor: "Sponsor",
+  chairman: "Chairman's Circle",
+  // Legacy tiers for backward compatibility
   silver: "Silver",
   gold: "Gold",
   platinum: "Platinum",
-  chairman: "Chairman's Circle",
-  executive: "Executive",
 };
 
 export function DashboardLayout({ children }: DashboardLayoutProps) {
@@ -51,7 +55,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     .toUpperCase()
     .slice(0, 2) || "BF";
 
-  const tier = membership?.tier || member?.tier || "silver";
+  const tier = membership?.tier || member?.tier || "industry";
   const canManageUsers = companyUser?.can_manage_users || companyUser?.role === "company_admin";
 
   const { data: isAdmin } = useQuery({
