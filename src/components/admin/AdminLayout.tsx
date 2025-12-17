@@ -17,10 +17,6 @@ import {
   FileCheck,
   Users,
   Calendar,
-  Layers,
-  Gift,
-  Package,
-  DollarSign,
 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -40,10 +36,11 @@ const navItems = [
   { label: "Claims", href: "/admin/claims", icon: FileCheck },
   { label: "Users", href: "/admin/users", icon: Users },
   { label: "Events", href: "/admin/events", icon: Calendar },
-  { label: "Tiers & Tracks", href: "/admin/tiers", icon: Layers },
-  { label: "Benefits", href: "/admin/benefits", icon: Gift },
-  { label: "Packages", href: "/admin/packages", icon: Package },
-  { label: "Pricing", href: "/admin/pricing", icon: DollarSign },
+  // Hidden for now - revisit later:
+  // { label: "Tiers & Tracks", href: "/admin/tiers", icon: Layers },
+  // { label: "Benefits", href: "/admin/benefits", icon: Gift },
+  // { label: "Packages", href: "/admin/packages", icon: Package },
+  // { label: "Pricing", href: "/admin/pricing", icon: DollarSign },
 ];
 
 export function AdminLayout({ children, breadcrumbs }: AdminLayoutProps) {
