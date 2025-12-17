@@ -2,6 +2,8 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useMember } from "@/contexts/member/MemberContext";
 import { EventCard } from "./EventCard";
+import { EmptyState } from "./EmptyState";
+import { Calendar } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Event = Tables<"events">;
@@ -59,7 +61,11 @@ export function EventCards() {
           Primary Events
         </h2>
         {primaryEvents.length === 0 ? (
-          <p className="text-muted-foreground">No primary events available.</p>
+          <EmptyState
+            icon={Calendar}
+            title="No Primary Events Scheduled"
+            description="There are no primary events scheduled at this time. Check back soon for upcoming conferences and events."
+          />
         ) : (
           <div className="grid gap-6 md:grid-cols-2">
             {primaryEvents.map((event) => (

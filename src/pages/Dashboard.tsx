@@ -1,6 +1,9 @@
 import { useEffect, useState } from "react";
 import { useMember } from "@/contexts/member/MemberContext";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
+import { WelcomeHeader } from "@/components/dashboard/WelcomeHeader";
+import { QuickActions } from "@/components/dashboard/QuickActions";
+import { TicketProgress } from "@/components/dashboard/TicketProgress";
 import { MemberFastFacts } from "@/components/dashboard/MemberFastFacts";
 import { EventCards } from "@/components/dashboard/EventCards";
 import { MemberResources } from "@/components/dashboard/MemberResources";
@@ -8,7 +11,7 @@ import { ClaimStatusCard } from "@/components/claims/ClaimStatusCard";
 import { supabase } from "@/integrations/supabase/client";
 
 export default function Dashboard() {
-  const { member, companyUser, isLoading } = useMember();
+  const { member, companyUser, isLoading, allocations } = useMember();
   const [userId, setUserId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -43,14 +46,32 @@ export default function Dashboard() {
     );
   }
 
+  const hasAllocations = allocations.length > 0;
+
   return (
     <DashboardLayout>
-      <div className="space-y-8">
+      <div className="space-y-6">
+        {/* Welcome Header */}
+        <WelcomeHeader />
+
+        {/* Quick Actions */}
+        <QuickActions />
+
+        {/* Ticket Progress */}
+        {hasAllocations && <TicketProgress />}
+
         {/* Claim Status Cards */}
         {userId && <ClaimStatusCard userId={userId} />}
-        
+
+        {/* Member Fast Facts */}
         <MemberFastFacts />
-        <EventCards />
+
+        {/* Events Section */}
+        <div id="events-section">
+          <EventCards />
+        </div>
+
+        {/* Member Resources */}
         <MemberResources />
       </div>
     </DashboardLayout>
