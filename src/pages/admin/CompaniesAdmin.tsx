@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
+import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Card, CardContent } from "@/components/ui/card";
@@ -48,8 +49,7 @@ interface CompanyWithMembership {
   is_bfc_member: boolean | null;
   is_bitcoin_only: boolean | null;
   created_at: string;
-  categories: { name: string } | null;
-  memberships: { tier: string; is_active: boolean } | null;
+  memberships: { tier: string; is_active: boolean; member_since: string | null } | null;
   company_users: { id: string }[];
 }
 
@@ -99,8 +99,7 @@ export default function CompaniesAdmin() {
           is_bfc_member,
           is_bitcoin_only,
           created_at,
-          categories (name),
-          memberships (tier, is_active),
+          memberships (tier, is_active, member_since),
           company_users (id)
         `, { count: "exact" })
         .order("created_at", { ascending: false });
@@ -193,7 +192,7 @@ export default function CompaniesAdmin() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Company</TableHead>
-                    <TableHead>Category</TableHead>
+                    <TableHead>Joined</TableHead>
                     <TableHead>Location</TableHead>
                     <TableHead>Membership</TableHead>
                     <TableHead>Status</TableHead>
@@ -226,7 +225,9 @@ export default function CompaniesAdmin() {
                       </TableCell>
                       <TableCell>
                         <span className="text-muted-foreground">
-                          {company.categories?.name || "—"}
+                          {company.memberships?.member_since
+                            ? format(new Date(company.memberships.member_since), "MMM yyyy")
+                            : "—"}
                         </span>
                       </TableCell>
                       <TableCell>
