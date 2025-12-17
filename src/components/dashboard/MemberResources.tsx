@@ -56,7 +56,6 @@ export function MemberResources() {
   const requestMutation = useMutation({
     mutationFn: async (resourceType: string) => {
       const { error } = await supabase.from("member_resource_requests").insert({
-        member_id: companyUserId!, // Temporary: using companyUserId until member_id column is removed
         company_user_id: companyUserId,
         resource_type: resourceType,
         status: "pending",

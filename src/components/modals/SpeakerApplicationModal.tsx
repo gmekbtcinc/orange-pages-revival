@@ -90,7 +90,6 @@ export function SpeakerApplicationModal({
     mutationFn: async () => {
       const data = {
         event_id: eventId,
-        member_id: companyUserId, // Temporary: using companyUserId until member_id column is removed
         company_user_id: companyUserId,
         speaker_name: speakerName,
         speaker_email: speakerEmail,
