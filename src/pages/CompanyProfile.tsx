@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Save, Building2, Users, Bitcoin, Link2 } from "lucide-react";
+import { Loader2, Save, Building2, Users, Bitcoin, Link2, ExternalLink } from "lucide-react";
+import { Link } from "react-router-dom";
 import { CoreInfoTab } from "@/components/company-profile/CoreInfoTab";
 import { LeadershipTab } from "@/components/company-profile/LeadershipTab";
 import { BitcoinAttributesTab } from "@/components/company-profile/BitcoinAttributesTab";
@@ -314,17 +315,25 @@ export default function CompanyProfile() {
               Manage your company's public listing
             </p>
           </div>
-          <Button
-            onClick={() => saveMutation.mutate()}
-            disabled={saveMutation.isPending}
-          >
-            {saveMutation.isPending ? (
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            ) : (
-              <Save className="h-4 w-4 mr-2" />
-            )}
-            Save Changes
-          </Button>
+          <div className="flex items-center gap-3">
+            <Button variant="outline" asChild>
+              <Link to={`/business/${companyUser.business_id}`} target="_blank">
+                <ExternalLink className="h-4 w-4 mr-2" />
+                View Public Profile
+              </Link>
+            </Button>
+            <Button
+              onClick={() => saveMutation.mutate()}
+              disabled={saveMutation.isPending}
+            >
+              {saveMutation.isPending ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Save className="h-4 w-4 mr-2" />
+              )}
+              Save Changes
+            </Button>
+          </div>
         </div>
 
         <Card>
