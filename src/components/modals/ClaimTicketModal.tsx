@@ -39,7 +39,6 @@ export function ClaimTicketModal({
     mutationFn: async () => {
       const { error } = await supabase.from("ticket_claims").insert({
         event_id: eventId,
-        member_id: companyUserId, // Temporary: using companyUserId until member_id column is removed
         company_user_id: companyUserId,
         attendee_name: attendeeName,
         attendee_email: attendeeEmail,

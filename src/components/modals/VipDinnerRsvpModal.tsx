@@ -42,7 +42,6 @@ export function VipDinnerRsvpModal({
     mutationFn: async () => {
       const { error } = await supabase.from("vip_dinner_rsvps").insert({
         event_id: eventId,
-        member_id: companyUserId, // Temporary: using companyUserId until member_id column is removed
         company_user_id: companyUserId,
         guest_name: guestName,
         guest_email: guestEmail,
