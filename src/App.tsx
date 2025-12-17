@@ -24,6 +24,10 @@ const MembershipsAdmin = lazy(() => import("./pages/admin/MembershipsAdmin"));
 const UsersAdmin = lazy(() => import("./pages/admin/UsersAdmin"));
 const EventsAdmin = lazy(() => import("./pages/admin/EventsAdmin"));
 const EventDetail = lazy(() => import("./pages/admin/EventDetail"));
+const TiersTracksAdmin = lazy(() => import("./pages/admin/TiersTracksAdmin"));
+const BenefitsAdmin = lazy(() => import("./pages/admin/BenefitsAdmin"));
+const PackagesAdmin = lazy(() => import("./pages/admin/PackagesAdmin"));
+const PricingAdmin = lazy(() => import("./pages/admin/PricingAdmin"));
 
 const queryClient = new QueryClient();
 
@@ -153,6 +157,46 @@ const App = () => (
                 <AdminProtectedRoute>
                   <Suspense fallback={<AdminLoadingFallback />}>
                     <EventDetail />
+                  </Suspense>
+                </AdminProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/tiers"
+              element={
+                <AdminProtectedRoute>
+                  <Suspense fallback={<AdminLoadingFallback />}>
+                    <TiersTracksAdmin />
+                  </Suspense>
+                </AdminProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/benefits"
+              element={
+                <AdminProtectedRoute>
+                  <Suspense fallback={<AdminLoadingFallback />}>
+                    <BenefitsAdmin />
+                  </Suspense>
+                </AdminProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/packages"
+              element={
+                <AdminProtectedRoute>
+                  <Suspense fallback={<AdminLoadingFallback />}>
+                    <PackagesAdmin />
+                  </Suspense>
+                </AdminProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/pricing"
+              element={
+                <AdminProtectedRoute>
+                  <Suspense fallback={<AdminLoadingFallback />}>
+                    <PricingAdmin />
                   </Suspense>
                 </AdminProtectedRoute>
               }
