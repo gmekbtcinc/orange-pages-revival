@@ -59,7 +59,7 @@ export function ManageRolesDialog({
     
     setSearching(true);
     try {
-      // Search in company_users first
+      // Search in company_users
       const { data: companyUser } = await supabase
         .from("company_users")
         .select("user_id, email")
@@ -70,20 +70,6 @@ export function ManageRolesDialog({
       if (companyUser?.user_id) {
         setFoundUser({ id: companyUser.user_id, email: companyUser.email });
         setUserId(companyUser.user_id);
-        toast.success("User found!");
-        return;
-      }
-
-      // Search in members
-      const { data: member } = await supabase
-        .from("members")
-        .select("user_id, email")
-        .eq("email", searchEmail.trim())
-        .maybeSingle();
-
-      if (member?.user_id) {
-        setFoundUser({ id: member.user_id, email: member.email });
-        setUserId(member.user_id);
         toast.success("User found!");
         return;
       }

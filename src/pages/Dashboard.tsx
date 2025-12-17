@@ -10,7 +10,7 @@ import { ClaimStatusCard } from "@/components/claims/ClaimStatusCard";
 import { supabase } from "@/integrations/supabase/client";
 
 export default function Dashboard() {
-  const { member, companyUser, isLoading } = useMember();
+  const { companyUser, isLoading } = useMember();
   const [userId, setUserId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -30,7 +30,7 @@ export default function Dashboard() {
     );
   }
 
-  if (!member && !companyUser) {
+  if (!companyUser) {
     return (
       <DashboardLayout>
         <div className="text-center py-12">

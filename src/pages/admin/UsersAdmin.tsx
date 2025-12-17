@@ -124,10 +124,9 @@ export default function UsersAdmin() {
         .order("created_at", { ascending: false });
       if (error) throw error;
 
-      // Get email info for each role
+      // Get email info for each role from company_users
       const rolesWithEmail = await Promise.all(
         data.map(async (role) => {
-          // Try to find email from company_users
           const { data: companyUser } = await supabase
             .from("company_users")
             .select("email, display_name")
@@ -136,17 +135,6 @@ export default function UsersAdmin() {
           
           if (companyUser) {
             return { ...role, email: companyUser.email, display_name: companyUser.display_name };
-          }
-
-          // Try members table
-          const { data: member } = await supabase
-            .from("members")
-            .select("email, display_name")
-            .eq("user_id", role.user_id)
-            .maybeSingle();
-
-          if (member) {
-            return { ...role, email: member.email, display_name: member.display_name };
           }
 
           return { ...role, email: "Unknown", display_name: "Unknown User" };
