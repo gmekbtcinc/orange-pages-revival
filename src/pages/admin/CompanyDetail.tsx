@@ -306,6 +306,12 @@ export default function CompanyDetail() {
           </div>
 
           <div className="flex gap-2">
+            <Button variant="outline" asChild>
+              <a href={`/business/${id}`} target="_blank" rel="noopener noreferrer">
+                <ExternalLink className="h-4 w-4 mr-2" />
+                View Public Profile
+              </a>
+            </Button>
             <Button variant="secondary" onClick={() => setEditDialogOpen(true)}>
               <Edit className="h-4 w-4 mr-2" />
               Edit Company
