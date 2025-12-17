@@ -199,7 +199,7 @@ export default function CompanyDetail() {
   // Update tier mutation
   const tierMutation = useMutation({
     mutationFn: async (newTier: string) => {
-      const tierValue = newTier as "silver" | "gold" | "platinum" | "chairman" | "executive";
+      const tierValue = newTier as "industry" | "premier" | "executive" | "sponsor" | "chairman";
       if (company?.memberships) {
         const { error } = await supabase
           .from("memberships")
@@ -706,7 +706,7 @@ function ChangeTierDialog({
   onSave: (tier: string) => void;
   isPending: boolean;
 }) {
-  const [tier, setTier] = useState(currentTier || "silver");
+  const [tier, setTier] = useState(currentTier || "industry");
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -724,11 +724,11 @@ function ChangeTierDialog({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="silver">Silver</SelectItem>
-              <SelectItem value="gold">Gold</SelectItem>
-              <SelectItem value="platinum">Platinum</SelectItem>
-              <SelectItem value="chairman">Chairman</SelectItem>
+              <SelectItem value="industry">Industry</SelectItem>
+              <SelectItem value="premier">Premier</SelectItem>
               <SelectItem value="executive">Executive</SelectItem>
+              <SelectItem value="sponsor">Sponsor</SelectItem>
+              <SelectItem value="chairman">Chairman's Circle</SelectItem>
             </SelectContent>
           </Select>
         </div>

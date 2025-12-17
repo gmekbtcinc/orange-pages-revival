@@ -68,7 +68,7 @@ export function WelcomeHeader() {
 
   const displayName = companyUser?.display_name || member?.display_name || "there";
   const firstName = displayName.split(" ")[0];
-  const tier = membership?.tier || member?.tier || "silver";
+  const tier = membership?.tier || member?.tier || "industry";
   const companyName = business?.name || "Your Company";
 
   return (
