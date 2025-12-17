@@ -3,13 +3,13 @@ import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { AdminLayout } from "@/components/admin/AdminLayout";
+import { EditCompanyDialog } from "@/components/admin/EditCompanyDialog";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import {
   Select,
@@ -48,11 +48,9 @@ import {
   UserPlus,
   Loader2,
   CheckCircle,
-  XCircle,
   Bitcoin,
   Shield,
   ExternalLink,
-  Mail,
   Ticket,
   Mic,
   UtensilsCrossed,
@@ -266,7 +264,7 @@ export default function CompanyDetail() {
     >
       <div className="space-y-6">
         {/* Back Button */}
-        <Button variant="ghost" size="sm" onClick={() => navigate("/admin/companies")} className="gap-1">
+        <Button variant="ghost" size="sm" onClick={() => navigate("/admin/companies")} className="gap-1 text-muted-foreground hover:text-foreground">
           <ArrowLeft className="h-4 w-4" />
           Back to Companies
         </Button>
@@ -308,11 +306,11 @@ export default function CompanyDetail() {
           </div>
 
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => setEditDialogOpen(true)}>
+            <Button variant="secondary" onClick={() => setEditDialogOpen(true)}>
               <Edit className="h-4 w-4 mr-2" />
               Edit Company
             </Button>
-            <Button variant="outline" onClick={() => setTierDialogOpen(true)}>
+            <Button variant="secondary" onClick={() => setTierDialogOpen(true)}>
               <Crown className="h-4 w-4 mr-2" />
               {membership ? "Change Tier" : "Add Membership"}
             </Button>
@@ -688,123 +686,6 @@ export default function CompanyDetail() {
   );
 }
 
-// Sub-components
-function EditCompanyDialog({
-  open,
-  onOpenChange,
-  company,
-  onSave,
-  isPending,
-}: {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  company: any;
-  onSave: (data: any) => void;
-  isPending: boolean;
-}) {
-  const [formData, setFormData] = useState({
-    name: company?.name || "",
-    description: company?.description || "",
-    website: company?.website || "",
-    email: company?.email || "",
-    city: company?.city || "",
-    country: company?.country || "",
-    is_verified: company?.is_verified || false,
-    is_bitcoin_only: company?.is_bitcoin_only || false,
-    is_bfc_member: company?.is_bfc_member || false,
-  });
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle>Edit Company</DialogTitle>
-          <DialogDescription>Update company information</DialogDescription>
-        </DialogHeader>
-        <div className="space-y-4 max-h-[60vh] overflow-y-auto">
-          <div className="space-y-2">
-            <Label>Company Name</Label>
-            <Input
-              value={formData.name}
-              onChange={(e) => setFormData((f) => ({ ...f, name: e.target.value }))}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>Description</Label>
-            <Textarea
-              value={formData.description}
-              onChange={(e) => setFormData((f) => ({ ...f, description: e.target.value }))}
-              rows={3}
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Website</Label>
-              <Input
-                value={formData.website}
-                onChange={(e) => setFormData((f) => ({ ...f, website: e.target.value }))}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Email</Label>
-              <Input
-                value={formData.email}
-                onChange={(e) => setFormData((f) => ({ ...f, email: e.target.value }))}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>City</Label>
-              <Input
-                value={formData.city}
-                onChange={(e) => setFormData((f) => ({ ...f, city: e.target.value }))}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Country</Label>
-              <Input
-                value={formData.country}
-                onChange={(e) => setFormData((f) => ({ ...f, country: e.target.value }))}
-              />
-            </div>
-          </div>
-          <div className="space-y-3">
-            <Label>Attributes</Label>
-            <div className="flex items-center justify-between">
-              <Label className="font-normal">Verified</Label>
-              <Switch
-                checked={formData.is_verified}
-                onCheckedChange={(v) => setFormData((f) => ({ ...f, is_verified: v }))}
-              />
-            </div>
-            <div className="flex items-center justify-between">
-              <Label className="font-normal">Bitcoin Only</Label>
-              <Switch
-                checked={formData.is_bitcoin_only}
-                onCheckedChange={(v) => setFormData((f) => ({ ...f, is_bitcoin_only: v }))}
-              />
-            </div>
-            <div className="flex items-center justify-between">
-              <Label className="font-normal">BFC Member</Label>
-              <Switch
-                checked={formData.is_bfc_member}
-                onCheckedChange={(v) => setFormData((f) => ({ ...f, is_bfc_member: v }))}
-              />
-            </div>
-          </div>
-        </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
-          </Button>
-          <Button onClick={() => onSave(formData)} disabled={isPending}>
-            {isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-            Save Changes
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-}
 
 function ChangeTierDialog({
   open,
