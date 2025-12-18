@@ -150,11 +150,23 @@ export function SubmitBusinessDialog({ isOpen, onClose, initialData }: SubmitBus
     onSuccess: (data) => {
       console.log("[SubmitBusinessDialog] onSuccess - data:", data);
       queryClient.invalidateQueries({ queryKey: ["business-submissions"] });
+      
+      // Send confirmation email (fire and forget)
+      supabase.functions.invoke("send-status-email", {
+        body: {
+          type: "submission_received",
+          email: userEmail,
+          recipientName: submitterName,
+          businessName: name,
+          origin: window.location.origin,
+        },
+      }).catch((err) => console.error("Submission confirmation email error:", err));
+      
       toast({
         title: "Submission received!",
         description: wantsToClaim 
-          ? "We'll review your business and claim request shortly."
-          : "We'll review your business submission shortly.",
+          ? "We'll review your business and claim request shortly. Check your email for confirmation."
+          : "We'll review your business submission shortly. Check your email for confirmation.",
       });
       // Clear pending submission from storage
       sessionStorage.removeItem("pendingBusinessSubmission");

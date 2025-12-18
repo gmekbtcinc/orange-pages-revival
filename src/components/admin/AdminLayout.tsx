@@ -1,6 +1,7 @@
 import { ReactNode, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -37,12 +38,12 @@ interface AdminLayoutProps {
 
 // All nav items with role requirements
 const allNavItems = [
-  { label: "Dashboard", href: "/admin", icon: LayoutDashboard, roles: ["super_admin", "admin"] },
-  { label: "Companies", href: "/admin/companies", icon: Building2, roles: ["super_admin", "admin", "moderator"] },
-  { label: "Memberships", href: "/admin/memberships", icon: Crown, roles: ["super_admin", "admin"] },
-  { label: "Claims", href: "/admin/claims", icon: FileCheck, roles: ["super_admin", "admin", "moderator"] },
-  { label: "Users", href: "/admin/users", icon: Users, roles: ["super_admin", "admin"] },
-  { label: "Events", href: "/admin/events", icon: Calendar, roles: ["super_admin", "admin"] },
+  { label: "Dashboard", href: "/admin", icon: LayoutDashboard, roles: ["super_admin", "admin"], showBadge: false },
+  { label: "Companies", href: "/admin/companies", icon: Building2, roles: ["super_admin", "admin", "moderator"], showBadge: false },
+  { label: "Memberships", href: "/admin/memberships", icon: Crown, roles: ["super_admin", "admin"], showBadge: false },
+  { label: "Claims", href: "/admin/claims", icon: FileCheck, roles: ["super_admin", "admin", "moderator"], showBadge: true },
+  { label: "Users", href: "/admin/users", icon: Users, roles: ["super_admin", "admin"], showBadge: false },
+  { label: "Events", href: "/admin/events", icon: Calendar, roles: ["super_admin", "admin"], showBadge: false },
   // Hidden for now - revisit later:
   // { label: "Tiers & Tracks", href: "/admin/tiers", icon: Layers, roles: ["super_admin", "admin"] },
   // { label: "Benefits", href: "/admin/benefits", icon: Gift, roles: ["super_admin", "admin"] },
@@ -91,6 +92,23 @@ export function AdminLayout({ children, breadcrumbs }: AdminLayoutProps) {
         role: roleData.role as AppRole,
       };
     },
+  });
+
+  // Fetch pending counts for badge
+  const { data: pendingCounts } = useQuery({
+    queryKey: ["admin-pending-counts"],
+    queryFn: async () => {
+      const [claimsRes, submissionsRes] = await Promise.all([
+        supabase.from("business_claims").select("id", { count: "exact", head: true }).eq("status", "pending"),
+        supabase.from("business_submissions").select("id", { count: "exact", head: true }).eq("status", "pending"),
+      ]);
+      return {
+        claims: claimsRes.count || 0,
+        submissions: submissionsRes.count || 0,
+        total: (claimsRes.count || 0) + (submissionsRes.count || 0),
+      };
+    },
+    refetchInterval: 30000, // Refresh every 30 seconds
   });
 
   // Filter nav items based on user's role
@@ -183,6 +201,7 @@ export function AdminLayout({ children, breadcrumbs }: AdminLayoutProps) {
           {navItems.map((item) => {
             const isActive = location.pathname === item.href || 
               (item.href !== "/admin" && location.pathname.startsWith(item.href));
+            const badgeCount = item.showBadge ? pendingCounts?.total : 0;
             return (
               <Button
                 key={item.href}
@@ -195,6 +214,11 @@ export function AdminLayout({ children, breadcrumbs }: AdminLayoutProps) {
               >
                 <item.icon className="h-4 w-4" />
                 {item.label}
+                {badgeCount && badgeCount > 0 ? (
+                  <Badge variant="destructive" className="ml-auto h-5 min-w-5 px-1.5 text-xs">
+                    {badgeCount}
+                  </Badge>
+                ) : null}
               </Button>
             );
           })}
