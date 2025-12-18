@@ -7,6 +7,9 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Production URL - always use this for invitation links to avoid Lovable preview redirects
+const PRODUCTION_URL = "https://orangepages.bitcoinforcorporations.com";
+
 interface InvitationEmailRequest {
   email: string;
   displayName: string;
@@ -31,7 +34,12 @@ const handler = async (req: Request): Promise<Response> => {
     console.log("Company:", companyName);
     console.log("Inviter:", inviterName);
 
-    const acceptUrl = `${origin}/invite/accept?token=${inviteToken}`;
+    // Always use production URL for invitation links to avoid Lovable preview/auth-bridge issues
+    const baseUrl = origin.includes("lovable.app") || origin.includes("lovable.dev") || origin.includes("localhost") 
+      ? PRODUCTION_URL 
+      : origin;
+    
+    const acceptUrl = `${baseUrl}/invite/accept?token=${inviteToken}`;
     const roleDisplay = role === "company_admin" ? "Admin" : "Team Member";
 
     const res = await fetch("https://api.resend.com/emails", {
