@@ -28,6 +28,7 @@ import { Loader2, Building2, User } from "lucide-react";
 interface SubmitBusinessDialogProps {
   isOpen: boolean;
   onClose: () => void;
+  initialData?: Record<string, unknown> | null;
 }
 
 const relationshipOptions = [
@@ -37,7 +38,7 @@ const relationshipOptions = [
   { value: "authorized_representative", label: "Authorized Representative" },
 ];
 
-export function SubmitBusinessDialog({ isOpen, onClose }: SubmitBusinessDialogProps) {
+export function SubmitBusinessDialog({ isOpen, onClose, initialData }: SubmitBusinessDialogProps) {
   const navigate = useNavigate();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -60,10 +61,29 @@ export function SubmitBusinessDialog({ isOpen, onClose }: SubmitBusinessDialogPr
   // Check auth status
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
+      console.log("[SubmitBusinessDialog] Auth check - user:", user?.id, user?.email);
       setUserId(user?.id || null);
       setUserEmail(user?.email || "");
     });
   }, [isOpen]);
+
+  // Populate form with initial data if provided
+  useEffect(() => {
+    if (initialData && isOpen) {
+      console.log("[SubmitBusinessDialog] Populating form with initial data:", initialData);
+      setName((initialData.name as string) || "");
+      setDescription((initialData.description as string) || "");
+      setWebsite((initialData.website as string) || "");
+      setCity((initialData.city as string) || "");
+      setState((initialData.state as string) || "");
+      setCountry((initialData.country as string) || "");
+      setCategoryId((initialData.categoryId as string) || "");
+      setWantsToClaim((initialData.wantsToClaim as boolean) || false);
+      setClaimTitle((initialData.claimTitle as string) || "");
+      setClaimRelationship((initialData.claimRelationship as string) || "");
+      setSubmitterName((initialData.submitterName as string) || "");
+    }
+  }, [initialData, isOpen]);
 
   // Fetch categories
   const { data: categories = [] } = useQuery({
@@ -90,9 +110,16 @@ export function SubmitBusinessDialog({ isOpen, onClose }: SubmitBusinessDialogPr
 
   const submitMutation = useMutation({
     mutationFn: async () => {
-      if (!userId) throw new Error("You must be logged in to submit a business");
+      console.log("[SubmitBusinessDialog] Starting submission...");
+      console.log("[SubmitBusinessDialog] User ID:", userId);
+      console.log("[SubmitBusinessDialog] User Email:", userEmail);
+      
+      if (!userId) {
+        console.error("[SubmitBusinessDialog] No user ID found");
+        throw new Error("You must be logged in to submit a business");
+      }
 
-      const { error } = await supabase.from("business_submissions").insert({
+      const payload = {
         submitter_user_id: userId,
         submitter_email: userEmail,
         submitter_name: submitterName,
@@ -106,11 +133,22 @@ export function SubmitBusinessDialog({ isOpen, onClose }: SubmitBusinessDialogPr
         wants_to_claim: wantsToClaim,
         claim_title: wantsToClaim ? claimTitle : null,
         claim_relationship: wantsToClaim ? claimRelationship : null,
-      });
+      };
+      
+      console.log("[SubmitBusinessDialog] Submitting payload:", payload);
 
-      if (error) throw error;
+      const { data, error } = await supabase.from("business_submissions").insert(payload).select();
+
+      if (error) {
+        console.error("[SubmitBusinessDialog] Supabase error:", error);
+        throw error;
+      }
+      
+      console.log("[SubmitBusinessDialog] Submission successful:", data);
+      return data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log("[SubmitBusinessDialog] onSuccess - data:", data);
       queryClient.invalidateQueries({ queryKey: ["business-submissions"] });
       toast({
         title: "Submission received!",
@@ -118,10 +156,13 @@ export function SubmitBusinessDialog({ isOpen, onClose }: SubmitBusinessDialogPr
           ? "We'll review your business and claim request shortly."
           : "We'll review your business submission shortly.",
       });
+      // Clear pending submission from storage
+      sessionStorage.removeItem("pendingBusinessSubmission");
       resetForm();
       onClose();
     },
     onError: (error: Error) => {
+      console.error("[SubmitBusinessDialog] onError:", error);
       toast({
         variant: "destructive",
         title: "Error submitting business",
@@ -146,15 +187,20 @@ export function SubmitBusinessDialog({ isOpen, onClose }: SubmitBusinessDialogPr
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    console.log("[SubmitBusinessDialog] handleSubmit called");
+    console.log("[SubmitBusinessDialog] Current userId:", userId);
     
     if (!userId) {
+      console.log("[SubmitBusinessDialog] User not logged in, storing data and redirecting");
       // Store form data and redirect to login
-      sessionStorage.setItem("pendingBusinessSubmission", JSON.stringify({
+      const pendingData = {
         name, description, website, city, state, country, categoryId,
         wantsToClaim, claimTitle, claimRelationship, submitterName,
-      }));
+      };
+      console.log("[SubmitBusinessDialog] Storing pending data:", pendingData);
+      sessionStorage.setItem("pendingBusinessSubmission", JSON.stringify(pendingData));
       onClose();
-      navigate("/login?returnTo=/");
+      navigate("/login?returnTo=/dashboard&openSubmit=true");
       toast({
         title: "Sign in required",
         description: "Please sign in to submit a business.",

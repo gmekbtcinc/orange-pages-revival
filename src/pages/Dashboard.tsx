@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useSearchParams } from "react-router-dom";
 import { Ticket, Calendar, Mic2, UtensilsCrossed, Users, Building2, Search } from "lucide-react";
 import { useMember } from "@/contexts/member/MemberContext";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
@@ -17,17 +18,57 @@ import { SubmitBusinessDialog } from "@/components/submissions/SubmitBusinessDia
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Dashboard() {
   const { companyUser, isLoading, membership } = useMember();
   const [userId, setUserId] = useState<string | null>(null);
   const [submitDialogOpen, setSubmitDialogOpen] = useState(false);
+  const [pendingSubmissionData, setPendingSubmissionData] = useState<Record<string, unknown> | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { toast } = useToast();
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
       setUserId(user?.id || null);
     });
   }, []);
+
+  // Check for pending submission on mount
+  useEffect(() => {
+    const openSubmit = searchParams.get("openSubmit");
+    const pendingData = sessionStorage.getItem("pendingBusinessSubmission");
+    
+    if (pendingData && userId) {
+      try {
+        const parsed = JSON.parse(pendingData);
+        console.log("[Dashboard] Found pending submission data:", parsed);
+        setPendingSubmissionData(parsed);
+        setSubmitDialogOpen(true);
+        // Clear URL param
+        searchParams.delete("openSubmit");
+        setSearchParams(searchParams, { replace: true });
+        toast({
+          title: "Continue your submission",
+          description: "We've restored your business submission form.",
+        });
+      } catch (e) {
+        console.error("[Dashboard] Error parsing pending submission:", e);
+        sessionStorage.removeItem("pendingBusinessSubmission");
+      }
+    } else if (openSubmit === "true" && userId) {
+      setSubmitDialogOpen(true);
+      searchParams.delete("openSubmit");
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [userId, searchParams, setSearchParams, toast]);
+
+  // Clear pending data when dialog closes
+  const handleDialogClose = () => {
+    setSubmitDialogOpen(false);
+    setPendingSubmissionData(null);
+    sessionStorage.removeItem("pendingBusinessSubmission");
+  };
 
   // Check if user's business has an active membership
   const { data: hasMembership, isLoading: membershipLoading } = useQuery({
@@ -98,7 +139,8 @@ export default function Dashboard() {
         </div>
         <SubmitBusinessDialog 
           isOpen={submitDialogOpen} 
-          onClose={() => setSubmitDialogOpen(false)} 
+          onClose={handleDialogClose}
+          initialData={pendingSubmissionData}
         />
       </DashboardLayout>
     );
@@ -160,6 +202,11 @@ export default function Dashboard() {
             </div>
           </div>
         </div>
+        <SubmitBusinessDialog 
+          isOpen={submitDialogOpen} 
+          onClose={handleDialogClose}
+          initialData={pendingSubmissionData}
+        />
       </DashboardLayout>
     );
   }
@@ -188,6 +235,11 @@ export default function Dashboard() {
         {/* Member Resources */}
         <MemberResources />
       </div>
+      <SubmitBusinessDialog 
+        isOpen={submitDialogOpen} 
+        onClose={handleDialogClose}
+        initialData={pendingSubmissionData}
+      />
     </DashboardLayout>
   );
 }
