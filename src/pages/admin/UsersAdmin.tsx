@@ -10,7 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Users, UserCheck, Mail, Shield, Search, MoreHorizontal, Eye, Edit, Building2, UserX, UserPlus, Trash2, Ticket, Calendar, Mic, Utensils, BookOpen, ShieldCheck, ShieldAlert, UserCog, Link2 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Users, UserCheck, Mail, Shield, Search, MoreHorizontal, Eye, Edit, Building2, UserX, UserPlus, Trash2, Ticket, Calendar, Mic, Utensils, BookOpen, ShieldCheck, ShieldAlert, UserCog, Link2, X, Check } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
@@ -21,6 +22,7 @@ import { EditUserPermissionsDialog } from "@/components/admin/EditUserPermission
 import { ManageRolesDialog } from "@/components/admin/ManageRolesDialog";
 import { AddUserDialog } from "@/components/admin/AddUserDialog";
 import { LinkAccountDialog } from "@/components/admin/LinkAccountDialog";
+import { BulkEditUsersDialog } from "@/components/admin/BulkEditUsersDialog";
 import { Database } from "@/integrations/supabase/types";
 
 type AppRole = Database["public"]["Enums"]["app_role"];
@@ -66,6 +68,15 @@ export default function UsersAdmin() {
   const [addUserOpen, setAddUserOpen] = useState(false);
   const [linkAccountOpen, setLinkAccountOpen] = useState(false);
   const [userToLink, setUserToLink] = useState<UserWithBusiness | null>(null);
+  
+  // Bulk selection state
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkEditOpen, setBulkEditOpen] = useState(false);
+  
+  // Inline editing state
+  const [editingCell, setEditingCell] = useState<{ userId: string; field: string } | null>(null);
+  const [editValue, setEditValue] = useState("");
+  
   const pageSize = 25;
 
   // Fetch stats
@@ -211,6 +222,84 @@ export default function UsersAdmin() {
 
   const totalPages = Math.ceil((usersData?.count || 0) / pageSize);
 
+  // Inline edit mutation
+  const inlineEditMutation = useMutation({
+    mutationFn: async ({ userId, field, value }: { userId: string; field: string; value: string | boolean }) => {
+      const { error } = await supabase
+        .from("company_users")
+        .update({ [field]: value })
+        .eq("id", userId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-users"] });
+      toast.success("Updated successfully");
+      setEditingCell(null);
+    },
+    onError: (error) => {
+      toast.error("Failed to update: " + error.message);
+    },
+  });
+
+  // Bulk delete mutation
+  const bulkDeleteMutation = useMutation({
+    mutationFn: async (ids: string[]) => {
+      const { error } = await supabase
+        .from("company_users")
+        .delete()
+        .in("id", ids);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-users"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-users-stats"] });
+      toast.success(`Deleted ${selectedIds.size} users`);
+      setSelectedIds(new Set());
+    },
+    onError: (error) => {
+      toast.error("Failed to delete users: " + error.message);
+    },
+  });
+
+  // Selection helpers
+  const toggleSelectAll = () => {
+    if (!usersData?.users) return;
+    if (selectedIds.size === usersData.users.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(usersData.users.map(u => u.id)));
+    }
+  };
+
+  const toggleSelect = (id: string) => {
+    const newSet = new Set(selectedIds);
+    if (newSet.has(id)) {
+      newSet.delete(id);
+    } else {
+      newSet.add(id);
+    }
+    setSelectedIds(newSet);
+  };
+
+  const startInlineEdit = (userId: string, field: string, currentValue: string) => {
+    setEditingCell({ userId, field });
+    setEditValue(currentValue);
+  };
+
+  const saveInlineEdit = () => {
+    if (!editingCell) return;
+    inlineEditMutation.mutate({ 
+      userId: editingCell.userId, 
+      field: editingCell.field, 
+      value: editValue 
+    });
+  };
+
+  const cancelInlineEdit = () => {
+    setEditingCell(null);
+    setEditValue("");
+  };
+
   const getStatusBadge = (user: UserWithBusiness) => {
     if (!user.is_active) return <Badge variant="destructive">Inactive</Badge>;
     if (!user.user_id) return <Badge className="bg-yellow-500 hover:bg-yellow-600">Invited</Badge>;
@@ -338,12 +427,59 @@ export default function UsersAdmin() {
           </CardContent>
         </Card>
 
+        {/* Bulk Action Bar */}
+        {selectedIds.size > 0 && (
+          <Card className="border-primary">
+            <CardContent className="py-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Checkbox 
+                    checked={selectedIds.size === usersData?.users.length}
+                    onCheckedChange={toggleSelectAll}
+                  />
+                  <span className="text-sm font-medium">
+                    {selectedIds.size} user{selectedIds.size !== 1 ? "s" : ""} selected
+                  </span>
+                </div>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={() => setBulkEditOpen(true)}>
+                    <Edit className="h-4 w-4 mr-2" />
+                    Edit Selected
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="text-destructive border-destructive hover:bg-destructive/10"
+                    onClick={() => {
+                      if (confirm(`Delete ${selectedIds.size} users? This cannot be undone.`)) {
+                        bulkDeleteMutation.mutate(Array.from(selectedIds));
+                      }
+                    }}
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Delete Selected
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={() => setSelectedIds(new Set())}>
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Users Table */}
         <Card>
           <CardContent className="p-0">
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-[40px]">
+                    <Checkbox 
+                      checked={usersData?.users && usersData.users.length > 0 && selectedIds.size === usersData.users.length}
+                      onCheckedChange={toggleSelectAll}
+                    />
+                  </TableHead>
                   <TableHead>User</TableHead>
                   <TableHead>Company</TableHead>
                   <TableHead>Role</TableHead>
@@ -356,19 +492,25 @@ export default function UsersAdmin() {
               <TableBody>
                 {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8">
+                    <TableCell colSpan={8} className="text-center py-8">
                       Loading...
                     </TableCell>
                   </TableRow>
                 ) : usersData?.users.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                       No users found
                     </TableCell>
                   </TableRow>
                 ) : (
                   usersData?.users.map((user) => (
-                    <TableRow key={user.id}>
+                    <TableRow key={user.id} className={selectedIds.has(user.id) ? "bg-muted/50" : ""}>
+                      <TableCell>
+                        <Checkbox 
+                          checked={selectedIds.has(user.id)}
+                          onCheckedChange={() => toggleSelect(user.id)}
+                        />
+                      </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-3">
                           <Avatar className="h-8 w-8">
@@ -377,7 +519,34 @@ export default function UsersAdmin() {
                             </AvatarFallback>
                           </Avatar>
                           <div>
-                            <p className="font-medium">{user.display_name}</p>
+                            {editingCell?.userId === user.id && editingCell?.field === "display_name" ? (
+                              <div className="flex items-center gap-1">
+                                <Input
+                                  value={editValue}
+                                  onChange={(e) => setEditValue(e.target.value)}
+                                  className="h-7 w-[150px] text-sm"
+                                  autoFocus
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter") saveInlineEdit();
+                                    if (e.key === "Escape") cancelInlineEdit();
+                                  }}
+                                />
+                                <Button size="icon" variant="ghost" className="h-6 w-6" onClick={saveInlineEdit}>
+                                  <Check className="h-3 w-3" />
+                                </Button>
+                                <Button size="icon" variant="ghost" className="h-6 w-6" onClick={cancelInlineEdit}>
+                                  <X className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            ) : (
+                              <p 
+                                className="font-medium cursor-pointer hover:underline" 
+                                onClick={() => startInlineEdit(user.id, "display_name", user.display_name)}
+                                title="Click to edit"
+                              >
+                                {user.display_name}
+                              </p>
+                            )}
                             <p className="text-sm text-muted-foreground">{user.email}</p>
                           </div>
                         </div>
@@ -392,9 +561,22 @@ export default function UsersAdmin() {
                         </Link>
                       </TableCell>
                       <TableCell>
-                        <Badge variant={user.role === "company_admin" ? "default" : "secondary"}>
-                          {user.role === "company_admin" ? "Company Admin" : "Company User"}
-                        </Badge>
+                        <Select
+                          value={user.role}
+                          onValueChange={(value) => inlineEditMutation.mutate({ 
+                            userId: user.id, 
+                            field: "role", 
+                            value 
+                          })}
+                        >
+                          <SelectTrigger className="w-[140px] h-8">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="company_admin">Company Admin</SelectItem>
+                            <SelectItem value="company_user">Company User</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
@@ -679,6 +861,14 @@ export default function UsersAdmin() {
         user={userToLink}
         open={linkAccountOpen}
         onOpenChange={setLinkAccountOpen}
+      />
+
+      {/* Bulk Edit Dialog */}
+      <BulkEditUsersDialog
+        open={bulkEditOpen}
+        onOpenChange={setBulkEditOpen}
+        selectedUserIds={Array.from(selectedIds)}
+        onComplete={() => setSelectedIds(new Set())}
       />
     </AdminLayout>
   );
