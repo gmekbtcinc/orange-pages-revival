@@ -72,14 +72,25 @@ export function DashboardLayout({ children, breadcrumbs }: DashboardLayoutProps)
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return false;
 
-      const { data } = await supabase
+      // Check user_roles table for super_admin or admin role
+      const { data: role } = await supabase
+        .from("user_roles")
+        .select("id")
+        .eq("user_id", user.id)
+        .in("role", ["super_admin", "admin"])
+        .maybeSingle();
+
+      if (role) return true;
+
+      // Fallback: check legacy admins table
+      const { data: admin } = await supabase
         .from("admins")
         .select("id")
         .eq("user_id", user.id)
         .eq("is_active", true)
         .maybeSingle();
 
-      return !!data;
+      return !!admin;
     },
   });
 
