@@ -1,5 +1,4 @@
-import { Search, SlidersHorizontal, X } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import { SlidersHorizontal, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -17,6 +16,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import SearchAutocomplete from "./SearchAutocomplete";
 import type { Category, SearchFilters as Filters } from "@/lib/businessQueries";
 
 interface Tag {
@@ -122,17 +122,11 @@ const SearchFiltersComponent = ({
     <div className="space-y-4">
       {/* Main filter row */}
       <div className="flex flex-col sm:flex-row gap-3">
-        {/* Search input */}
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-          <Input
-            type="search"
-            placeholder="Search by name, description, location, CEO..."
-            value={filters.query || ""}
-            onChange={(e) => handleSearchChange(e.target.value)}
-            className="pl-10"
-          />
-        </div>
+        {/* Search input with autocomplete */}
+        <SearchAutocomplete
+          value={filters.query || ""}
+          onChange={handleSearchChange}
+        />
 
         {/* Category filter */}
         {showCategoryFilter && categories.length > 0 && (

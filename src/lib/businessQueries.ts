@@ -1,5 +1,46 @@
 import { supabase } from "@/integrations/supabase/client";
 
+export interface BusinessSuggestion {
+  id: string;
+  name: string;
+  logo_url: string | null;
+  category_name: string | null;
+}
+
+export const fetchBusinessSuggestions = async (
+  query: string,
+  limit: number = 5
+): Promise<BusinessSuggestion[]> => {
+  if (!query || query.trim().length < 2) return [];
+
+  const searchTerm = `%${query.trim()}%`;
+
+  const { data, error } = await supabase
+    .from("businesses")
+    .select(`
+      id,
+      name,
+      logo_url,
+      category:categories(name)
+    `)
+    .eq("status", "approved")
+    .eq("is_active", true)
+    .ilike("name", searchTerm)
+    .limit(limit);
+
+  if (error) {
+    console.error("Error fetching suggestions:", error);
+    return [];
+  }
+
+  return data.map((b: any) => ({
+    id: b.id,
+    name: b.name,
+    logo_url: b.logo_url,
+    category_name: b.category?.name || null,
+  }));
+};
+
 export interface BFCMember {
   id: string;
   name: string;
