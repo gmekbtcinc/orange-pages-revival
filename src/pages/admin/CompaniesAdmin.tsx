@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { AdminLayout } from "@/components/admin/AdminLayout";
+import { ImportCompaniesDialog } from "@/components/admin/ImportCompaniesDialog";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -368,6 +369,8 @@ export default function CompaniesAdmin() {
                 <SelectItem value="tier-desc">Tier (Lowest First)</SelectItem>
               </SelectContent>
             </Select>
+
+            <ImportCompaniesDialog />
 
             <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
               <DialogTrigger asChild>
