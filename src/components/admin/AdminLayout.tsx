@@ -17,6 +17,8 @@ import {
   FileCheck,
   Users,
   Calendar,
+  Settings,
+  Home,
 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -78,7 +80,7 @@ export function AdminLayout({ children, breadcrumbs }: AdminLayoutProps) {
     .slice(0, 2) || "AD";
 
   return (
-    <div className="min-h-screen bg-background dark flex">
+    <div className="min-h-screen bg-background flex">
       {/* Sidebar */}
       <aside className="w-64 border-r border-border bg-card flex flex-col">
         {/* Logo */}
@@ -94,6 +96,49 @@ export function AdminLayout({ children, breadcrumbs }: AdminLayoutProps) {
               <p className="text-xs text-muted-foreground">Management Console</p>
             </div>
           </div>
+        </div>
+
+        {/* User Section - Moved below logo */}
+        <div className="p-4 border-b border-border">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="w-full justify-start gap-2 text-foreground hover:bg-muted">
+                <Avatar className="h-8 w-8">
+                  <AvatarFallback className="bg-bitcoin-orange text-white text-sm">
+                    {initials}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1 text-left truncate">
+                  <p className="text-sm font-medium text-foreground truncate">
+                    {admin?.display_name || "Admin"}
+                  </p>
+                </div>
+                <ChevronDown className="h-4 w-4 text-muted-foreground" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-48">
+              <DropdownMenuItem onClick={() => navigate("/")}>
+                <Home className="mr-2 h-4 w-4" />
+                Orange Pages
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate("/dashboard")}>
+                <LayoutDashboard className="mr-2 h-4 w-4" />
+                Member Portal
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate("/dashboard/account")}>
+                <Settings className="mr-2 h-4 w-4" />
+                Account Settings
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={handleSignOut}
+                className="text-destructive"
+              >
+                <LogOut className="mr-2 h-4 w-4" />
+                Sign Out
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
 
         {/* Navigation */}
@@ -117,40 +162,6 @@ export function AdminLayout({ children, breadcrumbs }: AdminLayoutProps) {
             );
           })}
         </nav>
-
-        {/* User Section */}
-        <div className="p-4 border-t border-border">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="w-full justify-start gap-2">
-                <Avatar className="h-8 w-8">
-                  <AvatarFallback className="bg-bitcoin-orange text-white text-sm">
-                    {initials}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex-1 text-left truncate">
-                  <p className="text-sm font-medium text-foreground truncate">
-                    {admin?.display_name || "Admin"}
-                  </p>
-                </div>
-                <ChevronDown className="h-4 w-4 text-muted-foreground" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48">
-              <DropdownMenuItem onClick={() => navigate("/dashboard")}>
-                Member Portal
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onClick={handleSignOut}
-                className="text-destructive"
-              >
-                <LogOut className="mr-2 h-4 w-4" />
-                Sign Out
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
       </aside>
 
       {/* Main Content */}

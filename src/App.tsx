@@ -14,6 +14,7 @@ import AuthCallback from "./pages/AuthCallback";
 import Dashboard from "./pages/Dashboard";
 import CompanyProfile from "./pages/CompanyProfile";
 import TeamManagement from "./pages/TeamManagement";
+import AccountSettings from "./pages/AccountSettings";
 
 // Lazy load admin routes for code splitting
 const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
@@ -76,6 +77,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <TeamManagement />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard/account"
+              element={
+                <ProtectedRoute>
+                  <AccountSettings />
                 </ProtectedRoute>
               }
             />

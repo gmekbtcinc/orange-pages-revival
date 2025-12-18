@@ -690,6 +690,7 @@ export type Database = {
       company_users: {
         Row: {
           accepted_at: string | null
+          avatar_url: string | null
           business_id: string
           can_apply_speaking: boolean | null
           can_claim_tickets: boolean | null
@@ -713,6 +714,7 @@ export type Database = {
         }
         Insert: {
           accepted_at?: string | null
+          avatar_url?: string | null
           business_id: string
           can_apply_speaking?: boolean | null
           can_claim_tickets?: boolean | null
@@ -736,6 +738,7 @@ export type Database = {
         }
         Update: {
           accepted_at?: string | null
+          avatar_url?: string | null
           business_id?: string
           can_apply_speaking?: boolean | null
           can_claim_tickets?: boolean | null
