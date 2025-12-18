@@ -124,7 +124,7 @@ const MemberCarousel = () => {
                     </p>
 
                     {/* Tags */}
-                    {member.tags.length > 0 && (
+                    {member.tags && member.tags.length > 0 && (
                       <div className="flex flex-wrap gap-1.5 mb-3">
                         {member.tags.map((tag) => (
                           <Badge
