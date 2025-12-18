@@ -56,7 +56,7 @@ export function AdminLayout({ children, breadcrumbs }: AdminLayoutProps) {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return null;
 
-      // Check user_roles table first for admin role
+      // Check user_roles table for admin role
       const { data: role } = await supabase
         .from("user_roles")
         .select("id")
@@ -64,27 +64,25 @@ export function AdminLayout({ children, breadcrumbs }: AdminLayoutProps) {
         .in("role", ["super_admin", "admin"])
         .maybeSingle();
 
-      // Fallback: Get admin info from legacy admins table
-      const { data: adminData } = await supabase
-        .from("admins")
-        .select("display_name, email")
-        .eq("user_id", user.id)
-        .eq("is_active", true)
-        .maybeSingle();
-
-      // If user has role or admin record, return admin info
-      if (!role && !adminData) return null;
+      if (!role) return null;
 
       // Get avatar from company_users
       const { data: companyUser } = await supabase
         .from("company_users")
-        .select("avatar_url")
+        .select("avatar_url, display_name")
         .eq("user_id", user.id)
         .eq("is_active", true)
         .maybeSingle();
 
+      // Get display name from company_users, auth metadata, or email
+      const displayName = companyUser?.display_name || 
+        user.user_metadata?.full_name || 
+        user.email?.split('@')[0] || 
+        'Admin';
+
       return {
-        ...adminData,
+        display_name: displayName,
+        email: user.email,
         avatar_url: companyUser?.avatar_url || null,
       };
     },

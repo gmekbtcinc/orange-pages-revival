@@ -11,21 +11,6 @@ export type MemberTier = 'silver' | 'gold' | 'platinum' | 'chairman' | 'executiv
 // Database Record Types
 // ============================================
 
-export interface Admin {
-  id: string;
-  user_id: string;
-  email: string;
-  display_name: string;
-  can_manage_memberships: boolean;
-  can_manage_events: boolean;
-  can_manage_content: boolean;
-  can_manage_admins: boolean;
-  can_impersonate: boolean;
-  is_active: boolean;
-  created_at: string;
-  updated_at: string;
-}
-
 export interface Membership {
   id: string;
   business_id: string;

@@ -30,20 +30,7 @@ const Navbar = () => {
         .in("role", ["super_admin", "admin"])
         .maybeSingle();
 
-      if (role) {
-        setIsAdmin(true);
-        return;
-      }
-
-      // Fallback: check legacy admins table
-      const { data: admin } = await supabase
-        .from("admins")
-        .select("id")
-        .eq("user_id", userId)
-        .eq("is_active", true)
-        .maybeSingle();
-
-      setIsAdmin(!!admin);
+      setIsAdmin(!!role);
     };
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
