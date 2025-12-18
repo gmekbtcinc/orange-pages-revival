@@ -3,9 +3,12 @@ import { supabase } from "@/integrations/supabase/client";
 export interface BFCMember {
   id: string;
   name: string;
+  description: string;
   logo_url: string | null;
   tier: string;
   member_since: string;
+  category_name: string | null;
+  tags: string[];
 }
 
 export const fetchBFCMembers = async (): Promise<BFCMember[]> => {
@@ -17,8 +20,11 @@ export const fetchBFCMembers = async (): Promise<BFCMember[]> => {
       business:businesses!inner(
         id,
         name,
+        description,
         logo_url,
-        status
+        status,
+        category:categories(name),
+        business_tags(tag:tags(name))
       )
     `)
     .eq("is_active", true)
@@ -44,9 +50,12 @@ export const fetchBFCMembers = async (): Promise<BFCMember[]> => {
     .map((m: any) => ({
       id: m.business.id,
       name: m.business.name,
+      description: m.business.description,
       logo_url: m.business.logo_url,
       tier: m.tier,
       member_since: m.member_since,
+      category_name: m.business.category?.name || null,
+      tags: m.business.business_tags?.map((bt: any) => bt.tag?.name).filter(Boolean).slice(0, 3) || [],
     }))
     .sort((a, b) => {
       const tierDiff = (tierOrder[a.tier] || 99) - (tierOrder[b.tier] || 99);
