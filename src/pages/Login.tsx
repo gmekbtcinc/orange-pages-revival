@@ -27,8 +27,8 @@ export default function Login() {
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
 
-  // Get returnTo from URL params, default to /dashboard
-  const returnTo = searchParams.get("returnTo") || "/dashboard";
+  // Get returnTo from URL params (also check 'redirect' for backwards compatibility), default to /dashboard
+  const returnTo = searchParams.get("returnTo") || searchParams.get("redirect") || "/dashboard";
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
