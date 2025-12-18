@@ -161,7 +161,7 @@ export default function Login() {
         toast({ title: "Welcome back!", description: "Successfully signed in." });
         // Navigation handled by onAuthStateChange
       } else {
-        const { error } = await supabase.auth.signUp({
+        const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
@@ -169,9 +169,16 @@ export default function Login() {
           },
         });
         if (error) throw error;
+        
+        // Send welcome email (fire and forget - don't block on errors)
+        const displayName = email.split("@")[0];
+        supabase.functions.invoke("send-welcome-email", {
+          body: { email, displayName, origin: window.location.origin },
+        }).catch((err) => console.error("Welcome email error:", err));
+        
         toast({ 
           title: "Account created!", 
-          description: "You can now sign in with your credentials." 
+          description: "Check your email for a welcome message. You can now sign in." 
         });
         setIsLogin(true);
       }
