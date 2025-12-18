@@ -136,14 +136,24 @@ export default function ClaimsQueue() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return null;
 
-      const { data } = await supabase
+      // Check user_roles table first for admin role
+      const { data: role } = await supabase
+        .from("user_roles")
+        .select("id")
+        .eq("user_id", user.id)
+        .in("role", ["super_admin", "admin"])
+        .maybeSingle();
+
+      // Fallback: check legacy admins table
+      const { data: adminData } = await supabase
         .from("admins")
         .select("id")
         .eq("user_id", user.id)
         .eq("is_active", true)
         .maybeSingle();
 
-      return data;
+      // Return admin info if found in either table
+      return role || adminData;
     },
   });
 
