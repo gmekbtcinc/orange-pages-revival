@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { ImageUploader } from "@/components/company-profile/ImageUploader";
 import type { Database } from "@/integrations/supabase/types";
 
 type Event = Database["public"]["Tables"]["events"]["Row"];
@@ -29,6 +30,7 @@ export function EditEventDialog({ event, open, onOpenChange }: EditEventDialogPr
   const [formData, setFormData] = useState({
     name: "",
     slug: "",
+    logo_url: "" as string | null,
     event_type: "regional" as "flagship" | "regional" | "secondary",
     start_date: null as Date | null,
     end_date: null as Date | null,
@@ -54,6 +56,7 @@ export function EditEventDialog({ event, open, onOpenChange }: EditEventDialogPr
       setFormData({
         name: event.name || "",
         slug: event.slug || "",
+        logo_url: event.logo_url || null,
         event_type: event.event_type || "regional",
         start_date: event.start_date ? new Date(event.start_date) : null,
         end_date: event.end_date ? new Date(event.end_date) : null,
@@ -85,6 +88,7 @@ export function EditEventDialog({ event, open, onOpenChange }: EditEventDialogPr
         .update({
           name: formData.name,
           slug: formData.slug,
+          logo_url: formData.logo_url || null,
           event_type: formData.event_type,
           start_date: formData.start_date?.toISOString().split("T")[0] || null,
           end_date: formData.end_date?.toISOString().split("T")[0] || null,
@@ -146,6 +150,16 @@ export function EditEventDialog({ event, open, onOpenChange }: EditEventDialogPr
         </DialogHeader>
 
         <div className="space-y-6">
+          {/* Event Logo */}
+          <ImageUploader
+            currentUrl={formData.logo_url}
+            onUpload={(url) => setFormData((f) => ({ ...f, logo_url: url }))}
+            onRemove={() => setFormData((f) => ({ ...f, logo_url: null }))}
+            folder="event-logos"
+            label="Event Logo"
+            aspectRatio="square"
+          />
+
           {/* Basic Info */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">

@@ -830,6 +830,7 @@ export type Database = {
           location_city: string | null
           location_country: string | null
           location_name: string | null
+          logo_url: string | null
           name: string
           slug: string
           speaking_applications_open: boolean | null
@@ -857,6 +858,7 @@ export type Database = {
           location_city?: string | null
           location_country?: string | null
           location_name?: string | null
+          logo_url?: string | null
           name: string
           slug: string
           speaking_applications_open?: boolean | null
@@ -884,6 +886,7 @@ export type Database = {
           location_city?: string | null
           location_country?: string | null
           location_name?: string | null
+          logo_url?: string | null
           name?: string
           slug?: string
           speaking_applications_open?: boolean | null
