@@ -1745,6 +1745,18 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_link_user_to_business: {
+        Args: {
+          _business_id: string
+          _display_name: string
+          _email: string
+          _is_member?: boolean
+          _role?: Database["public"]["Enums"]["user_role"]
+          _title?: string
+          _user_id: string
+        }
+        Returns: string
+      }
       get_remaining_user_slots: {
         Args: { _business_id: string }
         Returns: number
