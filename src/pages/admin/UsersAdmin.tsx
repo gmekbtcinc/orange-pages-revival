@@ -260,22 +260,41 @@ export default function UsersAdmin() {
     },
   });
 
-  // Bulk delete mutation
+  // Bulk delete mutation - calls edge function for each user to delete from both company_users and auth.users
   const bulkDeleteMutation = useMutation({
     mutationFn: async (ids: string[]) => {
-      const { error } = await supabase
-        .from("company_users")
-        .delete()
-        .in("id", ids);
-      if (error) throw error;
+      const { data: sessionData } = await supabase.auth.getSession();
+      const results = await Promise.allSettled(
+        ids.map(async (companyUserId) => {
+          const response = await supabase.functions.invoke("delete-user", {
+            body: { companyUserId, deleteAuthUser: true },
+            headers: sessionData?.session?.access_token 
+              ? { Authorization: `Bearer ${sessionData.session.access_token}` }
+              : undefined,
+          });
+          if (response.error) {
+            throw new Error(response.error.message || "Failed to delete user");
+          }
+          if (response.data?.error) {
+            throw new Error(response.data.error);
+          }
+          return response.data;
+        })
+      );
+      
+      const failures = results.filter(r => r.status === 'rejected');
+      if (failures.length > 0) {
+        throw new Error(`Failed to delete ${failures.length} of ${ids.length} users`);
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-users"] });
       queryClient.invalidateQueries({ queryKey: ["admin-users-stats"] });
-      toast.success(`Deleted ${selectedIds.size} users`);
+      toast.success(`Deleted ${selectedIds.size} users completely`);
       setSelectedIds(new Set());
     },
     onError: (error) => {
+      queryClient.invalidateQueries({ queryKey: ["admin-users"] });
       toast.error("Failed to delete users: " + error.message);
     },
   });
