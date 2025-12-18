@@ -123,29 +123,33 @@ export default function InviteAccept() {
         return;
       }
 
-      // Update the user's existing company_users record (created on signup) to link to the business
-      // The signup trigger creates a record with business_id = NULL, so we update by user_id
+      // Step 1: Delete any existing company_users record for this user that has no business_id
+      // (this was created by the signup trigger before we fixed it)
+      const { error: deleteError } = await supabase
+        .from("company_users")
+        .delete()
+        .eq("user_id", user.id)
+        .is("business_id", null);
+
+      // Ignore delete errors - the record might not exist if signup trigger was already fixed
+      if (deleteError) {
+        console.log("No orphan record to delete or delete failed:", deleteError);
+      }
+
+      // Step 2: Update the invitation-created company_users record to link the user_id
+      // This record was created when the invitation was sent, it has business_id but no user_id
       const { error: updateError } = await supabase
         .from("company_users")
         .update({
-          business_id: invitation.business_id,
-          display_name: invitation.display_name || user.email?.split("@")[0] || "User",
-          role: invitation.role as "company_admin" | "company_user",
+          user_id: user.id,
           accepted_at: new Date().toISOString(),
-          // Copy permissions from invitation
-          can_claim_tickets: true,
-          can_register_events: true,
-          can_apply_speaking: true,
-          can_edit_profile: invitation.role === "company_admin",
-          can_manage_users: invitation.role === "company_admin",
-          can_rsvp_dinners: true,
-          can_request_resources: true,
         })
-        .eq("user_id", user.id);
+        .eq("business_id", invitation.business_id)
+        .eq("email", invitation.email.toLowerCase());
 
       if (updateError) throw updateError;
 
-      // Update invitation status
+      // Step 3: Update invitation status
       const { error: inviteError } = await supabase
         .from("user_invitations")
         .update({
