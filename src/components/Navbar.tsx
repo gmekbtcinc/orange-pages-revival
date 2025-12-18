@@ -9,25 +9,59 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Menu, X, User, LogOut, LayoutDashboard, ChevronDown, Plus } from "lucide-react";
+import { Menu, X, User, LogOut, LayoutDashboard, ChevronDown, Plus, Shield } from "lucide-react";
 import btcLogo from "@/assets/btc-logo.png";
 import { SubmitBusinessDialog } from "@/components/submissions/SubmitBusinessDialog";
 
 const Navbar = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [submitDialogOpen, setSubmitDialogOpen] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
+    const checkAdminStatus = async (userId: string) => {
+      // Check user_roles table for super_admin or admin role
+      const { data: role } = await supabase
+        .from("user_roles")
+        .select("id")
+        .eq("user_id", userId)
+        .in("role", ["super_admin", "admin"])
+        .maybeSingle();
+
+      if (role) {
+        setIsAdmin(true);
+        return;
+      }
+
+      // Fallback: check legacy admins table
+      const { data: admin } = await supabase
+        .from("admins")
+        .select("id")
+        .eq("user_id", userId)
+        .eq("is_active", true)
+        .maybeSingle();
+
+      setIsAdmin(!!admin);
+    };
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         setIsAuthenticated(!!session);
+        if (session?.user) {
+          checkAdminStatus(session.user.id);
+        } else {
+          setIsAdmin(false);
+        }
       }
     );
 
     supabase.auth.getSession().then(({ data: { session } }) => {
       setIsAuthenticated(!!session);
+      if (session?.user) {
+        checkAdminStatus(session.user.id);
+      }
     });
 
     return () => subscription.unsubscribe();
@@ -83,6 +117,15 @@ const Navbar = () => {
                       <LayoutDashboard className="mr-2 h-4 w-4" />
                       Dashboard
                     </DropdownMenuItem>
+                    {isAdmin && (
+                      <DropdownMenuItem 
+                        className="cursor-pointer"
+                        onClick={() => navigate("/admin")}
+                      >
+                        <Shield className="mr-2 h-4 w-4" />
+                        Admin Portal
+                      </DropdownMenuItem>
+                    )}
                     <DropdownMenuSeparator />
                     <DropdownMenuItem
                       onClick={handleSignOut}
@@ -148,6 +191,20 @@ const Navbar = () => {
                       <LayoutDashboard className="h-4 w-4" />
                       Dashboard
                     </Button>
+                    {isAdmin && (
+                      <Button 
+                        onClick={() => {
+                          navigate("/admin");
+                          setIsMenuOpen(false);
+                        }}
+                        variant="outline"
+                        size="sm"
+                        className="w-fit gap-2"
+                      >
+                        <Shield className="h-4 w-4" />
+                        Admin Portal
+                      </Button>
+                    )}
                     <Button 
                       onClick={() => {
                         handleSignOut();
