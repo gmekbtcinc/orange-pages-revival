@@ -8,6 +8,8 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AdminProtectedRoute } from "@/components/AdminProtectedRoute";
 import Index from "./pages/Index";
 import BusinessDetail from "./pages/BusinessDetail";
+import Directory from "./pages/Directory";
+import CategoryPage from "./pages/CategoryPage";
 import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
 import AuthCallback from "./pages/AuthCallback";
@@ -52,6 +54,8 @@ const App = () => (
           <Routes>
             {/* Public routes */}
             <Route path="/" element={<Index />} />
+            <Route path="/directory" element={<Directory />} />
+            <Route path="/category/:slug" element={<CategoryPage />} />
             <Route path="/business/:id" element={<BusinessDetail />} />
             <Route path="/login" element={<Login />} />
             <Route path="/auth/callback" element={<AuthCallback />} />
