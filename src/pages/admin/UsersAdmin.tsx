@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Switch } from "@/components/ui/switch";
 import { Users, UserCheck, Mail, Shield, Search, MoreHorizontal, Eye, Edit, Building2, UserX, UserPlus, Trash2, Ticket, Calendar, Mic, Utensils, BookOpen, ShieldCheck, ShieldAlert, UserCog } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -393,7 +394,18 @@ export default function UsersAdmin() {
                           {user.role === "company_admin" ? "Company Admin" : "Company User"}
                         </Badge>
                       </TableCell>
-                      <TableCell>{getStatusBadge(user)}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Switch
+                            checked={user.is_active ?? false}
+                            onCheckedChange={(checked) => toggleActiveMutation.mutate({ userId: user.id, isActive: checked })}
+                            disabled={toggleActiveMutation.isPending}
+                          />
+                          <span className="text-sm text-muted-foreground">
+                            {user.is_active ? "Active" : "Inactive"}
+                          </span>
+                        </div>
+                      </TableCell>
                       <TableCell>
                         <div className="flex gap-1">{getPermissionIcons(user)}</div>
                       </TableCell>
