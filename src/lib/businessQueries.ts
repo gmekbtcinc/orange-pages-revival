@@ -275,11 +275,46 @@ export const fetchCategories = async (): Promise<Category[]> => {
 export interface SearchFilters {
   query?: string;
   categorySlug?: string;
+  country?: string;
+  tags?: string[];
   isBitcoinOnly?: boolean;
   isBfcMember?: boolean;
   isVerified?: boolean;
+  acceptsCrypto?: boolean;
   sort?: "featured" | "name-asc" | "name-desc" | "newest";
 }
+
+// Fetch unique countries for filter
+export const fetchCountries = async (): Promise<string[]> => {
+  const { data, error } = await supabase
+    .from("businesses")
+    .select("country")
+    .eq("status", "approved")
+    .not("country", "is", null);
+
+  if (error) {
+    console.error("Error fetching countries:", error);
+    throw error;
+  }
+
+  const countries = [...new Set(data.map((b) => b.country).filter(Boolean))] as string[];
+  return countries.sort();
+};
+
+// Fetch all tags for filter
+export const fetchTags = async (): Promise<Array<{ id: string; name: string; slug: string }>> => {
+  const { data, error } = await supabase
+    .from("tags")
+    .select("id, name, slug")
+    .order("name");
+
+  if (error) {
+    console.error("Error fetching tags:", error);
+    throw error;
+  }
+
+  return data;
+};
 
 // Search businesses with filters
 export const searchBusinesses = async (filters: SearchFilters): Promise<Business[]> => {
@@ -288,10 +323,17 @@ export const searchBusinesses = async (filters: SearchFilters): Promise<Business
     .select(BUSINESS_SELECT)
     .eq("status", "approved");
 
-  // Apply text search
+  // Apply expanded text search across more fields
   if (filters.query && filters.query.trim()) {
     const searchTerm = `%${filters.query.trim()}%`;
-    query = query.or(`name.ilike.${searchTerm},description.ilike.${searchTerm}`);
+    query = query.or(
+      `name.ilike.${searchTerm},description.ilike.${searchTerm},long_description.ilike.${searchTerm},city.ilike.${searchTerm},country.ilike.${searchTerm},ceo_name.ilike.${searchTerm}`
+    );
+  }
+
+  // Apply country filter
+  if (filters.country) {
+    query = query.eq("country", filters.country);
   }
 
   // Apply attribute filters
@@ -303,6 +345,9 @@ export const searchBusinesses = async (filters: SearchFilters): Promise<Business
   }
   if (filters.isVerified) {
     query = query.eq("is_verified", true);
+  }
+  if (filters.acceptsCrypto) {
+    query = query.eq("accepts_crypto", true);
   }
 
   // Apply sorting
@@ -331,9 +376,16 @@ export const searchBusinesses = async (filters: SearchFilters): Promise<Business
 
   let results = data.map(transformBusiness);
 
-  // Filter by category (needs to be done client-side due to join structure)
+  // Filter by category (client-side due to join structure)
   if (filters.categorySlug) {
     results = results.filter((b) => b.category?.slug === filters.categorySlug);
+  }
+
+  // Filter by tags (client-side due to join structure)
+  if (filters.tags && filters.tags.length > 0) {
+    results = results.filter((b) =>
+      filters.tags!.some((tagSlug) => b.tags.some((t) => t.slug === tagSlug))
+    );
   }
 
   return results;

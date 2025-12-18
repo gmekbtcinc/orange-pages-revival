@@ -5,7 +5,13 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import SearchFilters from "@/components/directory/SearchFilters";
 import BusinessGrid from "@/components/directory/BusinessGrid";
-import { searchBusinesses, fetchCategories, type SearchFilters as Filters } from "@/lib/businessQueries";
+import {
+  searchBusinesses,
+  fetchCategories,
+  fetchCountries,
+  fetchTags,
+  type SearchFilters as Filters,
+} from "@/lib/businessQueries";
 
 const Directory = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -14,10 +20,13 @@ const Directory = () => {
   const [filters, setFilters] = useState<Filters>(() => ({
     query: searchParams.get("search") || "",
     categorySlug: searchParams.get("category") || undefined,
+    country: searchParams.get("country") || undefined,
+    tags: searchParams.get("tags")?.split(",").filter(Boolean) || undefined,
     sort: (searchParams.get("sort") as Filters["sort"]) || "featured",
     isBitcoinOnly: searchParams.get("bitcoinOnly") === "true",
     isBfcMember: searchParams.get("bfcMember") === "true",
     isVerified: searchParams.get("verified") === "true",
+    acceptsCrypto: searchParams.get("acceptsCrypto") === "true",
   }));
 
   // Update URL when filters change
@@ -25,10 +34,13 @@ const Directory = () => {
     const params = new URLSearchParams();
     if (filters.query) params.set("search", filters.query);
     if (filters.categorySlug) params.set("category", filters.categorySlug);
+    if (filters.country) params.set("country", filters.country);
+    if (filters.tags && filters.tags.length > 0) params.set("tags", filters.tags.join(","));
     if (filters.sort && filters.sort !== "featured") params.set("sort", filters.sort);
     if (filters.isBitcoinOnly) params.set("bitcoinOnly", "true");
     if (filters.isBfcMember) params.set("bfcMember", "true");
     if (filters.isVerified) params.set("verified", "true");
+    if (filters.acceptsCrypto) params.set("acceptsCrypto", "true");
     setSearchParams(params, { replace: true });
   }, [filters, setSearchParams]);
 
@@ -36,6 +48,18 @@ const Directory = () => {
   const { data: categories = [] } = useQuery({
     queryKey: ["categories"],
     queryFn: fetchCategories,
+  });
+
+  // Fetch countries
+  const { data: countries = [] } = useQuery({
+    queryKey: ["countries"],
+    queryFn: fetchCountries,
+  });
+
+  // Fetch tags
+  const { data: tags = [] } = useQuery({
+    queryKey: ["tags"],
+    queryFn: fetchTags,
   });
 
   // Debounced search query
@@ -51,7 +75,17 @@ const Directory = () => {
       ...filters,
       query: debouncedQuery,
     }),
-    [debouncedQuery, filters.categorySlug, filters.sort, filters.isBitcoinOnly, filters.isBfcMember, filters.isVerified]
+    [
+      debouncedQuery,
+      filters.categorySlug,
+      filters.country,
+      filters.tags,
+      filters.sort,
+      filters.isBitcoinOnly,
+      filters.isBfcMember,
+      filters.isVerified,
+      filters.acceptsCrypto,
+    ]
   );
 
   // Fetch businesses
@@ -86,6 +120,8 @@ const Directory = () => {
                 filters={filters}
                 onFiltersChange={setFilters}
                 categories={categories}
+                countries={countries}
+                tags={tags}
               />
             </div>
 
