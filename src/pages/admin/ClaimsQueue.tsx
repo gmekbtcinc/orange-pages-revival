@@ -175,60 +175,19 @@ export default function ClaimsQueue() {
 
       if (claimError) throw claimError;
 
-      // Create or update company_user record with permissions based on membership status
+      // Link user to business using admin RPC function (bypasses RLS)
       if (claim.claimant_user_id) {
-        // Check if user already has a company_users record
-        const { data: existingUser } = await supabase
-          .from("company_users")
-          .select("id")
-          .eq("user_id", claim.claimant_user_id)
-          .maybeSingle();
+        const { error: linkError } = await supabase.rpc('admin_link_user_to_business', {
+          _user_id: claim.claimant_user_id,
+          _business_id: claim.business_id,
+          _email: claim.claimant_email,
+          _display_name: claim.claimant_name,
+          _title: claim.claimant_title,
+          _role: 'company_admin',
+          _is_member: isBFCMember,
+        });
 
-        if (existingUser) {
-          // Update existing record
-          const { error: userError } = await supabase
-            .from("company_users")
-            .update({
-              business_id: claim.business_id,
-              email: claim.claimant_email,
-              display_name: claim.claimant_name,
-              title: claim.claimant_title,
-              role: "company_admin",
-              can_claim_tickets: isBFCMember,
-              can_register_events: isBFCMember,
-              can_apply_speaking: isBFCMember,
-              can_edit_profile: true,
-              can_manage_users: isBFCMember,
-              can_rsvp_dinners: isBFCMember,
-              can_request_resources: isBFCMember,
-              is_active: true,
-              accepted_at: new Date().toISOString(),
-            })
-            .eq("id", existingUser.id);
-
-          if (userError) throw userError;
-        } else {
-          // Create new record
-          const { error: userError } = await supabase.from("company_users").insert({
-            business_id: claim.business_id,
-            user_id: claim.claimant_user_id,
-            email: claim.claimant_email,
-            display_name: claim.claimant_name,
-            title: claim.claimant_title,
-            role: "company_admin",
-            can_claim_tickets: isBFCMember,
-            can_register_events: isBFCMember,
-            can_apply_speaking: isBFCMember,
-            can_edit_profile: true,
-            can_manage_users: isBFCMember,
-            can_rsvp_dinners: isBFCMember,
-            can_request_resources: isBFCMember,
-            is_active: true,
-            accepted_at: new Date().toISOString(),
-          });
-
-          if (userError) throw userError;
-        }
+        if (linkError) throw linkError;
       }
     },
     onSuccess: () => {
@@ -319,60 +278,19 @@ export default function ClaimsQueue() {
 
       if (updateError) throw updateError;
 
-      // If submitter wanted to claim, create/update company_user with FREE permissions
+      // If submitter wanted to claim, link user using admin RPC function (bypasses RLS)
       if (submission.wants_to_claim && submission.submitter_user_id) {
-        // Check if user already has a company_users record
-        const { data: existingUser } = await supabase
-          .from("company_users")
-          .select("id")
-          .eq("user_id", submission.submitter_user_id)
-          .maybeSingle();
+        const { error: linkError } = await supabase.rpc('admin_link_user_to_business', {
+          _user_id: submission.submitter_user_id,
+          _business_id: newBusiness.id,
+          _email: submission.submitter_email,
+          _display_name: submission.submitter_name,
+          _title: submission.claim_title,
+          _role: 'company_admin',
+          _is_member: false, // New submissions start as free users
+        });
 
-        if (existingUser) {
-          // Update existing record
-          const { error: userError } = await supabase
-            .from("company_users")
-            .update({
-              business_id: newBusiness.id,
-              email: submission.submitter_email,
-              display_name: submission.submitter_name,
-              title: submission.claim_title,
-              role: "company_admin",
-              can_claim_tickets: false,
-              can_register_events: false,
-              can_apply_speaking: false,
-              can_edit_profile: true,
-              can_manage_users: false,
-              can_rsvp_dinners: false,
-              can_request_resources: false,
-              is_active: true,
-              accepted_at: new Date().toISOString(),
-            })
-            .eq("id", existingUser.id);
-
-          if (userError) throw userError;
-        } else {
-          // Create new record
-          const { error: userError } = await supabase.from("company_users").insert({
-            business_id: newBusiness.id,
-            user_id: submission.submitter_user_id,
-            email: submission.submitter_email,
-            display_name: submission.submitter_name,
-            title: submission.claim_title,
-            role: "company_admin",
-            can_claim_tickets: false,
-            can_register_events: false,
-            can_apply_speaking: false,
-            can_edit_profile: true,
-            can_manage_users: false,
-            can_rsvp_dinners: false,
-            can_request_resources: false,
-            is_active: true,
-            accepted_at: new Date().toISOString(),
-          });
-
-          if (userError) throw userError;
-        }
+        if (linkError) throw linkError;
       }
     },
     onSuccess: () => {
