@@ -1,17 +1,31 @@
 import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 
 export default function AuthCallback() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   useEffect(() => {
     supabase.auth.onAuthStateChange((event, session) => {
       if (event === "SIGNED_IN" && session) {
-        navigate("/dashboard");
+        // Check for returnTo parameter
+        const returnTo = searchParams.get("returnTo");
+        
+        // Check for pending business submission
+        const pendingSubmission = sessionStorage.getItem("pendingBusinessSubmission");
+        
+        if (pendingSubmission) {
+          // Redirect to dashboard with flag to open submit dialog
+          navigate("/dashboard?openSubmit=true");
+        } else if (returnTo) {
+          navigate(returnTo);
+        } else {
+          navigate("/dashboard");
+        }
       }
     });
-  }, [navigate]);
+  }, [navigate, searchParams]);
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center">
