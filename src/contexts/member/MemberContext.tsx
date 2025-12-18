@@ -50,21 +50,26 @@ export function MemberProvider({ children }: { children: ReactNode }) {
       setIsSuperAdmin(adminCheck || false);
 
       // Fetch company_user record (PRIMARY source of truth)
-      const { data: companyUserData } = await supabase
+      // IMPORTANT: we may temporarily have duplicates (e.g. old unlinked row + new linked row).
+      // Never let that break the dashboard; prefer the linked (business_id) record.
+      const { data: companyUserRows, error: companyUserError } = await supabase
         .from("company_users")
         .select("*")
         .eq("user_id", user.id)
-        .eq("is_active", true)
-        .maybeSingle();
+        .eq("is_active", true);
 
-      setCompanyUser(companyUserData || null);
+      if (companyUserError) throw companyUserError;
+
+      const resolvedCompanyUser = (companyUserRows || []).find((r) => r.business_id) || (companyUserRows?.[0] ?? null);
+      setCompanyUser(resolvedCompanyUser);
+
 
       // Fetch membership based on companyUser's business_id
-      if (companyUserData?.business_id) {
+      if (resolvedCompanyUser?.business_id) {
         const { data: membershipData } = await supabase
           .from("memberships")
           .select("*")
-          .eq("business_id", companyUserData.business_id)
+          .eq("business_id", resolvedCompanyUser.business_id)
           .eq("is_active", true)
           .maybeSingle();
 
@@ -76,9 +81,14 @@ export function MemberProvider({ children }: { children: ReactNode }) {
             .from("event_allocations")
             .select("*")
             .eq("tier", membershipData.tier);
-          
+
           setAllocations(allocationData || []);
+        } else {
+          setAllocations([]);
         }
+      } else {
+        setMembership(null);
+        setAllocations([]);
       }
     } catch (error) {
       console.error("Error in fetchMember:", error);

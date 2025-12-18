@@ -122,40 +122,63 @@ serve(async (req) => {
       console.log("Delete orphan error (may be fine):", deleteError);
     }
 
-    // Step 2: Update the invitation-created company_users record to link the user_id
-    console.log("Updating company_users record for email:", invitation.email, "business:", invitation.business_id);
+    // Step 2: Find the invitation-created company_users record and link the user_id
+    // NOTE: email casing in DB may vary, so we match case-insensitively.
+    console.log(
+      "Linking company user for invitation email/business:",
+      invitation.email,
+      invitation.business_id
+    );
+
+    const { data: candidateCompanyUsers, error: candidateError } = await supabaseAdmin
+      .from("company_users")
+      .select("id, email, user_id, business_id")
+      .eq("business_id", invitation.business_id)
+      .ilike("email", invitation.email);
+
+    if (candidateError) {
+      console.error("Error fetching company_users candidates:", candidateError);
+      return new Response(JSON.stringify({ error: "Failed to locate company user record" }), {
+        status: 500,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    }
+
+    const companyUserToLink = (candidateCompanyUsers || []).find((r) => r.user_id === null);
+
+    if (!companyUserToLink) {
+      console.error("No unlinked company_users record found to update", {
+        business_id: invitation.business_id,
+        email: invitation.email,
+        candidates: candidateCompanyUsers,
+      });
+
+      return new Response(
+        JSON.stringify({
+          error:
+            "Company user record not found (or already linked) — please ask an admin to resend the invite.",
+        }),
+        {
+          status: 404,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
+    }
+
     const { data: updatedCompanyUser, error: updateError } = await supabaseAdmin
       .from("company_users")
       .update({
         user_id: user.id,
         accepted_at: now,
       })
-      .eq("business_id", invitation.business_id)
-      .eq("email", invitation.email.toLowerCase())
-      .is("user_id", null)
+      .eq("id", companyUserToLink.id)
       .select()
       .maybeSingle();
 
-    if (updateError) {
+    if (updateError || !updatedCompanyUser) {
       console.error("Error updating company_users:", updateError);
       return new Response(JSON.stringify({ error: "Failed to link user to company" }), {
         status: 500,
-        headers: { "Content-Type": "application/json", ...corsHeaders },
-      });
-    }
-
-    if (!updatedCompanyUser) {
-      console.error("No company_users record found to update");
-      // Try to see what exists
-      const { data: existingRecords } = await supabaseAdmin
-        .from("company_users")
-        .select("id, email, user_id, business_id")
-        .eq("business_id", invitation.business_id)
-        .ilike("email", invitation.email);
-      console.log("Existing records:", existingRecords);
-      
-      return new Response(JSON.stringify({ error: "Company user record not found - invitation may be corrupted" }), {
-        status: 404,
         headers: { "Content-Type": "application/json", ...corsHeaders },
       });
     }
