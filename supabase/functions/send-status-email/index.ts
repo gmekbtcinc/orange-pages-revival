@@ -9,7 +9,7 @@ const corsHeaders = {
 
 const PRODUCTION_URL = "https://orangepages.bitcoinforcorporations.com";
 
-type EmailType = "submission_approved" | "submission_rejected" | "claim_approved" | "claim_rejected";
+type EmailType = "submission_approved" | "submission_rejected" | "claim_approved" | "claim_rejected" | "submission_received" | "claim_received";
 
 interface StatusEmailRequest {
   type: EmailType;
@@ -244,6 +244,126 @@ function getEmailContent(params: StatusEmailRequest, baseUrl: string) {
                 
                 <p style="color: #71717a; font-size: 13px; line-height: 1.5;">
                   Need help? Reply to this email and we'll be happy to assist.
+                </p>
+              </div>
+              
+              <div style="text-align: center; margin-top: 24px;">
+                <p style="color: #a1a1aa; font-size: 12px;">© ${new Date().getFullYear()} Bitcoin for Corporations</p>
+              </div>
+            </div>
+          </body>
+          </html>
+        `,
+      };
+
+    case "submission_received":
+      return {
+        subject: `We received your submission for "${businessName}"`,
+        html: `
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          </head>
+          <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 0; background-color: #f4f4f5;">
+            <div style="max-width: 600px; margin: 0 auto; padding: 40px 20px;">
+              <div style="background-color: #ffffff; border-radius: 8px; padding: 40px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                <div style="text-align: center; margin-bottom: 24px;">
+                  <div style="display: inline-block; background-color: #fef3c7; border-radius: 50%; padding: 16px;">
+                    <span style="font-size: 32px;">📋</span>
+                  </div>
+                </div>
+                
+                <h2 style="color: #18181b; font-size: 20px; text-align: center; margin-bottom: 16px;">
+                  Submission Received!
+                </h2>
+                
+                <p style="color: #3f3f46; font-size: 16px; line-height: 1.6; margin-bottom: 16px;">
+                  Hi ${recipientName},
+                </p>
+                
+                <p style="color: #3f3f46; font-size: 16px; line-height: 1.6; margin-bottom: 24px;">
+                  Thanks for submitting <strong>${businessName}</strong> to Orange Pages! Our team is reviewing your submission and will get back to you shortly.
+                </p>
+                
+                <div style="background-color: #f4f4f5; border-radius: 6px; padding: 16px; margin-bottom: 24px;">
+                  <p style="color: #52525b; font-size: 14px; margin: 0;">
+                    <strong>What happens next?</strong><br>
+                    We typically review submissions within 1-2 business days. You'll receive an email once your submission is approved or if we need more information.
+                  </p>
+                </div>
+                
+                <div style="text-align: center; margin: 32px 0;">
+                  <a href="${dashboardUrl}" style="display: inline-block; background-color: #f7931a; color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 6px; font-weight: 600; font-size: 16px;">
+                    View Status in Dashboard
+                  </a>
+                </div>
+                
+                <hr style="border: none; border-top: 1px solid #e4e4e7; margin: 24px 0;">
+                
+                <p style="color: #71717a; font-size: 13px; line-height: 1.5;">
+                  Questions? Reply to this email and we'll be happy to assist.
+                </p>
+              </div>
+              
+              <div style="text-align: center; margin-top: 24px;">
+                <p style="color: #a1a1aa; font-size: 12px;">© ${new Date().getFullYear()} Bitcoin for Corporations</p>
+              </div>
+            </div>
+          </body>
+          </html>
+        `,
+      };
+
+    case "claim_received":
+      return {
+        subject: `We received your claim for "${businessName}"`,
+        html: `
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          </head>
+          <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 0; background-color: #f4f4f5;">
+            <div style="max-width: 600px; margin: 0 auto; padding: 40px 20px;">
+              <div style="background-color: #ffffff; border-radius: 8px; padding: 40px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                <div style="text-align: center; margin-bottom: 24px;">
+                  <div style="display: inline-block; background-color: #dbeafe; border-radius: 50%; padding: 16px;">
+                    <span style="font-size: 32px;">🔐</span>
+                  </div>
+                </div>
+                
+                <h2 style="color: #18181b; font-size: 20px; text-align: center; margin-bottom: 16px;">
+                  Claim Request Received!
+                </h2>
+                
+                <p style="color: #3f3f46; font-size: 16px; line-height: 1.6; margin-bottom: 16px;">
+                  Hi ${recipientName},
+                </p>
+                
+                <p style="color: #3f3f46; font-size: 16px; line-height: 1.6; margin-bottom: 24px;">
+                  We've received your request to claim <strong>${businessName}</strong> on Orange Pages. Our team will verify your relationship to the company and get back to you soon.
+                </p>
+                
+                <div style="background-color: #f4f4f5; border-radius: 6px; padding: 16px; margin-bottom: 24px;">
+                  <p style="color: #52525b; font-size: 14px; margin: 0;">
+                    <strong>What happens next?</strong><br>
+                    We typically verify claims within 1-3 business days. You'll receive an email once your claim is approved or if we need additional verification.
+                  </p>
+                </div>
+                
+                <div style="text-align: center; margin: 32px 0;">
+                  <a href="${dashboardUrl}" style="display: inline-block; background-color: #f7931a; color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 6px; font-weight: 600; font-size: 16px;">
+                    View Status in Dashboard
+                  </a>
+                </div>
+                
+                <hr style="border: none; border-top: 1px solid #e4e4e7; margin: 24px 0;">
+                
+                <p style="color: #71717a; font-size: 13px; line-height: 1.5;">
+                  Questions? Reply to this email and we'll be happy to assist.
                 </p>
               </div>
               

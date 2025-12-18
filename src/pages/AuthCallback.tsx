@@ -42,6 +42,19 @@ export default function AuthCallback() {
           }
         }
 
+        // Send welcome email for OAuth signups (fire and forget)
+        // Check if this is a new user by seeing if created_at is recent (within last 60 seconds)
+        const createdAt = new Date(session.user.created_at).getTime();
+        const now = Date.now();
+        const isNewUser = now - createdAt < 60000; // within 60 seconds
+        
+        if (isNewUser && userEmail) {
+          const displayName = session.user.user_metadata?.full_name || userEmail.split("@")[0];
+          supabase.functions.invoke("send-welcome-email", {
+            body: { email: userEmail, displayName, origin: window.location.origin },
+          }).catch((err) => console.error("Welcome email error:", err));
+        }
+
         // Check for returnTo parameter
         const returnTo = searchParams.get("returnTo");
         

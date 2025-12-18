@@ -80,10 +80,23 @@ export function ClaimBusinessDialog({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["user-claims"] });
       queryClient.invalidateQueries({ queryKey: ["business-claim-status"] });
+      
+      // Send confirmation email (fire and forget)
+      supabase.functions.invoke("send-status-email", {
+        body: {
+          type: "claim_received",
+          email: formData.claimant_email,
+          recipientName: formData.claimant_name,
+          businessName,
+          businessId,
+          origin: window.location.origin,
+        },
+      }).catch((err) => console.error("Claim confirmation email error:", err));
+      
       toast({
         title: "Claim submitted!",
         description:
-          "Your claim has been submitted for review. We'll notify you once it's processed.",
+          "Your claim has been submitted for review. Check your email for confirmation.",
       });
       onClose();
       resetForm();
