@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Ticket, Calendar, Mic2, UtensilsCrossed, Users } from "lucide-react";
+import { Ticket, Calendar, Mic2, UtensilsCrossed, Users, Building2, Search } from "lucide-react";
 import { useMember } from "@/contexts/member/MemberContext";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { WelcomeHeader } from "@/components/dashboard/WelcomeHeader";
@@ -13,6 +13,9 @@ import { LockedFeatureCard } from "@/components/dashboard/LockedFeatureCard";
 import { FreeQuickActions } from "@/components/dashboard/FreeQuickActions";
 import { FreeDashboardWelcome } from "@/components/dashboard/FreeDashboardWelcome";
 import { MembershipCTA } from "@/components/dashboard/MembershipCTA";
+import { SubmitBusinessDialog } from "@/components/submissions/SubmitBusinessDialog";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 
 export default function Dashboard() {
@@ -54,17 +57,50 @@ export default function Dashboard() {
     );
   }
 
+  const [submitDialogOpen, setSubmitDialogOpen] = useState(false);
+
   if (!companyUser) {
     return (
       <DashboardLayout>
-        <div className="text-center py-12">
-          <h2 className="text-xl font-semibold text-foreground mb-2">
-            Account Not Linked
-          </h2>
-          <p className="text-muted-foreground">
-            Your account is not linked to a company. Please contact support.
-          </p>
+        <div className="max-w-2xl mx-auto py-12">
+          <Card className="border-border/50">
+            <CardHeader className="text-center">
+              <div className="mx-auto w-16 h-16 rounded-full bg-bitcoin-orange/10 flex items-center justify-center mb-4">
+                <Building2 className="h-8 w-8 text-bitcoin-orange" />
+              </div>
+              <CardTitle className="text-2xl">Welcome to Orange Pages</CardTitle>
+              <CardDescription className="text-base">
+                Your account isn't linked to a company yet. Get started by claiming an existing business or submitting a new one.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid sm:grid-cols-2 gap-4">
+                <Button 
+                  variant="outline" 
+                  className="h-auto py-4 flex flex-col items-center gap-2"
+                  onClick={() => window.location.href = "/"}
+                >
+                  <Search className="h-5 w-5" />
+                  <span className="font-medium">Find & Claim Business</span>
+                  <span className="text-xs text-muted-foreground">Browse the directory</span>
+                </Button>
+                <Button 
+                  className="h-auto py-4 flex flex-col items-center gap-2"
+                  onClick={() => setSubmitDialogOpen(true)}
+                >
+                  <Building2 className="h-5 w-5" />
+                  <span className="font-medium">Submit New Business</span>
+                  <span className="text-xs text-muted-foreground">Add to directory</span>
+                </Button>
+              </div>
+              {userId && <ClaimStatusCard userId={userId} />}
+            </CardContent>
+          </Card>
         </div>
+        <SubmitBusinessDialog 
+          isOpen={submitDialogOpen} 
+          onClose={() => setSubmitDialogOpen(false)} 
+        />
       </DashboardLayout>
     );
   }

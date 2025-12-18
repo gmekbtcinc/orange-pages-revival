@@ -122,7 +122,16 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-secondary flex items-center justify-center p-4">
+    <div className="min-h-screen bg-secondary flex flex-col items-center justify-center p-4">
+      {/* Back link */}
+      <div className="w-full max-w-md mb-4">
+        <a 
+          href="/" 
+          className="text-sm text-muted-foreground hover:text-primary transition-colors inline-flex items-center gap-1"
+        >
+          ← Back to Orange Pages
+        </a>
+      </div>
       <Card className="w-full max-w-md border-border/50">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl font-bold text-foreground">

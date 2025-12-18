@@ -78,6 +78,16 @@ export function SubmitBusinessDialog({ isOpen, onClose }: SubmitBusinessDialogPr
     },
   });
 
+  // Normalize website URL
+  const normalizeWebsite = (url: string): string | null => {
+    if (!url.trim()) return null;
+    const trimmed = url.trim();
+    if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
+      return trimmed;
+    }
+    return `https://${trimmed}`;
+  };
+
   const submitMutation = useMutation({
     mutationFn: async () => {
       if (!userId) throw new Error("You must be logged in to submit a business");
@@ -88,7 +98,7 @@ export function SubmitBusinessDialog({ isOpen, onClose }: SubmitBusinessDialogPr
         submitter_name: submitterName,
         name,
         description,
-        website: website || null,
+        website: normalizeWebsite(website),
         city: city || null,
         state: state || null,
         country: country || null,
@@ -214,11 +224,12 @@ export function SubmitBusinessDialog({ isOpen, onClose }: SubmitBusinessDialogPr
             <Label htmlFor="website">Website</Label>
             <Input
               id="website"
-              type="url"
+              type="text"
               value={website}
               onChange={(e) => setWebsite(e.target.value)}
-              placeholder="https://example.com"
+              placeholder="example.com or https://example.com"
             />
+            <p className="text-xs text-muted-foreground">Optional. We'll add https:// if needed.</p>
           </div>
 
           {/* Category */}
