@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Users, UserCheck, Mail, Shield, Search, MoreHorizontal, Eye, Edit, Building2, UserX, UserPlus, Trash2, Ticket, Calendar, Mic, Utensils, BookOpen, ShieldCheck, ShieldAlert, UserCog } from "lucide-react";
+import { Users, UserCheck, Mail, Shield, Search, MoreHorizontal, Eye, Edit, Building2, UserX, UserPlus, Trash2, Ticket, Calendar, Mic, Utensils, BookOpen, ShieldCheck, ShieldAlert, UserCog, Link2 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
@@ -20,6 +20,7 @@ import { UserDetailDialog } from "@/components/admin/UserDetailDialog";
 import { EditUserPermissionsDialog } from "@/components/admin/EditUserPermissionsDialog";
 import { ManageRolesDialog } from "@/components/admin/ManageRolesDialog";
 import { AddUserDialog } from "@/components/admin/AddUserDialog";
+import { LinkAccountDialog } from "@/components/admin/LinkAccountDialog";
 import { Database } from "@/integrations/supabase/types";
 
 type AppRole = Database["public"]["Enums"]["app_role"];
@@ -63,6 +64,8 @@ export default function UsersAdmin() {
   const [editingRole, setEditingRole] = useState<{ id: string; user_id: string; role: AppRole; email?: string } | null>(null);
   const [roleToRevoke, setRoleToRevoke] = useState<{ id: string; email: string; role: string } | null>(null);
   const [addUserOpen, setAddUserOpen] = useState(false);
+  const [linkAccountOpen, setLinkAccountOpen] = useState(false);
+  const [userToLink, setUserToLink] = useState<UserWithBusiness | null>(null);
   const pageSize = 25;
 
   // Fetch stats
@@ -458,10 +461,16 @@ export default function UsersAdmin() {
                               </DropdownMenuItem>
                             )}
                             {!user.user_id && (
-                              <DropdownMenuItem>
-                                <Mail className="h-4 w-4 mr-2" />
-                                Resend Invitation
-                              </DropdownMenuItem>
+                              <>
+                                <DropdownMenuItem onClick={() => { setUserToLink(user); setLinkAccountOpen(true); }}>
+                                  <Link2 className="h-4 w-4 mr-2" />
+                                  Link Account
+                                </DropdownMenuItem>
+                                <DropdownMenuItem>
+                                  <Mail className="h-4 w-4 mr-2" />
+                                  Resend Invitation
+                                </DropdownMenuItem>
+                              </>
                             )}
                             <DropdownMenuSeparator />
                             <DropdownMenuItem
@@ -664,6 +673,13 @@ export default function UsersAdmin() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Link Account Dialog */}
+      <LinkAccountDialog
+        user={userToLink}
+        open={linkAccountOpen}
+        onOpenChange={setLinkAccountOpen}
+      />
     </AdminLayout>
   );
 }
