@@ -1,5 +1,62 @@
 import { supabase } from "@/integrations/supabase/client";
 
+export interface BFCMember {
+  id: string;
+  name: string;
+  logo_url: string | null;
+  tier: string;
+  member_since: string;
+}
+
+export const fetchBFCMembers = async (): Promise<BFCMember[]> => {
+  const { data, error } = await supabase
+    .from("memberships")
+    .select(`
+      tier,
+      member_since,
+      business:businesses!inner(
+        id,
+        name,
+        logo_url,
+        status
+      )
+    `)
+    .eq("is_active", true)
+    .eq("business.status", "approved")
+    .order("member_since", { ascending: true });
+
+  if (error) {
+    console.error("Error fetching BFC members:", error);
+    throw error;
+  }
+
+  // Define tier ranking order
+  const tierOrder: Record<string, number> = {
+    chairman: 1,
+    sponsor: 2,
+    executive: 3,
+    premier: 4,
+    industry: 5,
+  };
+
+  // Transform and sort by tier, then by member_since
+  const members = data
+    .map((m: any) => ({
+      id: m.business.id,
+      name: m.business.name,
+      logo_url: m.business.logo_url,
+      tier: m.tier,
+      member_since: m.member_since,
+    }))
+    .sort((a, b) => {
+      const tierDiff = (tierOrder[a.tier] || 99) - (tierOrder[b.tier] || 99);
+      if (tierDiff !== 0) return tierDiff;
+      return new Date(a.member_since).getTime() - new Date(b.member_since).getTime();
+    });
+
+  return members;
+};
+
 export interface Business {
   id: string;
   name: string;
