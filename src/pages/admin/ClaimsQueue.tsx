@@ -168,7 +168,7 @@ export default function ClaimsQueue() {
         .from("business_claims")
         .update({
           status: "approved",
-          reviewed_by: currentAdmin.id,
+          reviewed_by: currentAdmin.user_id,
           reviewed_at: new Date().toISOString(),
         })
         .eq("id", claim.id);
@@ -225,7 +225,7 @@ export default function ClaimsQueue() {
         .update({
           status: "rejected",
           rejection_reason: reason,
-          reviewed_by: currentAdmin.id,
+          reviewed_by: currentAdmin.user_id,
           reviewed_at: new Date().toISOString(),
         })
         .eq("id", claim.id);
@@ -280,7 +280,7 @@ export default function ClaimsQueue() {
         .update({
           status: "approved",
           created_business_id: newBusiness.id,
-          reviewed_by: currentAdmin.id,
+          reviewed_by: currentAdmin.user_id,
           reviewed_at: new Date().toISOString(),
         })
         .eq("id", submission.id);
@@ -337,7 +337,7 @@ export default function ClaimsQueue() {
         .update({
           status: "rejected",
           rejection_reason: reason,
-          reviewed_by: currentAdmin.id,
+          reviewed_by: currentAdmin.user_id,
           reviewed_at: new Date().toISOString(),
         })
         .eq("id", submission.id);
