@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useMember } from "@/contexts/member/MemberContext";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -11,6 +12,9 @@ interface SubmissionStatusCardProps {
 }
 
 export function SubmissionStatusCard({ userId }: SubmissionStatusCardProps) {
+  const { refetch } = useMember();
+  const navigate = useNavigate();
+
   const { data: submissions = [] } = useQuery({
     queryKey: ["user-submissions", userId],
     queryFn: async () => {
@@ -91,13 +95,17 @@ export function SubmissionStatusCard({ userId }: SubmissionStatusCardProps) {
                     </Button>
                   </Link>
                 )}
-                <Link to="/dashboard/company-profile">
-                  <Button size="sm">
-                    <Building2 className="h-4 w-4 mr-2" />
-                    Edit Profile
-                    <ArrowRight className="h-4 w-4 ml-2" />
-                  </Button>
-                </Link>
+                <Button
+                  size="sm"
+                  onClick={async () => {
+                    await refetch();
+                    navigate("/dashboard/company-profile");
+                  }}
+                >
+                  <Building2 className="h-4 w-4 mr-2" />
+                  Edit Profile
+                  <ArrowRight className="h-4 w-4 ml-2" />
+                </Button>
               </div>
             </div>
           </CardContent>
