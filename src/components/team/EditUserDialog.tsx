@@ -21,7 +21,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, AlertTriangle } from "lucide-react";
+import { Loader2, AlertTriangle, Trash2 } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
 
 type CompanyUser = Tables<"company_users">;
@@ -99,9 +99,52 @@ export function EditUserDialog({
     },
   });
 
+  const removeMutation = useMutation({
+    mutationFn: async () => {
+      if (!user.business_id) {
+        throw new Error("This user is not linked to a company");
+      }
+
+      const { data: sessionData } = await supabase.auth.getSession();
+      const response = await supabase.functions.invoke("remove-team-member", {
+        body: { companyUserId: user.id, businessId: user.business_id },
+        headers: sessionData?.session?.access_token
+          ? { Authorization: `Bearer ${sessionData.session.access_token}` }
+          : undefined,
+      });
+
+      if (response.error) {
+        throw new Error(response.error.message || "Failed to remove team member");
+      }
+
+      if ((response.data as any)?.error) {
+        throw new Error((response.data as any).error);
+      }
+
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["team-members"] });
+      toast({
+        title: "Team member removed",
+        description: `${user.display_name} has been removed from your team.`,
+      });
+      onOpenChange(false);
+    },
+    onError: (error: Error) => {
+      toast({
+        variant: "destructive",
+        title: "Error removing team member",
+        description: error.message || "Please try again.",
+      });
+    },
+  });
+
   const togglePermission = (key: keyof typeof permissions) => {
     setPermissions((prev) => ({ ...prev, [key]: !prev[key] }));
   };
+
+  const isBusy = updateMutation.isPending || removeMutation.isPending;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -130,9 +173,7 @@ export function EditUserDialog({
           {isOwnRecord && (
             <div className="flex items-center gap-2 p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
               <AlertTriangle className="h-4 w-4 text-yellow-500" />
-              <p className="text-sm text-yellow-200">
-                You cannot change your own role
-              </p>
+              <p className="text-sm text-yellow-200">You cannot change your own role</p>
             </div>
           )}
 
@@ -188,6 +229,7 @@ export function EditUserDialog({
                     onCheckedChange={() =>
                       togglePermission(key as keyof typeof permissions)
                     }
+                    disabled={isOwnRecord}
                   />
                 </div>
               ))}
@@ -195,14 +237,28 @@ export function EditUserDialog({
           </div>
         </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+        <DialogFooter className="gap-2 sm:gap-0">
+          {!isOwnRecord && (
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={() => removeMutation.mutate()}
+              disabled={isBusy}
+              className="sm:mr-auto"
+            >
+              {removeMutation.isPending ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Trash2 className="h-4 w-4 mr-2" />
+              )}
+              Remove from team
+            </Button>
+          )}
+
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isBusy}>
             Cancel
           </Button>
-          <Button
-            onClick={() => updateMutation.mutate()}
-            disabled={updateMutation.isPending}
-          >
+          <Button onClick={() => updateMutation.mutate()} disabled={isBusy}>
             {updateMutation.isPending && (
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
             )}
