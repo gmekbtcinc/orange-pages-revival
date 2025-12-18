@@ -15,6 +15,7 @@ import Dashboard from "./pages/Dashboard";
 import CompanyProfile from "./pages/CompanyProfile";
 import TeamManagement from "./pages/TeamManagement";
 import AccountSettings from "./pages/AccountSettings";
+import InviteAccept from "./pages/InviteAccept";
 
 // Lazy load admin routes for code splitting
 const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
@@ -54,6 +55,7 @@ const App = () => (
             <Route path="/business/:id" element={<BusinessDetail />} />
             <Route path="/login" element={<Login />} />
             <Route path="/auth/callback" element={<AuthCallback />} />
+            <Route path="/invite/accept" element={<InviteAccept />} />
 
             {/* Protected dashboard routes */}
             <Route

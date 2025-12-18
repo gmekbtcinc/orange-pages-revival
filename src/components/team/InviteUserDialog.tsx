@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Dialog,
@@ -66,6 +66,21 @@ export function InviteUserDialog({
   const [role, setRole] = useState<"company_admin" | "company_user">("company_user");
   const [permissions, setPermissions] = useState(defaultPermissions.company_user);
 
+  // Fetch inviter info and company name
+  const { data: inviterData } = useQuery({
+    queryKey: ["inviter-info", currentUserId, businessId],
+    queryFn: async () => {
+      const { data: companyUser } = await supabase
+        .from("company_users")
+        .select("display_name, business_id, businesses:business_id (name)")
+        .eq("id", currentUserId)
+        .single();
+      
+      return companyUser;
+    },
+    enabled: open,
+  });
+
   const handleRoleChange = (newRole: "company_admin" | "company_user") => {
     setRole(newRole);
     setPermissions(defaultPermissions[newRole]);
@@ -73,6 +88,11 @@ export function InviteUserDialog({
 
   const inviteMutation = useMutation({
     mutationFn: async () => {
+      // Generate invite token and expiration
+      const inviteToken = crypto.randomUUID();
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + 7); // 7 days from now
+
       // Insert into user_invitations
       const { error: inviteError } = await supabase
         .from("user_invitations")
@@ -83,6 +103,8 @@ export function InviteUserDialog({
           role,
           invited_by: currentUserId,
           status: "pending",
+          invite_token: inviteToken,
+          expires_at: expiresAt.toISOString(),
           ...permissions,
         });
 
@@ -104,12 +126,38 @@ export function InviteUserDialog({
         });
 
       if (userError) throw userError;
+
+      // Send invitation email via edge function
+      try {
+        const inviterName = inviterData?.display_name || "A team member";
+        const companyName = inviterData?.businesses?.name || "your company";
+
+        const { error: emailError } = await supabase.functions.invoke("send-team-invitation", {
+          body: {
+            email: email.toLowerCase().trim(),
+            displayName: displayName.trim(),
+            inviterName,
+            companyName,
+            role,
+            inviteToken,
+            origin: window.location.origin,
+          },
+        });
+
+        if (emailError) {
+          console.error("Failed to send invitation email:", emailError);
+          // Don't throw - invitation was created, email just failed
+        }
+      } catch (emailErr) {
+        console.error("Email sending error:", emailErr);
+        // Don't throw - invitation was created, email just failed
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["team-members"] });
       toast({
         title: "Invitation sent",
-        description: `${displayName} has been invited to join your team.`,
+        description: `${displayName} has been invited to join your team and will receive an email shortly.`,
       });
       onOpenChange(false);
       resetForm();
