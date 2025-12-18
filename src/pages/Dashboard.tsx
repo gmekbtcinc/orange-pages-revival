@@ -21,6 +21,7 @@ import { supabase } from "@/integrations/supabase/client";
 export default function Dashboard() {
   const { companyUser, isLoading, membership } = useMember();
   const [userId, setUserId] = useState<string | null>(null);
+  const [submitDialogOpen, setSubmitDialogOpen] = useState(false);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
@@ -56,8 +57,6 @@ export default function Dashboard() {
       </div>
     );
   }
-
-  const [submitDialogOpen, setSubmitDialogOpen] = useState(false);
 
   if (!companyUser) {
     return (
