@@ -36,8 +36,18 @@ export function EventCard({ event, allocation, companyUserId, isPrimary }: Event
   return (
     <Card className="bg-card border-border overflow-hidden">
       <CardHeader className="pb-3">
-        <div className="flex items-start justify-between">
-          <div>
+        <div className="flex items-start gap-4">
+          {/* Event Logo */}
+          {event.logo_url && (
+            <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 bg-muted">
+              <img
+                src={event.logo_url}
+                alt={event.name}
+                className="w-full h-full object-cover"
+              />
+            </div>
+          )}
+          <div className="flex-1">
             <Badge
               className={`${eventTypeColors[event.event_type]} text-white text-xs mb-2`}
             >
