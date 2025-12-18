@@ -1,73 +1,193 @@
-# Welcome to your Lovable project
+# Orange Pages - Bitcoin Business Directory & BFC Member Portal
 
-## Project info
+A comprehensive platform for Bitcoin-focused businesses, combining a public business directory ("Orange Pages") with a private member portal for [Bitcoin for Corporations (BFC)](https://bitcoinforcorporations.com) members.
 
-**URL**: https://lovable.dev/projects/be430339-d645-4765-b059-91183d6874c8
+## 🎯 Vision
 
-## How can I edit this code?
+Orange Pages aims to be the definitive directory of Bitcoin-accepting and Bitcoin-focused businesses worldwide, while providing BFC member companies with exclusive access to conference benefits, networking opportunities, and resources.
 
-There are several ways of editing your application.
+## 💼 Business Model
 
-**Use Lovable**
+### Freemium Directory
+- **Free tier**: Any business can claim their listing, edit basic profile information (name, description, logo, website), and appear in the public directory
+- **Paid tier**: BFC membership unlocks conference tickets, symposium access, speaking opportunities, VIP dinners, and team collaboration features
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/be430339-d645-4765-b059-91183d6874c8) and start prompting.
+### BFC Membership Tiers
+| Tier | Target Audience |
+|------|----------------|
+| Industry | Bitcoin-native companies |
+| Premier | Growing Bitcoin businesses |
+| Executive | Enterprise Bitcoin adopters |
+| Sponsor | Conference sponsors |
+| Chairman's Circle | Strategic partners |
 
-Changes made via Lovable will be committed automatically to this repo.
+### Revenue Streams
+1. **BFC Memberships**: Annual corporate memberships with tiered benefits
+2. **Conference Tickets**: Members receive allocated tickets; non-members purchase separately
+3. **Sponsorships**: Event and brand sponsorship opportunities
 
-**Use your preferred IDE**
+## ✨ Features
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+### Public Features
+- **Business Directory**: Browse Bitcoin businesses by category
+- **Business Profiles**: Detailed company pages with descriptions, leadership, social links
+- **Category Search**: Filter businesses across 15+ categories
+- **Member Carousel**: Featured BFC member companies on homepage
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+### Free Account Features
+- Claim and manage your business listing
+- Edit company profile (name, description, logo, contact info)
+- View public directory listings
 
-Follow these steps:
+### BFC Member Features
+- **Dashboard**: Personalized member portal with tier-based benefits
+- **Ticket Claims**: Claim allocated conference tickets for your team
+- **Symposium Registration**: Register for exclusive BFC Symposium events
+- **Speaking Applications**: Apply to speak at Bitcoin conferences
+- **VIP Dinners**: RSVP to exclusive networking dinners
+- **Team Management**: Invite team members with granular permissions
+- **Company Profile Editor**: Full control over public business listing
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
+### Admin Portal
+- **Companies Management**: View, edit, and manage all businesses
+- **Memberships Management**: Manage tiers, billing, renewals
+- **Users Management**: Manage user accounts and permissions
+- **Events Management**: Create events, manage allocations, view registrations
+- **Claims Queue**: Review business claims and submissions
+
+## 🛠 Tech Stack
+
+- **Frontend**: React 18 + TypeScript + Vite
+- **Styling**: Tailwind CSS + shadcn/ui components
+- **Backend**: Lovable Cloud (Supabase)
+- **Database**: PostgreSQL with Row Level Security (RLS)
+- **Authentication**: Email/password with auto-confirm
+- **Storage**: Supabase Storage for logos and avatars
+
+## 📁 Project Structure
+
+```
+src/
+├── components/
+│   ├── admin/          # Admin portal components
+│   ├── claims/         # Business claim components
+│   ├── company-profile/# Profile editor components
+│   ├── dashboard/      # Member dashboard components
+│   ├── modals/         # Modal dialogs (tickets, RSVP, etc.)
+│   ├── submissions/    # Business submission components
+│   ├── team/           # Team management components
+│   └── ui/             # Reusable UI components (shadcn)
+├── contexts/
+│   └── member/         # Member context provider
+├── hooks/              # Custom React hooks
+├── integrations/
+│   └── supabase/       # Supabase client and types
+├── lib/                # Utility functions
+└── pages/
+    ├── admin/          # Admin portal pages
+    ├── AccountSettings.tsx
+    ├── BusinessDetail.tsx
+    ├── CompanyProfile.tsx
+    ├── Dashboard.tsx
+    ├── Index.tsx       # Homepage
+    ├── Login.tsx
+    └── TeamManagement.tsx
+```
+
+## 🗄 Database Schema
+
+### Core Tables
+- `businesses` - Company listings with profiles
+- `categories` - Business categories
+- `company_users` - User-company associations with roles/permissions
+- `memberships` - BFC membership records with tiers
+- `events` - Conferences and events
+- `event_allocations` - Tier-based benefit allocations per event
+
+### Activity Tables
+- `ticket_claims` - Conference ticket claims
+- `symposium_registrations` - Symposium attendance
+- `speaker_applications` - Speaking slot applications
+- `vip_dinner_rsvps` - VIP dinner reservations
+- `member_resource_requests` - Resource/support requests
+
+### Supporting Tables
+- `business_claims` - Ownership claim requests
+- `business_submissions` - New business submissions
+- `user_invitations` - Team member invitations
+- `admins` - Admin user records
+- `user_roles` - Role-based access control
+
+## 🔐 Security
+
+- **Row Level Security (RLS)**: All tables protected with granular policies
+- **Role-based Access**: super_admin, company_admin, company_user roles
+- **Permission Flags**: Granular permissions (can_claim_tickets, can_edit_profile, etc.)
+- **Tier-based Limits**: User limits enforced per membership tier
+
+## 🚀 Getting Started
+
+### Prerequisites
+- Node.js 18+
+- npm or bun
+
+### Installation
+
+```bash
+# Clone the repository
 git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
 cd <YOUR_PROJECT_NAME>
 
-# Step 3: Install the necessary dependencies.
-npm i
+# Install dependencies
+npm install
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+# Start development server
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+### Environment Variables
+The following are automatically configured via Lovable Cloud:
+- `VITE_SUPABASE_URL`
+- `VITE_SUPABASE_PUBLISHABLE_KEY`
+- `VITE_SUPABASE_PROJECT_ID`
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## 📱 Routes
 
-**Use GitHub Codespaces**
+### Public Routes
+- `/` - Homepage with directory and member carousel
+- `/business/:id` - Business detail page
+- `/login` - Authentication page
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+### Member Routes (Protected)
+- `/dashboard` - Member dashboard
+- `/dashboard/company-profile` - Edit company profile
+- `/dashboard/team` - Team management
+- `/dashboard/account` - Account settings
 
-## What technologies are used for this project?
+### Admin Routes (Admin Only)
+- `/admin` - Admin dashboard
+- `/admin/companies` - Companies management
+- `/admin/companies/:id` - Company detail
+- `/admin/memberships` - Memberships management
+- `/admin/users` - Users management
+- `/admin/events` - Events management
+- `/admin/events/:id` - Event detail
+- `/admin/claims` - Claims queue
 
-This project is built with:
+## 🎨 Design System
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+The application uses a unified light theme with Bitcoin-orange accents:
+- **Primary**: Bitcoin Orange (#F7931A)
+- **Background**: Light/white surfaces
+- **Components**: shadcn/ui with custom variants
+- **Typography**: System fonts with clear hierarchy
 
-## How can I deploy this project?
+## 📄 License
 
-Simply open [Lovable](https://lovable.dev/projects/be430339-d645-4765-b059-91183d6874c8) and click on Share -> Publish.
+Proprietary - Bitcoin for Corporations
 
-## Can I connect a custom domain to my Lovable project?
+## 🔗 Links
 
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+- [Bitcoin for Corporations](https://bitcoinforcorporations.com)
+- [Bitcoin Magazine](https://bitcoinmagazine.com)
+- [Bitcoin Conference](https://b.tc)
