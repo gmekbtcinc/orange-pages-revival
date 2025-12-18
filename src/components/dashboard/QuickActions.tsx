@@ -83,7 +83,7 @@ export function QuickActions() {
         <Button
           key={action.label}
           variant="outline"
-          className="gap-2 border-border text-foreground hover:border-bitcoin-orange hover:text-bitcoin-orange"
+          className="gap-2 border-border text-foreground hover:border-bitcoin-orange hover:bg-bitcoin-orange/10 hover:text-bitcoin-orange"
           onClick={action.onClick}
         >
           <action.icon className="h-4 w-4" />

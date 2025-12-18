@@ -10,7 +10,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { LogOut, User, ChevronDown, Building2, Users, Shield } from "lucide-react";
+import { LogOut, User, ChevronDown, Building2, Users, Shield, Home } from "lucide-react";
+import { Link } from "react-router-dom";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -89,24 +90,35 @@ export function DashboardLayout({ children, breadcrumbs }: DashboardLayoutProps)
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             {/* Logo and Company */}
-            <div className="flex items-center gap-4">
-              <img
-                src={bfcLogo}
-                alt="BFC"
-                className="h-10 w-10 rounded-lg"
-              />
-              <div className="hidden sm:block">
-                <h1 className="text-lg font-semibold text-foreground">
-                  BFC Member Portal
-                </h1>
-                <div className="flex items-center gap-2">
-                  <Badge
-                    className={`${tierColors[tier]} text-white text-xs`}
-                  >
-                    {tierLabels[tier]}
-                  </Badge>
+            <div className="flex items-center gap-6">
+              <div className="flex items-center gap-4">
+                <img
+                  src={bfcLogo}
+                  alt="BFC"
+                  className="h-10 w-10 rounded-lg"
+                />
+                <div className="hidden sm:block">
+                  <h1 className="text-lg font-semibold text-foreground">
+                    BFC Member Portal
+                  </h1>
+                  <div className="flex items-center gap-2">
+                    <Badge
+                      className={`${tierColors[tier]} text-white text-xs`}
+                    >
+                      {tierLabels[tier]}
+                    </Badge>
+                  </div>
                 </div>
               </div>
+              
+              {/* Orange Pages Link */}
+              <Link 
+                to="/" 
+                className="hidden sm:flex items-center gap-2 text-sm text-muted-foreground hover:text-bitcoin-orange transition-colors"
+              >
+                <Home className="h-4 w-4" />
+                Orange Pages
+              </Link>
             </div>
 
             {/* User Menu */}
@@ -125,6 +137,13 @@ export function DashboardLayout({ children, breadcrumbs }: DashboardLayoutProps)
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuItem 
+                  className="cursor-pointer sm:hidden"
+                  onClick={() => navigate("/")}
+                >
+                  <Home className="mr-2 h-4 w-4" />
+                  Orange Pages
+                </DropdownMenuItem>
                 <DropdownMenuItem 
                   className="cursor-pointer"
                   onClick={() => navigate("/dashboard")}
