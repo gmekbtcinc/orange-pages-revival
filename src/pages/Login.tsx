@@ -97,13 +97,15 @@ export default function Login() {
 
     setResetLoading(true);
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth/callback`,
+      const { data, error } = await supabase.functions.invoke("send-password-reset", {
+        body: { email, origin: window.location.origin },
       });
+
       if (error) throw error;
+
       toast({
         title: "Check your email",
-        description: "We've sent you a password reset link.",
+        description: "If an account exists with that email, we've sent a password reset link.",
       });
       setShowResetForm(false);
     } catch (error: any) {
