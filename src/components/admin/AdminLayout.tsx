@@ -1,6 +1,6 @@
 import { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -56,14 +56,26 @@ export function AdminLayout({ children, breadcrumbs }: AdminLayoutProps) {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return null;
 
-      const { data } = await supabase
+      // Get admin info
+      const { data: adminData } = await supabase
         .from("admins")
         .select("display_name, email")
         .eq("user_id", user.id)
         .eq("is_active", true)
         .maybeSingle();
 
-      return data;
+      // Get avatar from company_users
+      const { data: companyUser } = await supabase
+        .from("company_users")
+        .select("avatar_url")
+        .eq("user_id", user.id)
+        .eq("is_active", true)
+        .maybeSingle();
+
+      return {
+        ...adminData,
+        avatar_url: companyUser?.avatar_url || null,
+      };
     },
   });
 
@@ -104,6 +116,9 @@ export function AdminLayout({ children, breadcrumbs }: AdminLayoutProps) {
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="w-full justify-start gap-2 text-foreground hover:bg-muted">
                 <Avatar className="h-8 w-8">
+                  {admin?.avatar_url && (
+                    <AvatarImage src={admin.avatar_url} alt={admin?.display_name || "Admin"} />
+                  )}
                   <AvatarFallback className="bg-bitcoin-orange text-white text-sm">
                     {initials}
                   </AvatarFallback>
