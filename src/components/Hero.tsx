@@ -1,9 +1,13 @@
-import { Search } from "lucide-react";
+import { useState } from "react";
+import { Search, Plus } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import btcLogo from "@/assets/btc-logo.png";
+import { SubmitBusinessDialog } from "@/components/submissions/SubmitBusinessDialog";
 
 const Hero = () => {
+  const [submitDialogOpen, setSubmitDialogOpen] = useState(false);
+
   return (
     <section className="relative bg-secondary py-20 px-4 overflow-hidden">
       {/* Background pattern */}
@@ -41,12 +45,25 @@ const Hero = () => {
           </div>
         </div>
         
-        <div className="mt-8 text-center">
+        <div className="mt-8 flex flex-col items-center gap-4">
+          <Button 
+            variant="outline" 
+            onClick={() => setSubmitDialogOpen(true)}
+            className="gap-2"
+          >
+            <Plus className="h-4 w-4" />
+            Submit a Business
+          </Button>
           <p className="text-sm text-muted-foreground">
             Powered by BTC Inc • Bitcoin Magazine • Bitcoin Conference • Bitcoin for Corporations
           </p>
         </div>
       </div>
+
+      <SubmitBusinessDialog 
+        isOpen={submitDialogOpen} 
+        onClose={() => setSubmitDialogOpen(false)} 
+      />
     </section>
   );
 };

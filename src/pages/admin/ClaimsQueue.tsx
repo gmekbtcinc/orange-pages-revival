@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog,
   DialogContent,
@@ -16,7 +17,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, CheckCircle, XCircle, Clock, Building2, User, Mail, Briefcase } from "lucide-react";
+import { Loader2, CheckCircle, XCircle, Clock, Building2, User, Mail, Briefcase, Plus } from "lucide-react";
 import { format } from "date-fns";
 
 interface ClaimWithBusiness {
@@ -35,6 +36,26 @@ interface ClaimWithBusiness {
   } | null;
 }
 
+interface Submission {
+  id: string;
+  submitter_user_id: string;
+  submitter_email: string;
+  submitter_name: string;
+  name: string;
+  description: string;
+  website: string | null;
+  city: string | null;
+  state: string | null;
+  country: string | null;
+  category_id: string | null;
+  wants_to_claim: boolean;
+  claim_title: string | null;
+  claim_relationship: string | null;
+  status: string;
+  created_at: string;
+  categories?: { name: string } | null;
+}
+
 const relationshipLabels: Record<string, string> = {
   owner: "Owner",
   executive: "Executive",
@@ -46,9 +67,11 @@ export default function ClaimsQueue() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [rejectingClaim, setRejectingClaim] = useState<ClaimWithBusiness | null>(null);
+  const [rejectingSubmission, setRejectingSubmission] = useState<Submission | null>(null);
   const [rejectionReason, setRejectionReason] = useState("");
 
-  const { data: claims = [], isLoading } = useQuery({
+  // Fetch pending claims
+  const { data: claims = [], isLoading: claimsLoading } = useQuery({
     queryKey: ["pending-claims"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -74,6 +97,39 @@ export default function ClaimsQueue() {
     },
   });
 
+  // Fetch pending submissions
+  const { data: submissions = [], isLoading: submissionsLoading } = useQuery({
+    queryKey: ["pending-submissions"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("business_submissions")
+        .select(`
+          id,
+          submitter_user_id,
+          submitter_email,
+          submitter_name,
+          name,
+          description,
+          website,
+          city,
+          state,
+          country,
+          category_id,
+          wants_to_claim,
+          claim_title,
+          claim_relationship,
+          status,
+          created_at,
+          categories (name)
+        `)
+        .eq("status", "pending")
+        .order("created_at", { ascending: true });
+
+      if (error) throw error;
+      return data as Submission[];
+    },
+  });
+
   const { data: currentAdmin } = useQuery({
     queryKey: ["current-admin"],
     queryFn: async () => {
@@ -91,9 +147,20 @@ export default function ClaimsQueue() {
     },
   });
 
+  // Approve claim mutation - now with free/member permission logic
   const approveMutation = useMutation({
     mutationFn: async (claim: ClaimWithBusiness) => {
       if (!currentAdmin) throw new Error("Admin not found");
+
+      // Check if business has active membership
+      const { data: membership } = await supabase
+        .from("memberships")
+        .select("id, tier")
+        .eq("business_id", claim.business_id)
+        .eq("is_active", true)
+        .maybeSingle();
+
+      const isBFCMember = !!membership;
 
       // Update claim status
       const { error: claimError } = await supabase
@@ -107,7 +174,7 @@ export default function ClaimsQueue() {
 
       if (claimError) throw claimError;
 
-      // Create company_user record with company_admin role
+      // Create company_user record with permissions based on membership status
       if (claim.claimant_user_id) {
         const { error: userError } = await supabase.from("company_users").insert({
           business_id: claim.business_id,
@@ -116,13 +183,14 @@ export default function ClaimsQueue() {
           display_name: claim.claimant_name,
           title: claim.claimant_title,
           role: "company_admin",
-          can_claim_tickets: true,
-          can_register_events: true,
-          can_apply_speaking: true,
-          can_edit_profile: true,
-          can_manage_users: true,
-          can_rsvp_dinners: true,
-          can_request_resources: true,
+          // Permissions based on membership status
+          can_claim_tickets: isBFCMember,
+          can_register_events: isBFCMember,
+          can_apply_speaking: isBFCMember,
+          can_edit_profile: true, // Always allowed
+          can_manage_users: isBFCMember,
+          can_rsvp_dinners: isBFCMember,
+          can_request_resources: isBFCMember,
           is_active: true,
           accepted_at: new Date().toISOString(),
         });
@@ -146,6 +214,7 @@ export default function ClaimsQueue() {
     },
   });
 
+  // Reject claim mutation
   const rejectMutation = useMutation({
     mutationFn: async ({ claim, reason }: { claim: ClaimWithBusiness; reason: string }) => {
       if (!currentAdmin) throw new Error("Admin not found");
@@ -180,7 +249,119 @@ export default function ClaimsQueue() {
     },
   });
 
-  if (isLoading) {
+  // Approve submission mutation
+  const approveSubmissionMutation = useMutation({
+    mutationFn: async (submission: Submission) => {
+      if (!currentAdmin) throw new Error("Admin not found");
+
+      // Create the business record
+      const { data: newBusiness, error: bizError } = await supabase
+        .from("businesses")
+        .insert({
+          name: submission.name,
+          description: submission.description,
+          website: submission.website,
+          city: submission.city,
+          state: submission.state,
+          country: submission.country,
+          category_id: submission.category_id,
+          status: "approved",
+          submitted_by: submission.submitter_user_id,
+        })
+        .select()
+        .single();
+
+      if (bizError) throw bizError;
+
+      // Update submission with created_business_id
+      const { error: updateError } = await supabase
+        .from("business_submissions")
+        .update({
+          status: "approved",
+          created_business_id: newBusiness.id,
+          reviewed_by: currentAdmin.id,
+          reviewed_at: new Date().toISOString(),
+        })
+        .eq("id", submission.id);
+
+      if (updateError) throw updateError;
+
+      // If submitter wanted to claim, create company_user with FREE permissions
+      if (submission.wants_to_claim && submission.submitter_user_id) {
+        const { error: userError } = await supabase.from("company_users").insert({
+          business_id: newBusiness.id,
+          user_id: submission.submitter_user_id,
+          email: submission.submitter_email,
+          display_name: submission.submitter_name,
+          title: submission.claim_title,
+          role: "company_admin",
+          // FREE USER PERMISSIONS
+          can_claim_tickets: false,
+          can_register_events: false,
+          can_apply_speaking: false,
+          can_edit_profile: true,
+          can_manage_users: false,
+          can_rsvp_dinners: false,
+          can_request_resources: false,
+          is_active: true,
+          accepted_at: new Date().toISOString(),
+        });
+
+        if (userError) throw userError;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["pending-submissions"] });
+      toast({
+        title: "Submission approved",
+        description: "The business has been added to the directory.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        variant: "destructive",
+        title: "Error approving submission",
+        description: error.message,
+      });
+    },
+  });
+
+  // Reject submission mutation
+  const rejectSubmissionMutation = useMutation({
+    mutationFn: async ({ submission, reason }: { submission: Submission; reason: string }) => {
+      if (!currentAdmin) throw new Error("Admin not found");
+
+      const { error } = await supabase
+        .from("business_submissions")
+        .update({
+          status: "rejected",
+          rejection_reason: reason,
+          reviewed_by: currentAdmin.id,
+          reviewed_at: new Date().toISOString(),
+        })
+        .eq("id", submission.id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["pending-submissions"] });
+      setRejectingSubmission(null);
+      setRejectionReason("");
+      toast({
+        title: "Submission rejected",
+        description: "The business submission has been rejected.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        variant: "destructive",
+        title: "Error rejecting submission",
+        description: error.message,
+      });
+    },
+  });
+
+  if (claimsLoading || submissionsLoading) {
     return (
       <AdminLayout>
         <div className="flex items-center justify-center py-12">
@@ -191,113 +372,243 @@ export default function ClaimsQueue() {
   }
 
   return (
-    <AdminLayout breadcrumbs={[{ label: "Claims" }]}>
+    <AdminLayout breadcrumbs={[{ label: "Claims & Submissions" }]}>
       <div className="max-w-5xl mx-auto space-y-6">
         <div>
           <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
             <Clock className="h-6 w-6" />
-            Claims Queue
+            Claims & Submissions Queue
           </h1>
           <p className="text-muted-foreground">
-            Review and process business ownership claims
+            Review business claims and new submissions
           </p>
         </div>
 
-        {claims.length === 0 ? (
-          <Card>
-            <CardContent className="py-12 text-center">
-              <CheckCircle className="h-12 w-12 mx-auto text-green-500 mb-4" />
-              <h3 className="text-lg font-semibold text-foreground mb-2">
-                All caught up!
-              </h3>
-              <p className="text-muted-foreground">
-                No pending business claims to review.
-              </p>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="space-y-4">
-            {claims.map((claim) => (
-              <Card key={claim.id} className="bg-card border-border">
-                <CardHeader className="pb-2">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <CardTitle className="text-lg flex items-center gap-2">
-                        <Building2 className="h-5 w-5 text-primary" />
-                        {claim.businesses?.name || "Unknown Business"}
-                      </CardTitle>
-                      <CardDescription>
-                        Submitted {claim.created_at && format(new Date(claim.created_at), "MMM d, yyyy 'at' h:mm a")}
-                      </CardDescription>
-                    </div>
-                    <Badge variant="outline" className="text-yellow-600 border-yellow-500/30 bg-yellow-500/10">
-                      <Clock className="h-3 w-3 mr-1" />
-                      Pending
-                    </Badge>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div className="flex items-center gap-2">
-                      <User className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">
-                        <span className="font-medium">{claim.claimant_name}</span>
-                        {claim.claimant_title && (
-                          <span className="text-muted-foreground"> - {claim.claimant_title}</span>
-                        )}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Mail className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">{claim.claimant_email}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Briefcase className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">
-                        {relationshipLabels[claim.verification_method || ""] || claim.verification_method}
-                      </span>
-                    </div>
-                  </div>
+        <Tabs defaultValue="claims">
+          <TabsList>
+            <TabsTrigger value="claims" className="gap-2">
+              <Building2 className="h-4 w-4" />
+              Claims ({claims.length})
+            </TabsTrigger>
+            <TabsTrigger value="submissions" className="gap-2">
+              <Plus className="h-4 w-4" />
+              Submissions ({submissions.length})
+            </TabsTrigger>
+          </TabsList>
 
-                  {claim.verification_notes && (
-                    <div className="p-3 bg-muted rounded-lg">
-                      <p className="text-sm text-muted-foreground font-medium mb-1">
-                        Verification Notes:
-                      </p>
-                      <p className="text-sm">{claim.verification_notes}</p>
-                    </div>
-                  )}
-
-                  <div className="flex gap-2 pt-2">
-                    <Button
-                      onClick={() => approveMutation.mutate(claim)}
-                      disabled={approveMutation.isPending}
-                      className="flex-1"
-                    >
-                      {approveMutation.isPending ? (
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      ) : (
-                        <CheckCircle className="h-4 w-4 mr-2" />
-                      )}
-                      Approve
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={() => setRejectingClaim(claim)}
-                      className="flex-1"
-                    >
-                      <XCircle className="h-4 w-4 mr-2" />
-                      Reject
-                    </Button>
-                  </div>
+          {/* Claims Tab */}
+          <TabsContent value="claims" className="mt-6">
+            {claims.length === 0 ? (
+              <Card>
+                <CardContent className="py-12 text-center">
+                  <CheckCircle className="h-12 w-12 mx-auto text-green-500 mb-4" />
+                  <h3 className="text-lg font-semibold text-foreground mb-2">
+                    All caught up!
+                  </h3>
+                  <p className="text-muted-foreground">
+                    No pending business claims to review.
+                  </p>
                 </CardContent>
               </Card>
-            ))}
-          </div>
-        )}
+            ) : (
+              <div className="space-y-4">
+                {claims.map((claim) => (
+                  <Card key={claim.id} className="bg-card border-border">
+                    <CardHeader className="pb-2">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <CardTitle className="text-lg flex items-center gap-2">
+                            <Building2 className="h-5 w-5 text-primary" />
+                            {claim.businesses?.name || "Unknown Business"}
+                          </CardTitle>
+                          <CardDescription>
+                            Submitted {claim.created_at && format(new Date(claim.created_at), "MMM d, yyyy 'at' h:mm a")}
+                          </CardDescription>
+                        </div>
+                        <Badge variant="outline" className="text-yellow-600 border-yellow-500/30 bg-yellow-500/10">
+                          <Clock className="h-3 w-3 mr-1" />
+                          Pending
+                        </Badge>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="grid md:grid-cols-2 gap-4">
+                        <div className="flex items-center gap-2">
+                          <User className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-sm">
+                            <span className="font-medium">{claim.claimant_name}</span>
+                            {claim.claimant_title && (
+                              <span className="text-muted-foreground"> - {claim.claimant_title}</span>
+                            )}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Mail className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-sm">{claim.claimant_email}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Briefcase className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-sm">
+                            {relationshipLabels[claim.verification_method || ""] || claim.verification_method}
+                          </span>
+                        </div>
+                      </div>
+
+                      {claim.verification_notes && (
+                        <div className="p-3 bg-muted rounded-lg">
+                          <p className="text-sm text-muted-foreground font-medium mb-1">
+                            Verification Notes:
+                          </p>
+                          <p className="text-sm">{claim.verification_notes}</p>
+                        </div>
+                      )}
+
+                      <div className="flex gap-2 pt-2">
+                        <Button
+                          onClick={() => approveMutation.mutate(claim)}
+                          disabled={approveMutation.isPending}
+                          className="flex-1"
+                        >
+                          {approveMutation.isPending ? (
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          ) : (
+                            <CheckCircle className="h-4 w-4 mr-2" />
+                          )}
+                          Approve
+                        </Button>
+                        <Button
+                          variant="outline"
+                          onClick={() => setRejectingClaim(claim)}
+                          className="flex-1"
+                        >
+                          <XCircle className="h-4 w-4 mr-2" />
+                          Reject
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+
+          {/* Submissions Tab */}
+          <TabsContent value="submissions" className="mt-6">
+            {submissions.length === 0 ? (
+              <Card>
+                <CardContent className="py-12 text-center">
+                  <CheckCircle className="h-12 w-12 mx-auto text-green-500 mb-4" />
+                  <h3 className="text-lg font-semibold text-foreground mb-2">
+                    All caught up!
+                  </h3>
+                  <p className="text-muted-foreground">
+                    No pending business submissions to review.
+                  </p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-4">
+                {submissions.map((submission) => (
+                  <Card key={submission.id} className="bg-card border-border">
+                    <CardHeader className="pb-2">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <CardTitle className="text-lg flex items-center gap-2">
+                            <Plus className="h-5 w-5 text-primary" />
+                            {submission.name}
+                            {submission.wants_to_claim && (
+                              <Badge variant="secondary" className="text-xs">
+                                + Claim
+                              </Badge>
+                            )}
+                          </CardTitle>
+                          <CardDescription>
+                            Submitted by {submission.submitter_name} on {format(new Date(submission.created_at), "MMM d, yyyy")}
+                          </CardDescription>
+                        </div>
+                        <Badge variant="outline" className="text-yellow-600 border-yellow-500/30 bg-yellow-500/10">
+                          <Clock className="h-3 w-3 mr-1" />
+                          Pending
+                        </Badge>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <p className="text-sm text-muted-foreground">{submission.description}</p>
+
+                      <div className="grid md:grid-cols-2 gap-4">
+                        <div className="flex items-center gap-2">
+                          <Mail className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-sm">{submission.submitter_email}</span>
+                        </div>
+                        {submission.website && (
+                          <div className="flex items-center gap-2">
+                            <Building2 className="h-4 w-4 text-muted-foreground" />
+                            <a 
+                              href={submission.website} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="text-sm text-primary hover:underline"
+                            >
+                              {submission.website}
+                            </a>
+                          </div>
+                        )}
+                        {(submission.city || submission.country) && (
+                          <div className="text-sm text-muted-foreground">
+                            📍 {[submission.city, submission.state, submission.country].filter(Boolean).join(", ")}
+                          </div>
+                        )}
+                        {submission.categories?.name && (
+                          <div className="text-sm">
+                            <Badge variant="outline">{submission.categories.name}</Badge>
+                          </div>
+                        )}
+                      </div>
+
+                      {submission.wants_to_claim && (
+                        <div className="p-3 bg-muted rounded-lg">
+                          <p className="text-sm text-muted-foreground font-medium mb-1">
+                            Claim Request:
+                          </p>
+                          <p className="text-sm">
+                            {submission.claim_title && `${submission.claim_title} - `}
+                            {relationshipLabels[submission.claim_relationship || ""] || submission.claim_relationship}
+                          </p>
+                        </div>
+                      )}
+
+                      <div className="flex gap-2 pt-2">
+                        <Button
+                          onClick={() => approveSubmissionMutation.mutate(submission)}
+                          disabled={approveSubmissionMutation.isPending}
+                          className="flex-1"
+                        >
+                          {approveSubmissionMutation.isPending ? (
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          ) : (
+                            <CheckCircle className="h-4 w-4 mr-2" />
+                          )}
+                          Approve
+                        </Button>
+                        <Button
+                          variant="outline"
+                          onClick={() => setRejectingSubmission(submission)}
+                          className="flex-1"
+                        >
+                          <XCircle className="h-4 w-4 mr-2" />
+                          Reject
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
       </div>
 
-      {/* Reject Dialog */}
+      {/* Reject Claim Dialog */}
       <Dialog open={!!rejectingClaim} onOpenChange={(open) => !open && setRejectingClaim(null)}>
         <DialogContent>
           <DialogHeader>
@@ -327,6 +638,41 @@ export default function ClaimsQueue() {
             >
               {rejectMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               Reject Claim
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Reject Submission Dialog */}
+      <Dialog open={!!rejectingSubmission} onOpenChange={(open) => !open && setRejectingSubmission(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reject Submission</DialogTitle>
+            <DialogDescription>
+              Please provide a reason for rejecting this submission.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="submission_rejection_reason">Rejection Reason</Label>
+            <Textarea
+              id="submission_rejection_reason"
+              placeholder="e.g., Duplicate listing, not a Bitcoin business..."
+              value={rejectionReason}
+              onChange={(e) => setRejectionReason(e.target.value)}
+              rows={3}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRejectingSubmission(null)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => rejectingSubmission && rejectSubmissionMutation.mutate({ submission: rejectingSubmission, reason: rejectionReason })}
+              disabled={rejectSubmissionMutation.isPending || !rejectionReason.trim()}
+            >
+              {rejectSubmissionMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Reject Submission
             </Button>
           </DialogFooter>
         </DialogContent>
