@@ -80,17 +80,7 @@ export function DashboardLayout({ children, breadcrumbs }: DashboardLayoutProps)
         .in("role", ["super_admin", "admin"])
         .maybeSingle();
 
-      if (role) return true;
-
-      // Fallback: check legacy admins table
-      const { data: admin } = await supabase
-        .from("admins")
-        .select("id")
-        .eq("user_id", user.id)
-        .eq("is_active", true)
-        .maybeSingle();
-
-      return !!admin;
+      return !!role;
     },
   });
 

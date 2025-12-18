@@ -26,20 +26,7 @@ export function AdminProtectedRoute({ children }: AdminProtectedRouteProps) {
         .in("role", ["super_admin", "admin"])
         .maybeSingle();
 
-      // Fallback: also check legacy admins table for backwards compatibility
-      if (!role) {
-        const { data: admin } = await supabase
-          .from("admins")
-          .select("id")
-          .eq("user_id", user.id)
-          .eq("is_active", true)
-          .maybeSingle();
-        
-        setState(admin ? "authenticated" : "unauthorized");
-        return;
-      }
-
-      setState("authenticated");
+      setState(role ? "authenticated" : "unauthorized");
     };
 
     checkAdmin();
