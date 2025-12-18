@@ -189,12 +189,24 @@ export default function ClaimsQueue() {
 
         if (linkError) throw linkError;
       }
+
+      // Send approval email (fire and forget)
+      supabase.functions.invoke("send-status-email", {
+        body: {
+          type: "claim_approved",
+          email: claim.claimant_email,
+          recipientName: claim.claimant_name,
+          businessName: claim.businesses?.name || "your business",
+          businessId: claim.business_id,
+          origin: window.location.origin,
+        },
+      }).catch((err) => console.error("Failed to send claim approval email:", err));
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["pending-claims"] });
       toast({
         title: "Claim approved",
-        description: "The business claim has been approved and the user has been granted access.",
+        description: "The business claim has been approved and the user has been notified.",
       });
     },
     onError: (error: Error) => {
@@ -222,6 +234,18 @@ export default function ClaimsQueue() {
         .eq("id", claim.id);
 
       if (error) throw error;
+
+      // Send rejection email (fire and forget)
+      supabase.functions.invoke("send-status-email", {
+        body: {
+          type: "claim_rejected",
+          email: claim.claimant_email,
+          recipientName: claim.claimant_name,
+          businessName: claim.businesses?.name || "the business",
+          rejectionReason: reason,
+          origin: window.location.origin,
+        },
+      }).catch((err) => console.error("Failed to send claim rejection email:", err));
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["pending-claims"] });
@@ -229,7 +253,7 @@ export default function ClaimsQueue() {
       setRejectionReason("");
       toast({
         title: "Claim rejected",
-        description: "The business claim has been rejected.",
+        description: "The business claim has been rejected and the user has been notified.",
       });
     },
     onError: (error: Error) => {
@@ -240,8 +264,6 @@ export default function ClaimsQueue() {
       });
     },
   });
-
-  // Approve submission mutation
   const approveSubmissionMutation = useMutation({
     mutationFn: async (submission: Submission) => {
       if (!currentAdmin) throw new Error("Admin not found");
@@ -287,17 +309,29 @@ export default function ClaimsQueue() {
           _display_name: submission.submitter_name,
           _title: submission.claim_title,
           _role: 'company_admin',
-          _is_member: false, // New submissions start as free users
+          _is_member: false,
         });
 
         if (linkError) throw linkError;
       }
+
+      // Send approval email
+      supabase.functions.invoke("send-status-email", {
+        body: {
+          type: "submission_approved",
+          email: submission.submitter_email,
+          recipientName: submission.submitter_name,
+          businessName: submission.name,
+          businessId: newBusiness.id,
+          origin: window.location.origin,
+        },
+      }).catch((err) => console.error("Failed to send submission approval email:", err));
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["pending-submissions"] });
       toast({
         title: "Submission approved",
-        description: "The business has been added to the directory.",
+        description: "The business has been added and the user has been notified.",
       });
     },
     onError: (error: Error) => {
@@ -325,6 +359,18 @@ export default function ClaimsQueue() {
         .eq("id", submission.id);
 
       if (error) throw error;
+
+      // Send rejection email
+      supabase.functions.invoke("send-status-email", {
+        body: {
+          type: "submission_rejected",
+          email: submission.submitter_email,
+          recipientName: submission.submitter_name,
+          businessName: submission.name,
+          rejectionReason: reason,
+          origin: window.location.origin,
+        },
+      }).catch((err) => console.error("Failed to send submission rejection email:", err));
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["pending-submissions"] });
@@ -332,7 +378,7 @@ export default function ClaimsQueue() {
       setRejectionReason("");
       toast({
         title: "Submission rejected",
-        description: "The business submission has been rejected.",
+        description: "The submission has been rejected and the user has been notified.",
       });
     },
     onError: (error: Error) => {

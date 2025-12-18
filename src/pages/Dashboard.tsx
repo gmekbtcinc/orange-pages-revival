@@ -10,6 +10,7 @@ import { MemberFastFacts } from "@/components/dashboard/MemberFastFacts";
 import { EventCards } from "@/components/dashboard/EventCards";
 import { MemberResources } from "@/components/dashboard/MemberResources";
 import { ClaimStatusCard } from "@/components/claims/ClaimStatusCard";
+import { SubmissionStatusCard } from "@/components/claims/SubmissionStatusCard";
 import { LockedFeatureCard } from "@/components/dashboard/LockedFeatureCard";
 import { FreeQuickActions } from "@/components/dashboard/FreeQuickActions";
 import { FreeDashboardWelcome } from "@/components/dashboard/FreeDashboardWelcome";
@@ -134,6 +135,7 @@ export default function Dashboard() {
                 </Button>
               </div>
               {userId && <ClaimStatusCard userId={userId} />}
+              {userId && <SubmissionStatusCard userId={userId} />}
             </CardContent>
           </Card>
         </div>
@@ -157,8 +159,9 @@ export default function Dashboard() {
           {/* Free Quick Actions */}
           <FreeQuickActions />
 
-          {/* Claim Status Cards */}
+          {/* Status Cards */}
           {userId && <ClaimStatusCard userId={userId} />}
+          {userId && <SubmissionStatusCard userId={userId} />}
 
           {/* Membership CTA */}
           <MembershipCTA />
@@ -221,8 +224,9 @@ export default function Dashboard() {
         {/* Quick Actions */}
         <QuickActions />
 
-        {/* Claim Status Cards */}
+        {/* Status Cards */}
         {userId && <ClaimStatusCard userId={userId} />}
+        {userId && <SubmissionStatusCard userId={userId} />}
 
         {/* Member Fast Facts */}
         <MemberFastFacts />
