@@ -206,19 +206,19 @@ export function ManageRolesDialog({
                 <SelectItem value="super_admin">
                   <div className="flex flex-col">
                     <span className="font-medium">Super Admin</span>
-                    <span className="text-xs text-muted-foreground">Full access to all features</span>
+                    <span className="text-xs text-muted-foreground">Full access to all features and settings</span>
                   </div>
                 </SelectItem>
                 <SelectItem value="admin">
                   <div className="flex flex-col">
                     <span className="font-medium">Admin</span>
-                    <span className="text-xs text-muted-foreground">Manage content and users</span>
+                    <span className="text-xs text-muted-foreground">Manage memberships, users, events, and content</span>
                   </div>
                 </SelectItem>
                 <SelectItem value="moderator">
                   <div className="flex flex-col">
                     <span className="font-medium">Moderator</span>
-                    <span className="text-xs text-muted-foreground">Review and moderate content</span>
+                    <span className="text-xs text-muted-foreground">Content-only: review companies and claims</span>
                   </div>
                 </SelectItem>
               </SelectContent>

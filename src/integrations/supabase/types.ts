@@ -1724,6 +1724,7 @@ export type Database = {
       }
       get_user_business_id: { Args: { _user_id: string }; Returns: string }
       has_admin_role: { Args: { _user_id: string }; Returns: boolean }
+      has_moderator_role: { Args: { _user_id: string }; Returns: boolean }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

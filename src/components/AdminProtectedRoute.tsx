@@ -18,12 +18,12 @@ export function AdminProtectedRoute({ children }: AdminProtectedRouteProps) {
         return;
       }
 
-      // Check if user has super_admin or admin role in user_roles table
+      // Check if user has super_admin, admin, or moderator role in user_roles table
       const { data: role } = await supabase
         .from("user_roles")
         .select("id")
         .eq("user_id", user.id)
-        .in("role", ["super_admin", "admin"])
+        .in("role", ["super_admin", "admin", "moderator"])
         .maybeSingle();
 
       setState(role ? "authenticated" : "unauthorized");

@@ -1,4 +1,4 @@
-import { ReactNode } from "react";
+import { ReactNode, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -26,24 +26,28 @@ import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { AdminBreadcrumb, BreadcrumbItem } from "./AdminBreadcrumb";
 import bfcLogo from "@/assets/bfc-profile-icon.png";
+import { Database } from "@/integrations/supabase/types";
+
+type AppRole = Database["public"]["Enums"]["app_role"];
 
 interface AdminLayoutProps {
   children: ReactNode;
   breadcrumbs?: BreadcrumbItem[];
 }
 
-const navItems = [
-  { label: "Dashboard", href: "/admin", icon: LayoutDashboard },
-  { label: "Companies", href: "/admin/companies", icon: Building2 },
-  { label: "Memberships", href: "/admin/memberships", icon: Crown },
-  { label: "Claims", href: "/admin/claims", icon: FileCheck },
-  { label: "Users", href: "/admin/users", icon: Users },
-  { label: "Events", href: "/admin/events", icon: Calendar },
+// All nav items with role requirements
+const allNavItems = [
+  { label: "Dashboard", href: "/admin", icon: LayoutDashboard, roles: ["super_admin", "admin"] },
+  { label: "Companies", href: "/admin/companies", icon: Building2, roles: ["super_admin", "admin", "moderator"] },
+  { label: "Memberships", href: "/admin/memberships", icon: Crown, roles: ["super_admin", "admin"] },
+  { label: "Claims", href: "/admin/claims", icon: FileCheck, roles: ["super_admin", "admin", "moderator"] },
+  { label: "Users", href: "/admin/users", icon: Users, roles: ["super_admin", "admin"] },
+  { label: "Events", href: "/admin/events", icon: Calendar, roles: ["super_admin", "admin"] },
   // Hidden for now - revisit later:
-  // { label: "Tiers & Tracks", href: "/admin/tiers", icon: Layers },
-  // { label: "Benefits", href: "/admin/benefits", icon: Gift },
-  // { label: "Packages", href: "/admin/packages", icon: Package },
-  // { label: "Pricing", href: "/admin/pricing", icon: DollarSign },
+  // { label: "Tiers & Tracks", href: "/admin/tiers", icon: Layers, roles: ["super_admin", "admin"] },
+  // { label: "Benefits", href: "/admin/benefits", icon: Gift, roles: ["super_admin", "admin"] },
+  // { label: "Packages", href: "/admin/packages", icon: Package, roles: ["super_admin", "admin"] },
+  // { label: "Pricing", href: "/admin/pricing", icon: DollarSign, roles: ["super_admin", "admin"] },
 ];
 
 export function AdminLayout({ children, breadcrumbs }: AdminLayoutProps) {
@@ -57,14 +61,14 @@ export function AdminLayout({ children, breadcrumbs }: AdminLayoutProps) {
       if (!user) return null;
 
       // Check user_roles table for admin role
-      const { data: role } = await supabase
+      const { data: roleData } = await supabase
         .from("user_roles")
-        .select("id")
+        .select("role")
         .eq("user_id", user.id)
-        .in("role", ["super_admin", "admin"])
+        .in("role", ["super_admin", "admin", "moderator"])
         .maybeSingle();
 
-      if (!role) return null;
+      if (!roleData) return null;
 
       // Get avatar from company_users
       const { data: companyUser } = await supabase
@@ -84,9 +88,16 @@ export function AdminLayout({ children, breadcrumbs }: AdminLayoutProps) {
         display_name: displayName,
         email: user.email,
         avatar_url: companyUser?.avatar_url || null,
+        role: roleData.role as AppRole,
       };
     },
   });
+
+  // Filter nav items based on user's role
+  const navItems = useMemo(() => {
+    if (!admin?.role) return [];
+    return allNavItems.filter(item => item.roles.includes(admin.role));
+  }, [admin?.role]);
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -114,7 +125,9 @@ export function AdminLayout({ children, breadcrumbs }: AdminLayoutProps) {
             />
             <div>
               <h1 className="text-lg font-bold text-foreground">BFC Admin</h1>
-              <p className="text-xs text-muted-foreground">Management Console</p>
+              <p className="text-xs text-muted-foreground">
+                {admin?.role === "moderator" ? "Content Moderator" : "Management Console"}
+              </p>
             </div>
           </div>
         </div>
