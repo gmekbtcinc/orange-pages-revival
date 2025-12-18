@@ -123,15 +123,25 @@ export default function InviteAccept() {
         return;
       }
 
-      // Update company_users to link user_id
+      // Update the user's existing company_users record (created on signup) to link to the business
+      // The signup trigger creates a record with business_id = NULL, so we update by user_id
       const { error: updateError } = await supabase
         .from("company_users")
         .update({
-          user_id: user.id,
+          business_id: invitation.business_id,
+          display_name: invitation.display_name || user.email?.split("@")[0] || "User",
+          role: invitation.role as "company_admin" | "company_user",
           accepted_at: new Date().toISOString(),
+          // Copy permissions from invitation
+          can_claim_tickets: true,
+          can_register_events: true,
+          can_apply_speaking: true,
+          can_edit_profile: invitation.role === "company_admin",
+          can_manage_users: invitation.role === "company_admin",
+          can_rsvp_dinners: true,
+          can_request_resources: true,
         })
-        .eq("business_id", invitation.business_id)
-        .eq("email", invitation.email.toLowerCase());
+        .eq("user_id", user.id);
 
       if (updateError) throw updateError;
 
