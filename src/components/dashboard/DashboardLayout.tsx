@@ -9,8 +9,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { LogOut, User, ChevronDown, Building2, Users, Shield, Home } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { LogOut, User, ChevronDown, Building2, Users, Shield, Home, Settings } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -84,7 +84,7 @@ export function DashboardLayout({ children, breadcrumbs }: DashboardLayoutProps)
   });
 
   return (
-    <div className="min-h-screen bg-background dark">
+    <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="border-b border-border bg-card">
         <div className="container mx-auto px-4 py-4">
@@ -102,11 +102,18 @@ export function DashboardLayout({ children, breadcrumbs }: DashboardLayoutProps)
                     BFC Member Portal
                   </h1>
                   <div className="flex items-center gap-2">
-                    <Badge
-                      className={`${tierColors[tier]} text-white text-xs`}
-                    >
-                      {tierLabels[tier]}
-                    </Badge>
+                    {membership && (
+                      <Badge
+                        className={`${tierColors[tier]} text-white text-xs`}
+                      >
+                        {tierLabels[tier]}
+                      </Badge>
+                    )}
+                    {!membership && (
+                      <Badge variant="outline" className="text-xs">
+                        Free Account
+                      </Badge>
+                    )}
                   </div>
                 </div>
               </div>
@@ -124,8 +131,11 @@ export function DashboardLayout({ children, breadcrumbs }: DashboardLayoutProps)
             {/* User Menu */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="flex items-center gap-2 text-foreground hover:text-foreground">
+                <Button variant="ghost" className="flex items-center gap-2 text-foreground hover:text-foreground hover:bg-muted">
                   <Avatar className="h-8 w-8">
+                    {companyUser?.avatar_url && (
+                      <AvatarImage src={companyUser.avatar_url} alt={companyUser.display_name} />
+                    )}
                     <AvatarFallback className="bg-bitcoin-orange text-white text-sm">
                       {initials}
                     </AvatarFallback>
@@ -150,6 +160,13 @@ export function DashboardLayout({ children, breadcrumbs }: DashboardLayoutProps)
                 >
                   <User className="mr-2 h-4 w-4" />
                   Dashboard
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  className="cursor-pointer"
+                  onClick={() => navigate("/dashboard/account")}
+                >
+                  <Settings className="mr-2 h-4 w-4" />
+                  Account Settings
                 </DropdownMenuItem>
                 {companyUser?.business_id && (
                   <DropdownMenuItem 
