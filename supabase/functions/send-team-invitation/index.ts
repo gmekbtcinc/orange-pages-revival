@@ -4,8 +4,7 @@ const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
 interface InvitationEmailRequest {
@@ -25,15 +24,8 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const { 
-      email, 
-      displayName, 
-      inviterName, 
-      companyName, 
-      role, 
-      inviteToken,
-      origin 
-    }: InvitationEmailRequest = await req.json();
+    const { email, displayName, inviterName, companyName, role, inviteToken, origin }: InvitationEmailRequest =
+      await req.json();
 
     console.log("Sending invitation email to:", email);
     console.log("Company:", companyName);
@@ -49,7 +41,7 @@ const handler = async (req: Request): Promise<Response> => {
         Authorization: `Bearer ${RESEND_API_KEY}`,
       },
       body: JSON.stringify({
-        from: "BFC <onboarding@resend.dev>",
+        from: "BFC <noreply@orangepages.bitcoinforcorporations.com>",
         to: [email],
         subject: `You've been invited to join ${companyName} on BFC`,
         html: `
@@ -132,13 +124,10 @@ const handler = async (req: Request): Promise<Response> => {
     });
   } catch (error: any) {
     console.error("Error in send-team-invitation function:", error);
-    return new Response(
-      JSON.stringify({ error: error.message }),
-      {
-        status: 500,
-        headers: { "Content-Type": "application/json", ...corsHeaders },
-      }
-    );
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500,
+      headers: { "Content-Type": "application/json", ...corsHeaders },
+    });
   }
 };
 
