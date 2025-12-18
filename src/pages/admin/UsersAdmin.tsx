@@ -203,19 +203,34 @@ export default function UsersAdmin() {
     },
   });
 
-  // Delete user mutation
+  // Delete user mutation - calls edge function to delete from both company_users and auth.users
   const deleteMutation = useMutation({
-    mutationFn: async (userId: string) => {
-      const { error } = await supabase
-        .from("company_users")
-        .delete()
-        .eq("id", userId);
-      if (error) throw error;
+    mutationFn: async (companyUserId: string) => {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const response = await supabase.functions.invoke("delete-user", {
+        body: { companyUserId, deleteAuthUser: true },
+        headers: sessionData?.session?.access_token 
+          ? { Authorization: `Bearer ${sessionData.session.access_token}` }
+          : undefined,
+      });
+      
+      if (response.error) {
+        throw new Error(response.error.message || "Failed to delete user");
+      }
+      
+      if (response.data?.error) {
+        throw new Error(response.data.error);
+      }
+      
+      return response.data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["admin-users"] });
       queryClient.invalidateQueries({ queryKey: ["admin-users-stats"] });
-      toast.success("User removed");
+      toast.success(data?.warning ? "User removed (with warning)" : "User removed completely");
+      if (data?.warning) {
+        console.warn("Delete warning:", data.warning, data.authError);
+      }
       setDeleteConfirmOpen(false);
       setUserToDelete(null);
     },
