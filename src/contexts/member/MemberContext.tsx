@@ -123,7 +123,15 @@ export function MemberProvider({ children }: { children: ReactNode }) {
       }
     });
 
-    return () => subscription.unsubscribe();
+    // Auto-refetch every 30 seconds to catch admin approvals
+    const intervalId = setInterval(() => {
+      fetchMember();
+    }, 30000);
+
+    return () => {
+      subscription.unsubscribe();
+      clearInterval(intervalId);
+    };
   }, []);
 
   return (
