@@ -71,6 +71,31 @@ export default function Login() {
     return true;
   };
 
+  const getGoogleErrorMessage = (error: any): string => {
+    const message = error?.message?.toLowerCase() || "";
+    
+    if (message.includes("invalid_client") || message.includes("unauthorized")) {
+      return "Google sign-in is not configured correctly. Please contact support or try email sign-in.";
+    }
+    if (message.includes("access_denied")) {
+      return "Access was denied. Please try again or use a different Google account.";
+    }
+    if (message.includes("popup_closed") || message.includes("popup closed")) {
+      return "Sign-in was cancelled. Please try again.";
+    }
+    if (message.includes("network") || message.includes("fetch")) {
+      return "Network error. Please check your connection and try again.";
+    }
+    if (message.includes("redirect_uri_mismatch")) {
+      return "Configuration error. The redirect URL is not authorized.";
+    }
+    if (message.includes("origin_not_allowed")) {
+      return "This domain is not authorized for Google sign-in.";
+    }
+    
+    return error.message || "Failed to sign in with Google. Please try again.";
+  };
+
   const handleGoogleSignIn = async () => {
     setGoogleLoading(true);
     try {
@@ -82,9 +107,10 @@ export default function Login() {
       });
       if (error) throw error;
     } catch (error: any) {
+      const errorMessage = getGoogleErrorMessage(error);
       toast({
-        title: "Error",
-        description: error.message || "Failed to sign in with Google",
+        title: "Google Sign-In Failed",
+        description: errorMessage,
         variant: "destructive",
       });
       setGoogleLoading(false);
