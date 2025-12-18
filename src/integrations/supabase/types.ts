@@ -424,6 +424,93 @@ export type Database = {
           },
         ]
       }
+      business_submissions: {
+        Row: {
+          category_id: string | null
+          city: string | null
+          claim_relationship: string | null
+          claim_title: string | null
+          country: string | null
+          created_at: string | null
+          created_business_id: string | null
+          description: string
+          id: string
+          name: string
+          rejection_reason: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          state: string | null
+          status: string
+          submitter_email: string
+          submitter_name: string
+          submitter_user_id: string
+          updated_at: string | null
+          wants_to_claim: boolean | null
+          website: string | null
+        }
+        Insert: {
+          category_id?: string | null
+          city?: string | null
+          claim_relationship?: string | null
+          claim_title?: string | null
+          country?: string | null
+          created_at?: string | null
+          created_business_id?: string | null
+          description: string
+          id?: string
+          name: string
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          state?: string | null
+          status?: string
+          submitter_email: string
+          submitter_name: string
+          submitter_user_id: string
+          updated_at?: string | null
+          wants_to_claim?: boolean | null
+          website?: string | null
+        }
+        Update: {
+          category_id?: string | null
+          city?: string | null
+          claim_relationship?: string | null
+          claim_title?: string | null
+          country?: string | null
+          created_at?: string | null
+          created_business_id?: string | null
+          description?: string
+          id?: string
+          name?: string
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          state?: string | null
+          status?: string
+          submitter_email?: string
+          submitter_name?: string
+          submitter_user_id?: string
+          updated_at?: string | null
+          wants_to_claim?: boolean | null
+          website?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "business_submissions_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "business_submissions_created_business_id_fkey"
+            columns: ["created_business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       business_tags: {
         Row: {
           business_id: string
@@ -472,6 +559,7 @@ export type Database = {
           employees: string | null
           featured: boolean | null
           founded: string | null
+          has_linked_users: boolean | null
           id: string
           is_active: boolean | null
           is_bfc_member: boolean | null
@@ -507,6 +595,7 @@ export type Database = {
           employees?: string | null
           featured?: boolean | null
           founded?: string | null
+          has_linked_users?: boolean | null
           id?: string
           is_active?: boolean | null
           is_bfc_member?: boolean | null
@@ -542,6 +631,7 @@ export type Database = {
           employees?: string | null
           featured?: boolean | null
           founded?: string | null
+          has_linked_users?: boolean | null
           id?: string
           is_active?: boolean | null
           is_bfc_member?: boolean | null

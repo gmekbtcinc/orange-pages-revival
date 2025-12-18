@@ -50,39 +50,48 @@ const BusinessDetail = () => {
     enabled: !!id,
   });
 
-  // Check if business has an active membership
-  const { data: hasMembership } = useQuery({
-    queryKey: ["business-membership", id],
+  // Check claim eligibility (BFC member, already has linked users, or user has existing claim)
+  const { data: claimEligibility } = useQuery({
+    queryKey: ["claim-eligibility", id, userId],
     queryFn: async () => {
-      const { data } = await supabase
+      // Check 1: Is this a BFC member business?
+      const { data: membership } = await supabase
         .from("memberships")
         .select("id")
         .eq("business_id", id!)
         .eq("is_active", true)
         .maybeSingle();
-      return !!data;
+      
+      if (membership) return { canClaim: false, reason: "bfc_member" as const };
+      
+      // Check 2: Does it already have linked users?
+      const { data: businessData } = await supabase
+        .from("businesses")
+        .select("has_linked_users")
+        .eq("id", id!)
+        .single();
+      
+      if (businessData?.has_linked_users) return { canClaim: false, reason: "already_claimed" as const };
+      
+      // Check 3: Does user already have a pending/approved claim?
+      if (userId) {
+        const { data: existingClaim } = await supabase
+          .from("business_claims")
+          .select("id, status")
+          .eq("business_id", id!)
+          .eq("claimant_user_id", userId)
+          .in("status", ["pending", "approved"])
+          .maybeSingle();
+        
+        if (existingClaim) return { canClaim: false, reason: "existing_claim" as const };
+      }
+      
+      return { canClaim: true, reason: null };
     },
     enabled: !!id,
   });
 
-  // Check if user already has a claim for this business
-  const { data: existingClaim } = useQuery({
-    queryKey: ["business-claim-status", id, userId],
-    queryFn: async () => {
-      if (!userId) return null;
-      const { data } = await supabase
-        .from("business_claims")
-        .select("id, status")
-        .eq("business_id", id!)
-        .eq("claimant_user_id", userId)
-        .in("status", ["pending", "approved"])
-        .maybeSingle();
-      return data;
-    },
-    enabled: !!id && !!userId,
-  });
-
-  const canClaim = userId && !hasMembership && !existingClaim;
+  const canClaim = userId && claimEligibility?.canClaim;
 
   if (isLoading) {
     return (
@@ -191,6 +200,11 @@ const BusinessDetail = () => {
                   {business.company_type && (
                     <Badge variant="outline" className="capitalize">
                       {business.company_type}
+                    </Badge>
+                  )}
+                  {claimEligibility?.reason === "already_claimed" && (
+                    <Badge variant="outline" className="text-muted-foreground">
+                      Already Claimed
                     </Badge>
                   )}
                 </div>
