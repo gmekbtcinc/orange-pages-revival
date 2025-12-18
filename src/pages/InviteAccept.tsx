@@ -112,8 +112,8 @@ export default function InviteAccept() {
 
     setAccepting(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData.session) {
         toast({
           variant: "destructive",
           title: "Not authenticated",
@@ -123,46 +123,27 @@ export default function InviteAccept() {
         return;
       }
 
-      // Step 1: Delete any existing company_users record for this user that has no business_id
-      // (this was created by the signup trigger before we fixed it)
-      const { error: deleteError } = await supabase
-        .from("company_users")
-        .delete()
-        .eq("user_id", user.id)
-        .is("business_id", null);
+      // Call edge function to accept invitation (bypasses RLS)
+      const response = await supabase.functions.invoke("accept-invitation", {
+        body: { invitationId: invitation.id },
+        headers: {
+          Authorization: `Bearer ${sessionData.session.access_token}`,
+        },
+      });
 
-      // Ignore delete errors - the record might not exist if signup trigger was already fixed
-      if (deleteError) {
-        console.log("No orphan record to delete or delete failed:", deleteError);
+      if (response.error) {
+        throw new Error(response.error.message || "Failed to accept invitation");
       }
 
-      // Step 2: Update the invitation-created company_users record to link the user_id
-      // This record was created when the invitation was sent, it has business_id but no user_id
-      const { error: updateError } = await supabase
-        .from("company_users")
-        .update({
-          user_id: user.id,
-          accepted_at: new Date().toISOString(),
-        })
-        .eq("business_id", invitation.business_id)
-        .eq("email", invitation.email.toLowerCase());
+      const data = response.data as { success?: boolean; error?: string; businessName?: string };
 
-      if (updateError) throw updateError;
-
-      // Step 3: Update invitation status
-      const { error: inviteError } = await supabase
-        .from("user_invitations")
-        .update({
-          status: "accepted",
-          accepted_at: new Date().toISOString(),
-        })
-        .eq("id", invitation.id);
-
-      if (inviteError) throw inviteError;
+      if (data.error) {
+        throw new Error(data.error);
+      }
 
       toast({
         title: "Welcome to the team!",
-        description: `You've successfully joined ${invitation.businesses?.name}.`,
+        description: `You've successfully joined ${data.businessName || invitation.businesses?.name}.`,
       });
 
       navigate("/dashboard");
