@@ -242,7 +242,7 @@ export default function InviteAccept() {
               </div>
               <div className="flex gap-3">
                 <Button asChild className="flex-1">
-                  <Link to={`/login?redirect=/invite/accept?token=${token}`}>
+                  <Link to={`/login?returnTo=${encodeURIComponent(`/invite/accept?token=${token}`)}`}>
                     Sign In
                   </Link>
                 </Button>
