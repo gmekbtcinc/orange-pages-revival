@@ -1,3 +1,5 @@
+import { useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { 
   Wallet, 
   Shield, 
@@ -13,29 +15,58 @@ import {
   FileText,
   Package,
   MessageSquare,
-  GraduationCap
+  GraduationCap,
+  LucideIcon,
+  HelpCircle,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { fetchCategories } from "@/lib/businessQueries";
 
-const categories = [
-  { name: "Wallets", icon: Wallet, count: 45 },
-  { name: "Custody & Institutional Banking", icon: Shield, count: 28 },
-  { name: "Exchanges & Trading Venues", icon: TrendingUp, count: 67 },
-  { name: "Payments & Commerce", icon: CreditCard, count: 52 },
-  { name: "Mining: Hardware, Pools & Operations", icon: Cpu, count: 34 },
-  { name: "Nodes & Core Network Infrastructure", icon: Server, count: 23 },
-  { name: "Scaling & Layer-2 Protocols", icon: Layers, count: 19 },
-  { name: "Developer Tooling & Frameworks", icon: Code, count: 41 },
-  { name: "Data, Analytics & Oracles", icon: BarChart3, count: 31 },
-  { name: "Privacy & Security Tools", icon: Lock, count: 26 },
-  { name: "Financial Products & Asset Management", icon: Briefcase, count: 38 },
-  { name: "Business Operations & Compliance", icon: FileText, count: 29 },
-  { name: "Apps & Use-Case Platforms on Bitcoin", icon: Package, count: 44 },
-  { name: "Social & Communication Platforms", icon: MessageSquare, count: 22 },
-  { name: "Education, Media, Funding & Advocacy", icon: GraduationCap, count: 56 },
-];
+// Map category names/slugs to icons
+const iconMap: Record<string, LucideIcon> = {
+  wallets: Wallet,
+  "custody-institutional-banking": Shield,
+  "exchanges-trading-venues": TrendingUp,
+  "payments-commerce": CreditCard,
+  "mining-hardware-pools-operations": Cpu,
+  "nodes-core-network-infrastructure": Server,
+  "scaling-layer-2-protocols": Layers,
+  "developer-tooling-frameworks": Code,
+  "data-analytics-oracles": BarChart3,
+  "privacy-security-tools": Lock,
+  "financial-products-asset-management": Briefcase,
+  "business-operations-compliance": FileText,
+  "apps-use-case-platforms-on-bitcoin": Package,
+  "social-communication-platforms": MessageSquare,
+  "education-media-funding-advocacy": GraduationCap,
+};
 
 const CategoryGrid = () => {
+  const navigate = useNavigate();
+  
+  const { data: categories = [], isLoading } = useQuery({
+    queryKey: ["categories"],
+    queryFn: fetchCategories,
+  });
+
+  if (isLoading) {
+    return (
+      <section className="py-16 px-4">
+        <div className="max-w-7xl mx-auto">
+          <h2 className="text-3xl md:text-4xl font-bold text-center mb-12">
+            Browse by Category
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <Skeleton key={i} className="h-32 rounded-lg" />
+            ))}
+          </div>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section className="py-16 px-4">
       <div className="max-w-7xl mx-auto">
@@ -44,11 +75,12 @@ const CategoryGrid = () => {
         </h2>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {categories.map((category, index) => {
-            const Icon = category.icon;
+          {categories.map((category) => {
+            const Icon = iconMap[category.slug] || HelpCircle;
             return (
               <Card
-                key={index}
+                key={category.id}
+                onClick={() => navigate(`/category/${category.slug}`)}
                 className="group relative overflow-hidden border-border hover:border-primary transition-all duration-300 cursor-pointer hover:shadow-lg hover:shadow-primary/10"
               >
                 <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
@@ -59,7 +91,7 @@ const CategoryGrid = () => {
                       <Icon className="h-6 w-6 text-primary group-hover:text-primary-foreground" />
                     </div>
                     <span className="text-sm font-medium text-muted-foreground">
-                      {category.count} listings
+                      {category.business_count} listing{category.business_count !== 1 ? "s" : ""}
                     </span>
                   </div>
                   

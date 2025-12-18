@@ -222,3 +222,152 @@ export const fetchAllBusinesses = async (): Promise<Business[]> => {
 
   return data.map(transformBusiness);
 };
+
+// Category type for directory
+export interface Category {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  icon: string | null;
+  business_count: number;
+}
+
+// Fetch all categories with business counts
+export const fetchCategories = async (): Promise<Category[]> => {
+  // Get categories
+  const { data: categories, error: catError } = await supabase
+    .from("categories")
+    .select("id, name, slug, description, icon")
+    .order("name");
+
+  if (catError) {
+    console.error("Error fetching categories:", catError);
+    throw catError;
+  }
+
+  // Get counts per category
+  const { data: businesses, error: bizError } = await supabase
+    .from("businesses")
+    .select("category_id")
+    .eq("status", "approved");
+
+  if (bizError) {
+    console.error("Error fetching business counts:", bizError);
+    throw bizError;
+  }
+
+  // Count businesses per category
+  const countMap = businesses.reduce((acc: Record<string, number>, b) => {
+    if (b.category_id) {
+      acc[b.category_id] = (acc[b.category_id] || 0) + 1;
+    }
+    return acc;
+  }, {});
+
+  return categories.map((cat) => ({
+    ...cat,
+    business_count: countMap[cat.id] || 0,
+  }));
+};
+
+// Search filters interface
+export interface SearchFilters {
+  query?: string;
+  categorySlug?: string;
+  isBitcoinOnly?: boolean;
+  isBfcMember?: boolean;
+  isVerified?: boolean;
+  sort?: "featured" | "name-asc" | "name-desc" | "newest";
+}
+
+// Search businesses with filters
+export const searchBusinesses = async (filters: SearchFilters): Promise<Business[]> => {
+  let query = supabase
+    .from("businesses")
+    .select(BUSINESS_SELECT)
+    .eq("status", "approved");
+
+  // Apply text search
+  if (filters.query && filters.query.trim()) {
+    const searchTerm = `%${filters.query.trim()}%`;
+    query = query.or(`name.ilike.${searchTerm},description.ilike.${searchTerm}`);
+  }
+
+  // Apply attribute filters
+  if (filters.isBitcoinOnly) {
+    query = query.eq("is_bitcoin_only", true);
+  }
+  if (filters.isBfcMember) {
+    query = query.eq("is_bfc_member", true);
+  }
+  if (filters.isVerified) {
+    query = query.eq("is_verified", true);
+  }
+
+  // Apply sorting
+  switch (filters.sort) {
+    case "name-asc":
+      query = query.order("name", { ascending: true });
+      break;
+    case "name-desc":
+      query = query.order("name", { ascending: false });
+      break;
+    case "newest":
+      query = query.order("created_at", { ascending: false });
+      break;
+    case "featured":
+    default:
+      query = query.order("featured", { ascending: false }).order("name", { ascending: true });
+      break;
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    console.error("Error searching businesses:", error);
+    throw error;
+  }
+
+  let results = data.map(transformBusiness);
+
+  // Filter by category (needs to be done client-side due to join structure)
+  if (filters.categorySlug) {
+    results = results.filter((b) => b.category?.slug === filters.categorySlug);
+  }
+
+  return results;
+};
+
+// Fetch businesses by category slug
+export const fetchBusinessesByCategory = async (categorySlug: string): Promise<Business[]> => {
+  return searchBusinesses({ categorySlug, sort: "featured" });
+};
+
+// Fetch category by slug
+export const fetchCategoryBySlug = async (slug: string): Promise<Category | null> => {
+  const { data, error } = await supabase
+    .from("categories")
+    .select("id, name, slug, description, icon")
+    .eq("slug", slug)
+    .maybeSingle();
+
+  if (error) {
+    console.error("Error fetching category:", error);
+    throw error;
+  }
+
+  if (!data) return null;
+
+  // Get count
+  const { count } = await supabase
+    .from("businesses")
+    .select("id", { count: "exact", head: true })
+    .eq("status", "approved")
+    .eq("category_id", data.id);
+
+  return {
+    ...data,
+    business_count: count || 0,
+  };
+};
