@@ -18,21 +18,42 @@ interface InvitationEmailRequest {
 }
 
 const handler = async (req: Request): Promise<Response> => {
+  console.log("=== send-team-invitation function invoked ===");
+  console.log("Request method:", req.method);
+  console.log("RESEND_API_KEY configured:", !!RESEND_API_KEY);
+
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
+    console.log("Handling CORS preflight request");
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { email, displayName, inviterName, companyName, role, inviteToken, origin }: InvitationEmailRequest =
-      await req.json();
+    const body = await req.json();
+    console.log("Request body received:", JSON.stringify(body, null, 2));
+
+    const { email, displayName, inviterName, companyName, role, inviteToken, origin }: InvitationEmailRequest = body;
+
+    if (!email || !inviteToken) {
+      console.error("Missing required fields: email or inviteToken");
+      throw new Error("Missing required fields: email and inviteToken are required");
+    }
+
+    if (!RESEND_API_KEY) {
+      console.error("RESEND_API_KEY is not configured");
+      throw new Error("Email service is not configured. Please contact support.");
+    }
 
     console.log("Sending invitation email to:", email);
     console.log("Company:", companyName);
     console.log("Inviter:", inviterName);
+    console.log("Origin:", origin);
 
     const acceptUrl = `${origin}/invite/accept?token=${inviteToken}`;
     const roleDisplay = role === "company_admin" ? "Admin" : "Team Member";
+
+    console.log("Accept URL:", acceptUrl);
+    console.log("Calling Resend API...");
 
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
@@ -41,7 +62,7 @@ const handler = async (req: Request): Promise<Response> => {
         Authorization: `Bearer ${RESEND_API_KEY}`,
       },
       body: JSON.stringify({
-        from: "BFC <noreply@orangepages.bitcoinforcorporations.com>",
+        from: "Bitcoin for Corporations <noreply@orangepages.bitcoinforcorporations.com>",
         to: [email],
         subject: `You've been invited to join ${companyName} on BFC`,
         html: `
@@ -106,14 +127,16 @@ const handler = async (req: Request): Promise<Response> => {
       }),
     });
 
+    console.log("Resend API response status:", res.status);
+
     if (!res.ok) {
       const errorText = await res.text();
-      console.error("Resend API error:", errorText);
+      console.error("Resend API error response:", errorText);
       throw new Error(`Failed to send email: ${errorText}`);
     }
 
     const emailResponse = await res.json();
-    console.log("Email sent successfully:", emailResponse);
+    console.log("Email sent successfully:", JSON.stringify(emailResponse));
 
     return new Response(JSON.stringify({ success: true, data: emailResponse }), {
       status: 200,
@@ -123,7 +146,9 @@ const handler = async (req: Request): Promise<Response> => {
       },
     });
   } catch (error: any) {
-    console.error("Error in send-team-invitation function:", error);
+    console.error("=== Error in send-team-invitation function ===");
+    console.error("Error message:", error.message);
+    console.error("Error stack:", error.stack);
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
       headers: { "Content-Type": "application/json", ...corsHeaders },

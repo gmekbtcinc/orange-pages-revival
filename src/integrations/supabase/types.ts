@@ -684,7 +684,7 @@ export type Database = {
         Row: {
           accepted_at: string | null
           avatar_url: string | null
-          business_id: string
+          business_id: string | null
           can_apply_speaking: boolean | null
           can_claim_tickets: boolean | null
           can_edit_profile: boolean | null
@@ -708,7 +708,7 @@ export type Database = {
         Insert: {
           accepted_at?: string | null
           avatar_url?: string | null
-          business_id: string
+          business_id?: string | null
           can_apply_speaking?: boolean | null
           can_claim_tickets?: boolean | null
           can_edit_profile?: boolean | null
@@ -732,7 +732,7 @@ export type Database = {
         Update: {
           accepted_at?: string | null
           avatar_url?: string | null
-          business_id?: string
+          business_id?: string | null
           can_apply_speaking?: boolean | null
           can_claim_tickets?: boolean | null
           can_edit_profile?: boolean | null

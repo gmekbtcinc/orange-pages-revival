@@ -34,7 +34,7 @@ type UserWithBusiness = {
   phone: string | null;
   title: string | null;
   role: string;
-  business_id: string;
+  business_id: string | null;
   user_id: string | null;
   is_active: boolean | null;
   can_claim_tickets: boolean | null;
@@ -83,17 +83,19 @@ export default function UsersAdmin() {
   const { data: stats } = useQuery({
     queryKey: ["admin-users-stats"],
     queryFn: async () => {
-      const [total, active, pending, admins] = await Promise.all([
+      const [total, active, pending, admins, unlinked] = await Promise.all([
         supabase.from("company_users").select("id", { count: "exact", head: true }),
-        supabase.from("company_users").select("id", { count: "exact", head: true }).eq("is_active", true).not("user_id", "is", null),
-        supabase.from("company_users").select("id", { count: "exact", head: true }).eq("is_active", true).is("user_id", null),
+        supabase.from("company_users").select("id", { count: "exact", head: true }).eq("is_active", true).not("user_id", "is", null).not("business_id", "is", null),
+        supabase.from("company_users").select("id", { count: "exact", head: true }).eq("is_active", true).is("user_id", null).not("business_id", "is", null),
         supabase.from("company_users").select("id", { count: "exact", head: true }).eq("role", "company_admin"),
+        supabase.from("company_users").select("id", { count: "exact", head: true }).is("business_id", null),
       ]);
       return {
         total: total.count || 0,
         active: active.count || 0,
         pending: pending.count || 0,
         admins: admins.count || 0,
+        unlinked: unlinked.count || 0,
       };
     },
   });
@@ -113,11 +115,13 @@ export default function UsersAdmin() {
       }
 
       if (statusFilter === "active") {
-        query = query.eq("is_active", true).not("user_id", "is", null);
+        query = query.eq("is_active", true).not("user_id", "is", null).not("business_id", "is", null);
       } else if (statusFilter === "invited") {
-        query = query.is("user_id", null).eq("is_active", true);
+        query = query.is("user_id", null).eq("is_active", true).not("business_id", "is", null);
       } else if (statusFilter === "inactive") {
         query = query.eq("is_active", false);
+      } else if (statusFilter === "unlinked") {
+        query = query.is("business_id", null);
       }
 
       if (roleFilter !== "all") {
@@ -301,6 +305,7 @@ export default function UsersAdmin() {
   };
 
   const getStatusBadge = (user: UserWithBusiness) => {
+    if (!user.business_id) return <Badge variant="outline" className="border-blue-500 text-blue-600">Unlinked</Badge>;
     if (!user.is_active) return <Badge variant="destructive">Inactive</Badge>;
     if (!user.user_id) return <Badge className="bg-yellow-500 hover:bg-yellow-600">Invited</Badge>;
     return <Badge className="bg-green-500 hover:bg-green-600">Active</Badge>;
@@ -410,6 +415,7 @@ export default function UsersAdmin() {
                   <TabsTrigger value="all">All</TabsTrigger>
                   <TabsTrigger value="active">Active</TabsTrigger>
                   <TabsTrigger value="invited">Invited</TabsTrigger>
+                  <TabsTrigger value="unlinked">Unlinked ({stats?.unlinked || 0})</TabsTrigger>
                   <TabsTrigger value="inactive">Inactive</TabsTrigger>
                 </TabsList>
               </Tabs>
@@ -552,13 +558,31 @@ export default function UsersAdmin() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Link
-                          to={`/admin/companies/${user.business_id}`}
-                          className="text-primary hover:underline flex items-center gap-1"
-                        >
-                          <Building2 className="h-3 w-3" />
-                          {user.businesses?.name || "Unknown"}
-                        </Link>
+                        {user.business_id ? (
+                          <Link
+                            to={`/admin/companies/${user.business_id}`}
+                            className="text-primary hover:underline flex items-center gap-1"
+                          >
+                            <Building2 className="h-3 w-3" />
+                            {user.businesses?.name || "Unknown"}
+                          </Link>
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <span className="text-muted-foreground">No Company</span>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 px-2 text-xs"
+                              onClick={() => {
+                                setUserToLink(user);
+                                setLinkAccountOpen(true);
+                              }}
+                            >
+                              <Link2 className="h-3 w-3 mr-1" />
+                              Link
+                            </Button>
+                          </div>
+                        )}
                       </TableCell>
                       <TableCell>
                         <Select
