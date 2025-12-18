@@ -7,8 +7,31 @@ export default function AuthCallback() {
   const [searchParams] = useSearchParams();
 
   useEffect(() => {
-    supabase.auth.onAuthStateChange((event, session) => {
+    supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === "SIGNED_IN" && session) {
+        // Auto-link company_users record by email if exists and not yet linked
+        const userEmail = session.user.email;
+        const userId = session.user.id;
+        
+        if (userEmail) {
+          const { data: unlinkedUser } = await supabase
+            .from("company_users")
+            .select("id")
+            .eq("email", userEmail)
+            .is("user_id", null)
+            .maybeSingle();
+          
+          if (unlinkedUser) {
+            await supabase
+              .from("company_users")
+              .update({ 
+                user_id: userId, 
+                accepted_at: new Date().toISOString() 
+              })
+              .eq("id", unlinkedUser.id);
+          }
+        }
+
         // Check for returnTo parameter
         const returnTo = searchParams.get("returnTo");
         
