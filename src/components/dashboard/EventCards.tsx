@@ -12,26 +12,6 @@ type Event = Tables<"events">;
 export function EventCards() {
   const { allocations, activeCompanyId } = useMember();
   const { profile } = useUser();
-  
-  // Get current user's company_user id for this business (for ticket claims - company-level)
-  const { data: companyUserId } = useQuery({
-    queryKey: ["company-user-id", activeCompanyId],
-    queryFn: async () => {
-      if (!activeCompanyId) return null;
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return null;
-      
-      const { data } = await supabase
-        .from("company_users")
-        .select("id")
-        .eq("business_id", activeCompanyId)
-        .eq("user_id", user.id)
-        .maybeSingle();
-      
-      return data?.id || null;
-    },
-    enabled: !!activeCompanyId,
-  });
 
   const { data: events, isLoading } = useQuery({
     queryKey: ["events"],
@@ -95,7 +75,7 @@ export function EventCards() {
                 key={event.id}
                 event={event}
                 allocation={getAllocationForEvent(event.id)}
-                companyUserId={companyUserId || ""}
+                businessId={activeCompanyId || ""}
                 profileId={profile?.id || ""}
                 isPrimary
               />
@@ -116,7 +96,7 @@ export function EventCards() {
                 key={event.id}
                 event={event}
                 allocation={getAllocationForEvent(event.id)}
-                companyUserId={companyUserId || ""}
+                businessId={activeCompanyId || ""}
                 profileId={profile?.id || ""}
                 isPrimary={false}
               />
