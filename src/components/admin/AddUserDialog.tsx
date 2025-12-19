@@ -115,7 +115,7 @@ export function AddUserDialog({ open, onOpenChange }: AddUserDialogProps) {
       const generatedInviteUrl = `${window.location.origin}/invite/accept?token=${inviteToken}`;
       setInviteUrl(generatedInviteUrl);
 
-      // Create invitation record ONLY - no company_users record
+      // Create invitation record (user will be added to team_memberships on acceptance)
       const { error: inviteError } = await supabase
         .from("invitations")
         .insert({
