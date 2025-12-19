@@ -20,7 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { UserPlus, Loader2 } from "lucide-react";
+import { UserPlus, Loader2, Copy, Check } from "lucide-react";
 import { Database } from "@/integrations/supabase/types";
 
 type UserRole = Database["public"]["Enums"]["user_role"];
@@ -37,6 +37,8 @@ export function AddUserDialog({ open, onOpenChange }: AddUserDialogProps) {
   const [title, setTitle] = useState("");
   const [businessId, setBusinessId] = useState("");
   const [role, setRole] = useState<UserRole>("company_user");
+  const [inviteUrl, setInviteUrl] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
   // Fetch businesses for selection
   const { data: businesses } = useQuery({
@@ -53,17 +55,26 @@ export function AddUserDialog({ open, onOpenChange }: AddUserDialogProps) {
     enabled: open,
   });
 
+  const copyToClipboard = async () => {
+    if (!inviteUrl) return;
+    await navigator.clipboard.writeText(inviteUrl);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
   const addUserMutation = useMutation({
     mutationFn: async () => {
       if (!displayName.trim() || !email.trim() || !businessId) {
         throw new Error("Name, email, and company are required");
       }
 
+      const normalizedEmail = email.trim().toLowerCase();
+
       // Check if user already exists for this business
       const { data: existing } = await supabase
         .from("company_users")
         .select("id")
-        .eq("email", email.trim().toLowerCase())
+        .eq("email", normalizedEmail)
         .eq("business_id", businessId)
         .maybeSingle();
 
@@ -71,31 +82,103 @@ export function AddUserDialog({ open, onOpenChange }: AddUserDialogProps) {
         throw new Error("A user with this email already exists for this company");
       }
 
-      // Create the company_user record
-      const { error } = await supabase.from("company_users").insert({
+      // Get company name for the email
+      const selectedBusiness = businesses?.find(b => b.id === businessId);
+      const companyName = selectedBusiness?.name || "the company";
+
+      // Generate invite token and expiration
+      const inviteToken = crypto.randomUUID();
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + 7); // 7 days
+
+      const generatedInviteUrl = `${window.location.origin}/invite/accept?token=${inviteToken}`;
+      setInviteUrl(generatedInviteUrl);
+
+      const isAdmin = role === "company_admin";
+
+      // Create user_invitations record
+      const { error: inviteError } = await supabase
+        .from("user_invitations")
+        .insert({
+          business_id: businessId,
+          email: normalizedEmail,
+          display_name: displayName.trim(),
+          role,
+          status: "pending",
+          invite_token: inviteToken,
+          expires_at: expiresAt.toISOString(),
+          can_claim_tickets: isAdmin,
+          can_register_events: isAdmin,
+          can_apply_speaking: isAdmin,
+          can_edit_profile: isAdmin,
+          can_manage_users: isAdmin,
+          can_rsvp_dinners: isAdmin,
+          can_request_resources: isAdmin,
+        });
+
+      if (inviteError) throw inviteError;
+
+      // Create the company_user record (pending - no user_id)
+      const { error: userError } = await supabase.from("company_users").insert({
         display_name: displayName.trim(),
-        email: email.trim().toLowerCase(),
+        email: normalizedEmail,
         title: title.trim() || null,
         business_id: businessId,
         role,
+        user_id: null,
         is_active: true,
-        can_claim_tickets: role === "company_admin",
-        can_register_events: role === "company_admin",
-        can_apply_speaking: role === "company_admin",
-        can_edit_profile: role === "company_admin",
-        can_manage_users: role === "company_admin",
-        can_rsvp_dinners: role === "company_admin",
-        can_request_resources: role === "company_admin",
+        can_claim_tickets: isAdmin,
+        can_register_events: isAdmin,
+        can_apply_speaking: isAdmin,
+        can_edit_profile: isAdmin,
+        can_manage_users: isAdmin,
+        can_rsvp_dinners: isAdmin,
+        can_request_resources: isAdmin,
         invited_at: new Date().toISOString(),
       });
 
-      if (error) throw error;
+      if (userError) throw userError;
+
+      // Send invitation email
+      let emailSent = false;
+      try {
+        console.log("Sending invitation email to:", normalizedEmail);
+        const { data, error: emailError } = await supabase.functions.invoke("send-team-invitation", {
+          body: {
+            email: normalizedEmail,
+            displayName: displayName.trim(),
+            inviterName: "BFC Admin",
+            companyName,
+            role,
+            inviteToken,
+            origin: window.location.origin,
+          },
+        });
+
+        if (emailError) {
+          console.error("Edge function error:", emailError);
+        } else if (data?.error) {
+          console.error("Email sending failed:", data.error);
+        } else {
+          console.log("Email sent successfully:", data);
+          emailSent = true;
+        }
+      } catch (emailErr) {
+        console.error("Email sending error:", emailErr);
+      }
+
+      return { emailSent, inviteUrl: generatedInviteUrl };
     },
-    onSuccess: () => {
+    onSuccess: ({ emailSent }) => {
       queryClient.invalidateQueries({ queryKey: ["admin-users"] });
       queryClient.invalidateQueries({ queryKey: ["admin-users-stats"] });
-      toast.success("User added successfully");
-      handleClose();
+      
+      if (emailSent) {
+        toast.success("User added and invitation email sent");
+        handleClose();
+      } else {
+        toast.warning("User added but email could not be sent. Share the invite link manually.");
+      }
     },
     onError: (error) => {
       toast.error(error.message);
@@ -108,6 +191,8 @@ export function AddUserDialog({ open, onOpenChange }: AddUserDialogProps) {
     setTitle("");
     setBusinessId("");
     setRole("company_user");
+    setInviteUrl(null);
+    setCopied(false);
     onOpenChange(false);
   };
 
@@ -120,7 +205,7 @@ export function AddUserDialog({ open, onOpenChange }: AddUserDialogProps) {
             Add User
           </DialogTitle>
           <DialogDescription>
-            Add a new user to a member company
+            Add a new user to a member company. They'll receive an invitation email.
           </DialogDescription>
         </DialogHeader>
 
@@ -194,21 +279,50 @@ export function AddUserDialog({ open, onOpenChange }: AddUserDialogProps) {
               </SelectContent>
             </Select>
           </div>
+
+          {/* Show invite link if email failed */}
+          {inviteUrl && !addUserMutation.isPending && (
+            <div className="p-3 bg-muted rounded-md space-y-2">
+              <Label className="text-sm font-medium">Share this invite link manually:</Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  readOnly
+                  value={inviteUrl}
+                  className="text-xs font-mono"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={copyToClipboard}
+                  className="shrink-0"
+                >
+                  {copied ? (
+                    <Check className="h-4 w-4" />
+                  ) : (
+                    <Copy className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
 
         <DialogFooter>
           <Button variant="outline" onClick={handleClose}>
-            Cancel
+            {inviteUrl ? "Done" : "Cancel"}
           </Button>
-          <Button
-            onClick={() => addUserMutation.mutate()}
-            disabled={!displayName || !email || !businessId || addUserMutation.isPending}
-          >
-            {addUserMutation.isPending && (
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            )}
-            Add User
-          </Button>
+          {!inviteUrl && (
+            <Button
+              onClick={() => addUserMutation.mutate()}
+              disabled={!displayName || !email || !businessId || addUserMutation.isPending}
+            >
+              {addUserMutation.isPending && (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              )}
+              Add User
+            </Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>
