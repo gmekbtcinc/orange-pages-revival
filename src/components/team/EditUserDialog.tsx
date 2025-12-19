@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Dialog,
@@ -21,7 +21,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, AlertTriangle, Trash2 } from "lucide-react";
+import { Loader2, AlertTriangle, Trash2, Send } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
 
 type CompanyUser = Tables<"company_users">;
@@ -140,11 +140,101 @@ export function EditUserDialog({
     },
   });
 
+  // Fetch inviter info for resend
+  const { data: inviterData } = useQuery({
+    queryKey: ["inviter-info-resend", currentUserId, user.business_id],
+    queryFn: async () => {
+      const { data: companyUser } = await supabase
+        .from("company_users")
+        .select("display_name, business_id, businesses:business_id (name)")
+        .eq("id", currentUserId)
+        .single();
+      return companyUser;
+    },
+    enabled: open && !user.user_id,
+  });
+
+  const resendInviteMutation = useMutation({
+    mutationFn: async () => {
+      // Generate new invite token
+      const inviteToken = crypto.randomUUID();
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + 7);
+
+      // Update existing invitation with new token
+      const { error: updateInviteError } = await supabase
+        .from("user_invitations")
+        .update({
+          invite_token: inviteToken,
+          expires_at: expiresAt.toISOString(),
+          status: "pending",
+        })
+        .eq("email", user.email.toLowerCase())
+        .eq("business_id", user.business_id);
+
+      if (updateInviteError) {
+        // If no invitation exists, create one
+        const { error: insertError } = await supabase
+          .from("user_invitations")
+          .insert({
+            business_id: user.business_id!,
+            email: user.email.toLowerCase(),
+            display_name: user.display_name,
+            role: user.role,
+            invited_by: currentUserId,
+            status: "pending",
+            invite_token: inviteToken,
+            expires_at: expiresAt.toISOString(),
+            can_claim_tickets: user.can_claim_tickets,
+            can_register_events: user.can_register_events,
+            can_apply_speaking: user.can_apply_speaking,
+            can_edit_profile: user.can_edit_profile,
+            can_manage_users: user.can_manage_users,
+            can_rsvp_dinners: user.can_rsvp_dinners,
+            can_request_resources: user.can_request_resources,
+          });
+        if (insertError) throw insertError;
+      }
+
+      // Send invitation email
+      const inviterName = inviterData?.display_name || "A team member";
+      const companyName = inviterData?.businesses?.name || "your company";
+
+      const { error: emailError } = await supabase.functions.invoke("send-team-invitation", {
+        body: {
+          email: user.email.toLowerCase(),
+          displayName: user.display_name,
+          inviterName,
+          companyName,
+          role: user.role,
+          inviteToken,
+          origin: window.location.origin,
+        },
+      });
+
+      if (emailError) throw emailError;
+    },
+    onSuccess: () => {
+      toast({
+        title: "Invitation resent",
+        description: `A new invitation has been sent to ${user.display_name}.`,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        variant: "destructive",
+        title: "Error resending invitation",
+        description: error.message || "Please try again.",
+      });
+    },
+  });
+
   const togglePermission = (key: keyof typeof permissions) => {
     setPermissions((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
-  const isBusy = updateMutation.isPending || removeMutation.isPending;
+  const isPending = !user.user_id;
+  const isBusy = updateMutation.isPending || removeMutation.isPending || resendInviteMutation.isPending;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -163,11 +253,29 @@ export function EditUserDialog({
               <p className="font-medium text-foreground">{user.display_name}</p>
               <p className="text-sm text-muted-foreground">{user.email}</p>
             </div>
-            {!user.user_id && (
-              <Badge variant="outline" className="text-xs">
-                Pending
-              </Badge>
-            )}
+            <div className="flex items-center gap-2">
+              {isPending && (
+                <>
+                  <Badge variant="outline" className="text-xs">
+                    Pending
+                  </Badge>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => resendInviteMutation.mutate()}
+                    disabled={isBusy}
+                  >
+                    {resendInviteMutation.isPending ? (
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                    ) : (
+                      <Send className="h-3 w-3" />
+                    )}
+                    <span className="ml-1 text-xs">Resend</span>
+                  </Button>
+                </>
+              )}
+            </div>
           </div>
 
           {isOwnRecord && (

@@ -20,6 +20,7 @@ import {
   Calendar,
   Settings,
   Home,
+  Bell,
 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -135,18 +136,34 @@ export function AdminLayout({ children, breadcrumbs }: AdminLayoutProps) {
       <aside className="w-64 border-r border-border bg-card flex flex-col">
         {/* Logo */}
         <div className="p-4 border-b border-border">
-          <div className="flex items-center gap-3">
-            <img
-              src={bfcLogo}
-              alt="BFC"
-              className="h-10 w-10 rounded-lg"
-            />
-            <div>
-              <h1 className="text-lg font-bold text-foreground">BFC Admin</h1>
-              <p className="text-xs text-muted-foreground">
-                {admin?.role === "moderator" ? "Content Moderator" : "Management Console"}
-              </p>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <img
+                src={bfcLogo}
+                alt="BFC"
+                className="h-10 w-10 rounded-lg"
+              />
+              <div>
+                <h1 className="text-lg font-bold text-foreground">BFC Admin</h1>
+                <p className="text-xs text-muted-foreground">
+                  {admin?.role === "moderator" ? "Content Moderator" : "Management Console"}
+                </p>
+              </div>
             </div>
+            {/* Notification Bell */}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="relative"
+              onClick={() => navigate("/admin/claims")}
+            >
+              <Bell className="h-5 w-5 text-muted-foreground" />
+              {pendingCounts?.total && pendingCounts.total > 0 && (
+                <span className="absolute -top-1 -right-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-destructive px-1 text-xs font-medium text-destructive-foreground">
+                  {pendingCounts.total > 99 ? "99+" : pendingCounts.total}
+                </span>
+              )}
+            </Button>
           </div>
         </div>
 
