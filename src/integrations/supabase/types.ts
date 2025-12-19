@@ -1047,9 +1047,11 @@ export type Database = {
       member_resource_requests: {
         Row: {
           admin_notes: string | null
+          business_id: string | null
           company_user_id: string | null
           completed_at: string | null
           id: string
+          profile_id: string | null
           request_details: Json | null
           requested_at: string
           resource_type: string
@@ -1058,9 +1060,11 @@ export type Database = {
         }
         Insert: {
           admin_notes?: string | null
+          business_id?: string | null
           company_user_id?: string | null
           completed_at?: string | null
           id?: string
+          profile_id?: string | null
           request_details?: Json | null
           requested_at?: string
           resource_type: string
@@ -1069,9 +1073,11 @@ export type Database = {
         }
         Update: {
           admin_notes?: string | null
+          business_id?: string | null
           company_user_id?: string | null
           completed_at?: string | null
           id?: string
+          profile_id?: string | null
           request_details?: Json | null
           requested_at?: string
           resource_type?: string
@@ -1079,6 +1085,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "member_resource_requests_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "member_resource_requests_company_user_id_fkey"
             columns: ["company_user_id"]

@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useMember } from "@/contexts/member/MemberContext";
+import { useUser } from "@/contexts/UserContext";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -49,41 +50,27 @@ const resources = [
 
 export function MemberResources() {
   const { activeCompanyId } = useMember();
+  const { profile } = useUser();
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [loadingResource, setLoadingResource] = useState<string | null>(null);
-  
-  // Get current user's company_user id
-  const { data: companyUserId } = useQuery({
-    queryKey: ["company-user-id-resources", activeCompanyId],
-    queryFn: async () => {
-      if (!activeCompanyId) return null;
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return null;
-      
-      const { data } = await supabase
-        .from("company_users")
-        .select("id")
-        .eq("business_id", activeCompanyId)
-        .eq("user_id", user.id)
-        .maybeSingle();
-      
-      return data?.id || null;
-    },
-    enabled: !!activeCompanyId,
-  });
 
   const requestMutation = useMutation({
     mutationFn: async (resourceType: string) => {
+      if (!profile?.id || !activeCompanyId) {
+        throw new Error("Missing profile or company");
+      }
+      
       const { error } = await supabase.from("member_resource_requests").insert({
-        company_user_id: companyUserId,
+        profile_id: profile.id,
+        business_id: activeCompanyId,
         resource_type: resourceType,
         status: "pending",
       });
 
       if (error) throw error;
     },
-    onSuccess: (_, resourceType) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["resource_requests"] });
       toast({
         title: "Request submitted!",
