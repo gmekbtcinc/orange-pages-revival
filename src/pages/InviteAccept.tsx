@@ -141,12 +141,32 @@ export default function InviteAccept() {
         throw new Error(data.error);
       }
 
+      // Send onboarding welcome email
+      try {
+        await supabase.functions.invoke("send-onboarding-email", {
+          body: {
+            email: invitation.email,
+            displayName: invitation.display_name || invitation.email.split("@")[0],
+            companyName: invitation.businesses?.name || "your company",
+            role: invitation.role,
+            origin: window.location.origin,
+          },
+        });
+        console.log("Onboarding email sent");
+      } catch (emailErr) {
+        console.error("Failed to send onboarding email:", emailErr);
+        // Don't fail the whole process if email fails
+      }
+
       toast({
         title: "Welcome to the team!",
-        description: `You've successfully joined ${data.businessName || invitation.businesses?.name}.`,
+        description: `You've successfully joined ${data.businessName || invitation.businesses?.name}. Let's get you started!`,
       });
 
-      navigate("/dashboard");
+      // Small delay to let toast show before navigating
+      setTimeout(() => {
+        navigate("/dashboard");
+      }, 1000);
     } catch (err: any) {
       console.error("Error accepting invitation:", err);
       toast({
@@ -154,7 +174,6 @@ export default function InviteAccept() {
         title: "Error accepting invitation",
         description: err.message || "Please try again.",
       });
-    } finally {
       setAccepting(false);
     }
   };
