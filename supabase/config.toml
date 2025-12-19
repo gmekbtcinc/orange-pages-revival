@@ -17,3 +17,6 @@ verify_jwt = false
 
 [functions.send-status-email]
 verify_jwt = false
+
+[functions.send-acceptance-notification]
+verify_jwt = false

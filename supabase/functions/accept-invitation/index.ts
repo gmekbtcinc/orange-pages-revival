@@ -199,14 +199,51 @@ serve(async (req) => {
       // Don't fail - the important part (linking) is done
     }
 
-    console.log("Invitation accepted successfully");
-
     // Fetch business name for response
     const { data: business } = await supabaseAdmin
       .from("businesses")
       .select("name")
       .eq("id", invitation.business_id)
       .maybeSingle();
+
+    // Fetch the inviter info to send notification
+    let inviterInfo = null;
+    if (invitation.invited_by) {
+      const { data: inviter } = await supabaseAdmin
+        .from("company_users")
+        .select("email, display_name")
+        .eq("id", invitation.invited_by)
+        .maybeSingle();
+      inviterInfo = inviter;
+    }
+
+    // Send acceptance notification to inviter
+    if (inviterInfo?.email) {
+      try {
+        console.log("Sending acceptance notification to inviter:", inviterInfo.email);
+        const notifyResponse = await fetch(
+          `${SUPABASE_URL}/functions/v1/send-acceptance-notification`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              inviterEmail: inviterInfo.email,
+              inviterName: inviterInfo.display_name || "Team Admin",
+              acceptedUserName: updatedCompanyUser.display_name || user.email,
+              acceptedUserEmail: user.email,
+              companyName: business?.name || "your company",
+            }),
+          }
+        );
+        const notifyResult = await notifyResponse.json();
+        console.log("Acceptance notification result:", notifyResult);
+      } catch (notifyError) {
+        console.error("Failed to send acceptance notification:", notifyError);
+        // Don't fail the main operation
+      }
+    }
 
     return new Response(
       JSON.stringify({

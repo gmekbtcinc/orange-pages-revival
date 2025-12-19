@@ -11,7 +11,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Users, UserCheck, Mail, Shield, Search, MoreHorizontal, Eye, Edit, Building2, UserX, UserPlus, Trash2, Ticket, Calendar, Mic, Utensils, BookOpen, ShieldCheck, ShieldAlert, UserCog, Link2, X, Check } from "lucide-react";
+import { Users, UserCheck, Mail, Shield, Search, MoreHorizontal, Eye, Edit, Building2, UserX, UserPlus, Trash2, Ticket, Calendar, Mic, Utensils, BookOpen, ShieldCheck, ShieldAlert, UserCog, Link2, X, Check, ArrowRightLeft } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
@@ -22,6 +22,7 @@ import { EditUserPermissionsDialog } from "@/components/admin/EditUserPermission
 import { ManageRolesDialog } from "@/components/admin/ManageRolesDialog";
 import { AddUserDialog } from "@/components/admin/AddUserDialog";
 import { LinkAccountDialog } from "@/components/admin/LinkAccountDialog";
+import { ChangeCompanyDialog } from "@/components/admin/ChangeCompanyDialog";
 import { BulkEditUsersDialog } from "@/components/admin/BulkEditUsersDialog";
 import { Database } from "@/integrations/supabase/types";
 
@@ -68,6 +69,8 @@ export default function UsersAdmin() {
   const [addUserOpen, setAddUserOpen] = useState(false);
   const [linkAccountOpen, setLinkAccountOpen] = useState(false);
   const [userToLink, setUserToLink] = useState<UserWithBusiness | null>(null);
+  const [changeCompanyOpen, setChangeCompanyOpen] = useState(false);
+  const [userToChangeCompany, setUserToChangeCompany] = useState<UserWithBusiness | null>(null);
   
   // Bulk selection state
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -684,6 +687,12 @@ export default function UsersAdmin() {
                                 View Company
                               </Link>
                             </DropdownMenuItem>
+                            {user.user_id && (
+                              <DropdownMenuItem onClick={() => { setUserToChangeCompany(user); setChangeCompanyOpen(true); }}>
+                                <ArrowRightLeft className="h-4 w-4 mr-2" />
+                                Change Company
+                              </DropdownMenuItem>
+                            )}
                             <DropdownMenuSeparator />
                             {user.is_active ? (
                               <DropdownMenuItem
@@ -704,7 +713,7 @@ export default function UsersAdmin() {
                               <>
                                 <DropdownMenuItem onClick={() => { setUserToLink(user); setLinkAccountOpen(true); }}>
                                   <Link2 className="h-4 w-4 mr-2" />
-                                  Link Account
+                                  Link Auth Account
                                 </DropdownMenuItem>
                                 <DropdownMenuItem>
                                   <Mail className="h-4 w-4 mr-2" />
@@ -927,6 +936,13 @@ export default function UsersAdmin() {
         onOpenChange={setBulkEditOpen}
         selectedUserIds={Array.from(selectedIds)}
         onComplete={() => setSelectedIds(new Set())}
+      />
+
+      {/* Change Company Dialog */}
+      <ChangeCompanyDialog
+        user={userToChangeCompany}
+        open={changeCompanyOpen}
+        onOpenChange={setChangeCompanyOpen}
       />
     </AdminLayout>
   );
