@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useQuery } from "@tanstack/react-query";
-import { useMember } from "@/contexts/member/MemberContext";
+import { useUser } from "@/contexts/UserContext";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -35,52 +35,52 @@ type ProfileFormData = z.infer<typeof profileSchema>;
 type PasswordFormData = z.infer<typeof passwordSchema>;
 
 const permissionLabels: Record<string, string> = {
-  can_claim_tickets: "Claim Tickets",
-  can_register_events: "Register Events",
-  can_apply_speaking: "Apply Speaking",
-  can_edit_profile: "Edit Profile",
-  can_manage_users: "Manage Users",
-  can_rsvp_dinners: "RSVP Dinners",
-  can_request_resources: "Request Resources",
+  canClaimTickets: "Claim Tickets",
+  canRegisterEvents: "Register Events",
+  canApplySpeaking: "Apply Speaking",
+  canEditProfile: "Edit Profile",
+  canManageTeam: "Manage Team",
+  canRsvpDinners: "RSVP Dinners",
+  canRequestResources: "Request Resources",
 };
 
 const roleLabels: Record<string, string> = {
-  super_admin: "Super Admin",
-  company_admin: "Company Admin",
-  company_user: "Team Member",
+  owner: "Owner",
+  admin: "Admin",
+  member: "Team Member",
 };
 
 export default function AccountSettings() {
-  const { companyUser, membership, refetch } = useMember();
+  const { profile, activeCompany, permissions, teamRole, activeCompanyId, refetch } = useUser();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
 
-  // Fetch business data separately
-  const { data: business } = useQuery({
-    queryKey: ["account-business", companyUser?.business_id],
-    queryFn: async () => {
-      if (!companyUser?.business_id) return null;
-      const { data } = await supabase
-        .from("businesses")
-        .select("id, name, logo_url")
-        .eq("id", companyUser.business_id)
-        .maybeSingle();
-      return data;
-    },
-    enabled: !!companyUser?.business_id,
-  });
+  // Get business from activeCompany
+  const business = activeCompany?.business;
+  const isMember = activeCompany?.membership?.is_active ?? false;
   const [isChangingPassword, setIsChangingPassword] = useState(false);
 
   const profileForm = useForm<ProfileFormData>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
-      display_name: companyUser?.display_name || "",
-      title: companyUser?.title || "",
-      phone: companyUser?.phone || "",
+      display_name: profile?.display_name || "",
+      title: profile?.title || "",
+      phone: profile?.phone || "",
     },
   });
+
+  // Update form when profile loads
+  useEffect(() => {
+    if (profile) {
+      profileForm.reset({
+        display_name: profile.display_name || "",
+        title: profile.title || "",
+        phone: profile.phone || "",
+      });
+    }
+  }, [profile]);
 
   const passwordForm = useForm<PasswordFormData>({
     resolver: zodResolver(passwordSchema),
@@ -90,7 +90,7 @@ export default function AccountSettings() {
     },
   });
 
-  const initials = companyUser?.display_name
+  const initials = profile?.display_name
     ?.split(" ")
     .map((n) => n[0])
     .join("")
@@ -99,7 +99,7 @@ export default function AccountSettings() {
 
   const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (!file || !companyUser) return;
+    if (!file || !profile) return;
 
     // Validate file
     if (!file.type.startsWith("image/")) {
@@ -114,7 +114,7 @@ export default function AccountSettings() {
     setIsUploadingAvatar(true);
     try {
       const fileExt = file.name.split(".").pop();
-      const fileName = `${companyUser.id}-${Date.now()}.${fileExt}`;
+      const fileName = `${profile.id}-${Date.now()}.${fileExt}`;
       const filePath = `avatars/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
@@ -128,9 +128,9 @@ export default function AccountSettings() {
         .getPublicUrl(filePath);
 
       const { error: updateError } = await supabase
-        .from("company_users")
+        .from("profiles")
         .update({ avatar_url: publicUrl })
-        .eq("id", companyUser.id);
+        .eq("id", profile.id);
 
       if (updateError) throw updateError;
 
@@ -145,18 +145,18 @@ export default function AccountSettings() {
   };
 
   const handleRemoveAvatar = async () => {
-    if (!companyUser) return;
+    if (!profile) return;
 
     try {
       const { error } = await supabase
-        .from("company_users")
+        .from("profiles")
         .update({ avatar_url: null })
-        .eq("id", companyUser.id);
+        .eq("id", profile.id);
 
       if (error) throw error;
 
       await refetch();
-      queryClient.invalidateQueries({ queryKey: ["member-context"] });
+      queryClient.invalidateQueries({ queryKey: ["user-context"] });
       toast({ title: "Avatar removed", description: "Your profile photo has been removed" });
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -164,23 +164,23 @@ export default function AccountSettings() {
   };
 
   const onProfileSubmit = async (data: ProfileFormData) => {
-    if (!companyUser) return;
+    if (!profile) return;
 
     setIsSavingProfile(true);
     try {
       const { error } = await supabase
-        .from("company_users")
+        .from("profiles")
         .update({
           display_name: data.display_name,
           title: data.title || null,
           phone: data.phone || null,
         })
-        .eq("id", companyUser.id);
+        .eq("id", profile.id);
 
       if (error) throw error;
 
       await refetch();
-      queryClient.invalidateQueries({ queryKey: ["member-context"] });
+      queryClient.invalidateQueries({ queryKey: ["user-context"] });
       toast({ title: "Profile updated", description: "Your information has been saved" });
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -207,14 +207,14 @@ export default function AccountSettings() {
     }
   };
 
-  const permissions = companyUser ? [
-    { key: "can_claim_tickets", value: companyUser.can_claim_tickets },
-    { key: "can_register_events", value: companyUser.can_register_events },
-    { key: "can_apply_speaking", value: companyUser.can_apply_speaking },
-    { key: "can_edit_profile", value: companyUser.can_edit_profile },
-    { key: "can_manage_users", value: companyUser.can_manage_users },
-    { key: "can_rsvp_dinners", value: companyUser.can_rsvp_dinners },
-    { key: "can_request_resources", value: companyUser.can_request_resources },
+  const permissionsList = permissions ? [
+    { key: "canClaimTickets", value: permissions.canClaimTickets },
+    { key: "canRegisterEvents", value: permissions.canRegisterEvents },
+    { key: "canApplySpeaking", value: permissions.canApplySpeaking },
+    { key: "canEditProfile", value: permissions.canEditProfile },
+    { key: "canManageTeam", value: permissions.canManageTeam },
+    { key: "canRsvpDinners", value: permissions.canRsvpDinners },
+    { key: "canRequestResources", value: permissions.canRequestResources },
   ] : [];
 
   return (
@@ -239,8 +239,8 @@ export default function AccountSettings() {
           <CardContent>
             <div className="flex items-center gap-6">
               <Avatar className="h-24 w-24">
-                {companyUser?.avatar_url && (
-                  <AvatarImage src={companyUser.avatar_url} alt={companyUser.display_name} />
+                {profile?.avatar_url && (
+                  <AvatarImage src={profile.avatar_url} alt={profile.display_name} />
                 )}
                 <AvatarFallback className="bg-bitcoin-orange text-white text-2xl">
                   {initials}
@@ -257,7 +257,7 @@ export default function AccountSettings() {
                     <Upload className="h-4 w-4 mr-2" />
                     {isUploadingAvatar ? "Uploading..." : "Upload Photo"}
                   </Button>
-                  {companyUser?.avatar_url && (
+                  {profile?.avatar_url && (
                     <Button
                       variant="ghost"
                       size="sm"
@@ -311,7 +311,7 @@ export default function AccountSettings() {
                 <Label htmlFor="email">Email Address</Label>
                 <Input
                   id="email"
-                  value={companyUser?.email || ""}
+                  value={profile?.email || ""}
                   disabled
                   className="bg-muted"
                 />
@@ -423,9 +423,9 @@ export default function AccountSettings() {
                     <h3 className="font-semibold text-foreground">{business.name}</h3>
                     <div className="flex items-center gap-2 mt-1">
                       <Badge variant="secondary">
-                        {roleLabels[companyUser?.role || "company_user"]}
+                        {roleLabels[teamRole || "member"]}
                       </Badge>
-                      {membership && (
+                      {isMember && (
                         <Badge className="bg-bitcoin-orange text-white">
                           BFC Member
                         </Badge>
@@ -442,7 +442,7 @@ export default function AccountSettings() {
                     Your Permissions
                   </h4>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                    {permissions.map(({ key, value }) => (
+                    {permissionsList.map(({ key, value }) => (
                       <div
                         key={key}
                         className={`flex items-center gap-2 text-sm ${

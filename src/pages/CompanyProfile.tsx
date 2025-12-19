@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useMember } from "@/contexts/member/MemberContext";
+import { useUser } from "@/contexts/UserContext";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -28,7 +28,7 @@ interface Article {
 }
 
 export default function CompanyProfile() {
-  const { companyUser, isLoading: memberLoading } = useMember();
+  const { activeCompanyId, permissions, isLoading: userLoading } = useUser();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -80,49 +80,49 @@ export default function CompanyProfile() {
 
   // Fetch business data linked to member
   const { data: business, isLoading: businessLoading } = useQuery({
-    queryKey: ["member-business", companyUser?.business_id],
+    queryKey: ["member-business", activeCompanyId],
     queryFn: async () => {
-      if (!companyUser?.business_id) return null;
+      if (!activeCompanyId) return null;
       const { data, error } = await supabase
         .from("businesses")
         .select("*")
-        .eq("id", companyUser.business_id)
+        .eq("id", activeCompanyId)
         .maybeSingle();
       if (error) throw error;
       return data;
     },
-    enabled: !!companyUser?.business_id,
+    enabled: !!activeCompanyId,
   });
 
   // Fetch social links
   const { data: existingSocialLinks = [] } = useQuery({
-    queryKey: ["business-social-links", companyUser?.business_id],
+    queryKey: ["business-social-links", activeCompanyId],
     queryFn: async () => {
-      if (!companyUser?.business_id) return [];
+      if (!activeCompanyId) return [];
       const { data, error } = await supabase
         .from("business_social_links")
         .select("*")
-        .eq("business_id", companyUser.business_id);
+        .eq("business_id", activeCompanyId);
       if (error) throw error;
       return data.map((l) => ({ platform: l.platform, url: l.url }));
     },
-    enabled: !!companyUser?.business_id,
+    enabled: !!activeCompanyId,
   });
 
   // Fetch articles
   const { data: existingArticles = [] } = useQuery({
-    queryKey: ["business-articles", companyUser?.business_id],
+    queryKey: ["business-articles", activeCompanyId],
     queryFn: async () => {
-      if (!companyUser?.business_id) return [];
+      if (!activeCompanyId) return [];
       const { data, error } = await supabase
         .from("business_articles")
         .select("*")
-        .eq("business_id", companyUser.business_id)
+        .eq("business_id", activeCompanyId)
         .order("published_date", { ascending: false });
       if (error) throw error;
       return data;
     },
-    enabled: !!companyUser?.business_id,
+    enabled: !!activeCompanyId,
   });
 
   // Populate form when data loads
@@ -171,7 +171,7 @@ export default function CompanyProfile() {
   // Save mutation
   const saveMutation = useMutation({
     mutationFn: async () => {
-      if (!companyUser?.business_id) throw new Error("No business linked");
+      if (!activeCompanyId) throw new Error("No business linked");
 
       // Update business
       const { error: businessError } = await supabase
@@ -205,7 +205,7 @@ export default function CompanyProfile() {
           btc_holdings_source: formData.btc_holdings_source || null,
           referral_url: formData.referral_url || null,
         })
-        .eq("id", companyUser.business_id);
+        .eq("id", activeCompanyId);
 
       if (businessError) throw businessError;
 
@@ -213,14 +213,14 @@ export default function CompanyProfile() {
       await supabase
         .from("business_social_links")
         .delete()
-        .eq("business_id", companyUser.business_id);
+        .eq("business_id", activeCompanyId);
 
       if (socialLinks.length > 0) {
         const { error: socialError } = await supabase
           .from("business_social_links")
           .insert(
             socialLinks.map((l) => ({
-              business_id: companyUser.business_id,
+              business_id: activeCompanyId,
               platform: l.platform,
               url: l.url,
             }))
@@ -232,14 +232,14 @@ export default function CompanyProfile() {
       await supabase
         .from("business_articles")
         .delete()
-        .eq("business_id", companyUser.business_id);
+        .eq("business_id", activeCompanyId);
 
       if (articles.length > 0) {
         const { error: articlesError } = await supabase
           .from("business_articles")
           .insert(
             articles.map((a) => ({
-              business_id: companyUser.business_id,
+              business_id: activeCompanyId,
               title: a.title,
               url: a.url,
               source: a.source || null,
@@ -274,7 +274,7 @@ export default function CompanyProfile() {
 
   const breadcrumbs = [{ label: "Company Profile" }];
 
-  if (memberLoading || businessLoading) {
+  if (userLoading || businessLoading) {
     return (
       <DashboardLayout breadcrumbs={breadcrumbs}>
         <div className="flex items-center justify-center py-12">
@@ -284,7 +284,7 @@ export default function CompanyProfile() {
     );
   }
 
-  if (!companyUser?.business_id) {
+  if (!activeCompanyId) {
     return (
       <DashboardLayout breadcrumbs={breadcrumbs}>
         <Card className="max-w-2xl mx-auto">
@@ -317,7 +317,7 @@ export default function CompanyProfile() {
           </div>
           <div className="flex items-center gap-3">
             <Button variant="outline" asChild>
-              <Link to={`/business/${companyUser.business_id}`} target="_blank">
+              <Link to={`/business/${activeCompanyId}`} target="_blank">
                 <ExternalLink className="h-4 w-4 mr-2" />
                 View Public Profile
               </Link>
