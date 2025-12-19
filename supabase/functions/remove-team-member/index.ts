@@ -25,7 +25,7 @@ const getCorsHeaders = (origin: string | null) => {
 };
 
 interface RemoveTeamMemberRequest {
-  companyUserId: string;
+  membershipId: string;
   businessId: string;
 }
 
@@ -64,11 +64,11 @@ serve(async (req) => {
     }
 
     const body = (await req.json()) as RemoveTeamMemberRequest;
-    const { companyUserId, businessId } = body;
+    const { membershipId, businessId } = body;
 
-    if (!companyUserId || !businessId) {
+    if (!membershipId || !businessId) {
       return new Response(
-        JSON.stringify({ error: "companyUserId and businessId are required" }),
+        JSON.stringify({ error: "membershipId and businessId are required" }),
         {
           status: 400,
           headers: { "Content-Type": "application/json", ...corsHeaders },
@@ -76,17 +76,17 @@ serve(async (req) => {
       );
     }
 
-    // Verify the caller is a company admin for this business
+    // Verify the caller is a team admin for this business
     const { data: isAdmin, error: adminCheckError } = await supabase.rpc(
-      "is_company_admin",
+      "is_team_admin",
       {
-        _user_id: caller.id,
+        _profile_id: caller.id,
         _business_id: businessId,
       }
     );
 
     if (adminCheckError) {
-      console.error("Error checking company admin:", adminCheckError);
+      console.error("Error checking team admin:", adminCheckError);
       return new Response(JSON.stringify({ error: "Authorization check failed" }), {
         status: 500,
         headers: { "Content-Type": "application/json", ...corsHeaders },
@@ -100,49 +100,58 @@ serve(async (req) => {
       });
     }
 
-    // Fetch email so we can also clean up any pending invitation
-    const { data: companyUser, error: fetchError } = await supabase
-      .from("company_users")
-      .select("id, email, user_id")
-      .eq("id", companyUserId)
+    // Fetch membership to get profile info for invitation cleanup
+    const { data: membership, error: fetchError } = await supabase
+      .from("team_memberships")
+      .select("id, profile_id, profiles(email)")
+      .eq("id", membershipId)
       .eq("business_id", businessId)
       .maybeSingle();
 
     if (fetchError) {
-      console.error("Error fetching company user:", fetchError);
+      console.error("Error fetching team membership:", fetchError);
       return new Response(JSON.stringify({ error: "Failed to fetch team member" }), {
         status: 500,
         headers: { "Content-Type": "application/json", ...corsHeaders },
       });
     }
 
-    if (!companyUser) {
+    if (!membership) {
       return new Response(JSON.stringify({ error: "Team member not found" }), {
         status: 404,
         headers: { "Content-Type": "application/json", ...corsHeaders },
       });
     }
 
+    // Prevent removing yourself
+    if (membership.profile_id === caller.id) {
+      return new Response(JSON.stringify({ error: "Cannot remove yourself from the team" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    }
+
+    // Delete the team membership
     const { error: deleteError } = await supabase
-      .from("company_users")
+      .from("team_memberships")
       .delete()
-      .eq("id", companyUserId)
+      .eq("id", membershipId)
       .eq("business_id", businessId);
 
     if (deleteError) {
-      console.error("Error deleting company user:", deleteError);
+      console.error("Error deleting team membership:", deleteError);
       return new Response(JSON.stringify({ error: "Failed to remove team member" }), {
         status: 500,
         headers: { "Content-Type": "application/json", ...corsHeaders },
       });
     }
 
-    // Best-effort: remove any pending invite for this email
-    const email = (companyUser.email || "").toLowerCase();
+    // Best-effort: revoke any pending invitations for this email
+    const email = ((membership.profiles as any)?.email || "").toLowerCase();
     if (email) {
       const { error: inviteCleanupError } = await supabase
-        .from("user_invitations")
-        .delete()
+        .from("invitations")
+        .update({ status: "revoked" })
         .eq("business_id", businessId)
         .eq("email", email)
         .eq("status", "pending");
@@ -156,7 +165,6 @@ serve(async (req) => {
       JSON.stringify({
         success: true,
         message: "Team member removed",
-        removedAuthUser: false,
       }),
       { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
     );
