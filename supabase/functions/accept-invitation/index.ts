@@ -59,23 +59,49 @@ serve(async (req) => {
       });
     }
 
-    // Fetch the invitation from the NEW invitations table
-    let query = supabaseAdmin.from("invitations").select("*");
-    
-    if (invitationId) {
-      query = query.eq("id", invitationId);
-    } else if (token) {
-      query = query.eq("token", token);
+    // Try user_invitations table first (admin-created invitations)
+    let invitation = null;
+    let inviteSource: "user_invitations" | "invitations" = "invitations";
+
+    if (token) {
+      const { data: userInvite } = await supabaseAdmin
+        .from("user_invitations")
+        .select("*")
+        .eq("invite_token", token)
+        .maybeSingle();
+
+      if (userInvite) {
+        invitation = {
+          ...userInvite,
+          token: userInvite.invite_token,
+          invited_by: userInvite.invited_by,
+        };
+        inviteSource = "user_invitations";
+        console.log("Found invitation in user_invitations table");
+      }
     }
 
-    const { data: invitation, error: inviteError } = await query.maybeSingle();
+    // Fallback to invitations table
+    if (!invitation) {
+      let query = supabaseAdmin.from("invitations").select("*");
+      
+      if (invitationId) {
+        query = query.eq("id", invitationId);
+      } else if (token) {
+        query = query.eq("token", token);
+      }
 
-    if (inviteError) {
-      console.error("Error fetching invitation:", inviteError);
-      return new Response(JSON.stringify({ error: "Failed to fetch invitation" }), {
-        status: 500,
-        headers: { "Content-Type": "application/json", ...corsHeaders },
-      });
+      const { data: teamInvite, error: inviteError } = await query.maybeSingle();
+
+      if (inviteError) {
+        console.error("Error fetching invitation:", inviteError);
+        return new Response(JSON.stringify({ error: "Failed to fetch invitation" }), {
+          status: 500,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        });
+      }
+
+      invitation = teamInvite;
     }
 
     if (!invitation) {
@@ -132,11 +158,18 @@ serve(async (req) => {
 
     if (existingMembership) {
       console.log("User already has membership for this business");
-      // Just mark invitation as accepted
-      await supabaseAdmin
-        .from("invitations")
-        .update({ status: "accepted", accepted_at: now, accepted_by: user.id })
-        .eq("id", invitation.id);
+      // Just mark invitation as accepted in the correct table
+      if (inviteSource === "user_invitations") {
+        await supabaseAdmin
+          .from("user_invitations")
+          .update({ status: "accepted", accepted_at: now })
+          .eq("id", invitation.id);
+      } else {
+        await supabaseAdmin
+          .from("invitations")
+          .update({ status: "accepted", accepted_at: now, accepted_by: user.id })
+          .eq("id", invitation.id);
+      }
 
       const { data: business } = await supabaseAdmin
         .from("businesses")
@@ -186,19 +219,32 @@ serve(async (req) => {
 
     console.log("Team membership created:", newMembership.id);
 
-    // Update invitation status
-    const { error: statusError } = await supabaseAdmin
-      .from("invitations")
-      .update({
-        status: "accepted",
-        accepted_at: now,
-        accepted_by: user.id,
-      })
-      .eq("id", invitation.id);
+    // Update invitation status in the correct table
+    if (inviteSource === "user_invitations") {
+      const { error: statusError } = await supabaseAdmin
+        .from("user_invitations")
+        .update({
+          status: "accepted",
+          accepted_at: now,
+        })
+        .eq("id", invitation.id);
 
-    if (statusError) {
-      console.error("Error updating invitation status:", statusError);
-      // Don't fail - the important part (creating membership) is done
+      if (statusError) {
+        console.error("Error updating user_invitations status:", statusError);
+      }
+    } else {
+      const { error: statusError } = await supabaseAdmin
+        .from("invitations")
+        .update({
+          status: "accepted",
+          accepted_at: now,
+          accepted_by: user.id,
+        })
+        .eq("id", invitation.id);
+
+      if (statusError) {
+        console.error("Error updating invitation status:", statusError);
+      }
     }
 
     // Fetch business name for response
