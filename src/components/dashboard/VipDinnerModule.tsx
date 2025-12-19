@@ -11,7 +11,7 @@ type VipDinnerRsvp = Tables<"vip_dinner_rsvps">;
 
 interface VipDinnerModuleProps {
   eventId: string;
-  companyUserId: string;
+  profileId: string;
   allocated: number;
   dinnerDate: string | null;
   dinnerTime: string | null;
@@ -20,7 +20,7 @@ interface VipDinnerModuleProps {
 
 export function VipDinnerModule({
   eventId,
-  companyUserId,
+  profileId,
   allocated,
   dinnerDate,
   dinnerTime,
@@ -29,18 +29,18 @@ export function VipDinnerModule({
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const { data: rsvps = [] } = useQuery({
-    queryKey: ["vip_dinner_rsvps", companyUserId, eventId],
+    queryKey: ["vip_dinner_rsvps", profileId, eventId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("vip_dinner_rsvps")
         .select("*")
-        .eq("company_user_id", companyUserId)
+        .eq("profile_id", profileId)
         .eq("event_id", eventId);
 
       if (error) throw error;
       return data as VipDinnerRsvp[];
     },
-    enabled: !!companyUserId,
+    enabled: !!profileId,
   });
 
   const reserved = rsvps.length;
@@ -107,7 +107,7 @@ export function VipDinnerModule({
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         eventId={eventId}
-        companyUserId={companyUserId}
+        profileId={profileId}
         remaining={remaining}
       />
     </div>

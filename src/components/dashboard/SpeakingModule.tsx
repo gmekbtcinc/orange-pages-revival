@@ -12,7 +12,7 @@ type SpeakerApplication = Tables<"speaker_applications">;
 interface SpeakingModuleProps {
   eventId: string;
   eventName: string;
-  companyUserId: string;
+  profileId: string;
   deadline: string | null;
 }
 
@@ -37,24 +37,24 @@ const statusLabels: Record<string, string> = {
 export function SpeakingModule({
   eventId,
   eventName,
-  companyUserId,
+  profileId,
   deadline,
 }: SpeakingModuleProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const { data: applications = [] } = useQuery({
-    queryKey: ["speaker_applications", companyUserId, eventId],
+    queryKey: ["speaker_applications", profileId, eventId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("speaker_applications")
         .select("*")
-        .eq("company_user_id", companyUserId)
+        .eq("profile_id", profileId)
         .eq("event_id", eventId);
 
       if (error) throw error;
       return data as SpeakerApplication[];
     },
-    enabled: !!companyUserId,
+    enabled: !!profileId,
   });
 
   const hasApplication = applications.length > 0;
@@ -124,7 +124,7 @@ export function SpeakingModule({
         onClose={() => setIsModalOpen(false)}
         eventId={eventId}
         eventName={eventName}
-        companyUserId={companyUserId}
+        profileId={profileId}
         existingApplication={latestApplication}
       />
     </div>

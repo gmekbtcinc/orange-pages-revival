@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useMember } from "@/contexts/member/MemberContext";
+import { useUser } from "@/contexts/UserContext";
 import { EventCard } from "./EventCard";
 import { EmptyState } from "./EmptyState";
 import { Calendar } from "lucide-react";
@@ -10,8 +11,9 @@ type Event = Tables<"events">;
 
 export function EventCards() {
   const { allocations, activeCompanyId } = useMember();
+  const { profile } = useUser();
   
-  // Get current user's company_user id for this business
+  // Get current user's company_user id for this business (for ticket claims - company-level)
   const { data: companyUserId } = useQuery({
     queryKey: ["company-user-id", activeCompanyId],
     queryFn: async () => {
@@ -94,6 +96,7 @@ export function EventCards() {
                 event={event}
                 allocation={getAllocationForEvent(event.id)}
                 companyUserId={companyUserId || ""}
+                profileId={profile?.id || ""}
                 isPrimary
               />
             ))}
@@ -114,6 +117,7 @@ export function EventCards() {
                 event={event}
                 allocation={getAllocationForEvent(event.id)}
                 companyUserId={companyUserId || ""}
+                profileId={profile?.id || ""}
                 isPrimary={false}
               />
             ))}

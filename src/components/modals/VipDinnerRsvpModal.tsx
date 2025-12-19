@@ -18,7 +18,7 @@ interface VipDinnerRsvpModalProps {
   isOpen: boolean;
   onClose: () => void;
   eventId: string;
-  companyUserId: string;
+  profileId: string;
   remaining: number;
 }
 
@@ -26,7 +26,7 @@ export function VipDinnerRsvpModal({
   isOpen,
   onClose,
   eventId,
-  companyUserId,
+  profileId,
   remaining,
 }: VipDinnerRsvpModalProps) {
   const [guestName, setGuestName] = useState("");
@@ -42,7 +42,7 @@ export function VipDinnerRsvpModal({
     mutationFn: async () => {
       const { error } = await supabase.from("vip_dinner_rsvps").insert({
         event_id: eventId,
-        company_user_id: companyUserId,
+        profile_id: profileId,
         guest_name: guestName,
         guest_email: guestEmail,
         guest_title: guestTitle || null,
@@ -56,7 +56,7 @@ export function VipDinnerRsvpModal({
     },
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: ["vip_dinner_rsvps", companyUserId, eventId],
+        queryKey: ["vip_dinner_rsvps", profileId, eventId],
       });
       toast({
         title: "RSVP confirmed!",

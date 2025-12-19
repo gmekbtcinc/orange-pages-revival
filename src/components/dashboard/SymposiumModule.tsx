@@ -11,7 +11,7 @@ type SymposiumRegistration = Tables<"symposium_registrations">;
 
 interface SymposiumModuleProps {
   eventId: string;
-  companyUserId: string;
+  profileId: string;
   allocated: number;
   symposiumDate: string | null;
   symposiumVenue: string | null;
@@ -19,7 +19,7 @@ interface SymposiumModuleProps {
 
 export function SymposiumModule({
   eventId,
-  companyUserId,
+  profileId,
   allocated,
   symposiumDate,
   symposiumVenue,
@@ -27,18 +27,18 @@ export function SymposiumModule({
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const { data: registrations = [] } = useQuery({
-    queryKey: ["symposium_registrations", companyUserId, eventId],
+    queryKey: ["symposium_registrations", profileId, eventId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("symposium_registrations")
         .select("*")
-        .eq("company_user_id", companyUserId)
+        .eq("profile_id", profileId)
         .eq("event_id", eventId);
 
       if (error) throw error;
       return data as SymposiumRegistration[];
     },
-    enabled: !!companyUserId,
+    enabled: !!profileId,
   });
 
   const registered = registrations.length;
@@ -102,7 +102,7 @@ export function SymposiumModule({
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         eventId={eventId}
-        companyUserId={companyUserId}
+        profileId={profileId}
         remaining={remaining}
       />
     </div>
