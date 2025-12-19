@@ -206,14 +206,27 @@ export default function Login() {
       if (message.includes("Invalid login credentials")) {
         message = "Invalid email or password. Please try again.";
       } else if (message.includes("User already registered")) {
-        // If coming from an invitation and user already exists, switch to login mode
+        // If coming from an invitation and user already exists, send password reset
         if (returnTo.includes("invite")) {
-          message = "You already have an account. Please sign in with your password.";
-          setIsLogin(true);
-          toast({
-            title: "Account exists",
-            description: message,
-          });
+          // Automatically trigger password reset for invited users
+          try {
+            await supabase.functions.invoke("send-password-reset", {
+              body: { email, origin: getProductionUrl() },
+            });
+            toast({
+              title: "Password reset email sent",
+              description: "An account already exists for this email. We've sent you a password reset link. After setting your password, return to the invitation link to accept it.",
+            });
+            setIsLogin(true);
+          } catch (resetError) {
+            console.error("Failed to send reset email:", resetError);
+            toast({
+              title: "Account exists",
+              description: "An account already exists. Please use 'Forgot password?' to reset it, then return to accept your invitation.",
+            });
+            setIsLogin(true);
+            setShowResetForm(true);
+          }
           return;
         }
         message = "This email is already registered. Please sign in instead.";
