@@ -19,7 +19,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Copy, Check } from "lucide-react";
 
@@ -27,30 +26,9 @@ interface InviteUserDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   businessId: string;
-  currentUserId: string;
+  currentUserId: string; // This is now profile_id
   canInviteMore: boolean;
 }
-
-const defaultPermissions = {
-  company_admin: {
-    can_claim_tickets: true,
-    can_register_events: true,
-    can_apply_speaking: true,
-    can_edit_profile: true,
-    can_manage_users: true,
-    can_rsvp_dinners: true,
-    can_request_resources: true,
-  },
-  company_user: {
-    can_claim_tickets: true,
-    can_register_events: true,
-    can_apply_speaking: false,
-    can_edit_profile: false,
-    can_manage_users: false,
-    can_rsvp_dinners: false,
-    can_request_resources: false,
-  },
-};
 
 export function InviteUserDialog({
   open,
@@ -62,9 +40,7 @@ export function InviteUserDialog({
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [email, setEmail] = useState("");
-  const [displayName, setDisplayName] = useState("");
-  const [role, setRole] = useState<"company_admin" | "company_user">("company_user");
-  const [permissions, setPermissions] = useState(defaultPermissions.company_user);
+  const [role, setRole] = useState<"admin" | "member">("member");
   const [inviteUrl, setInviteUrl] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
@@ -72,21 +48,27 @@ export function InviteUserDialog({
   const { data: inviterData } = useQuery({
     queryKey: ["inviter-info", currentUserId, businessId],
     queryFn: async () => {
-      const { data: companyUser } = await supabase
-        .from("company_users")
-        .select("display_name, business_id, businesses:business_id (name)")
+      // Get inviter profile
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("display_name")
         .eq("id", currentUserId)
         .single();
       
-      return companyUser;
+      // Get business name
+      const { data: business } = await supabase
+        .from("businesses")
+        .select("name")
+        .eq("id", businessId)
+        .single();
+      
+      return {
+        inviterName: profile?.display_name || "A team member",
+        companyName: business?.name || "your company",
+      };
     },
     enabled: open,
   });
-
-  const handleRoleChange = (newRole: "company_admin" | "company_user") => {
-    setRole(newRole);
-    setPermissions(defaultPermissions[newRole]);
-  };
 
   const copyToClipboard = async () => {
     if (!inviteUrl) return;
@@ -97,64 +79,36 @@ export function InviteUserDialog({
 
   const inviteMutation = useMutation({
     mutationFn: async () => {
-      // Generate invite token and expiration
-      const inviteToken = crypto.randomUUID();
-      const expiresAt = new Date();
-      expiresAt.setDate(expiresAt.getDate() + 7); // 7 days from now
-
-      // Store the invite URL for manual sharing if email fails
-      const generatedInviteUrl = `${window.location.origin}/invite/accept?token=${inviteToken}`;
-      setInviteUrl(generatedInviteUrl);
-
-      // Insert into user_invitations
-      const { error: inviteError } = await supabase
-        .from("user_invitations")
+      // Insert into NEW invitations table
+      const { data: invitation, error: inviteError } = await supabase
+        .from("invitations")
         .insert({
           business_id: businessId,
           email: email.toLowerCase().trim(),
-          display_name: displayName.trim(),
           role,
           invited_by: currentUserId,
           status: "pending",
-          invite_token: inviteToken,
-          expires_at: expiresAt.toISOString(),
-          ...permissions,
-        });
+        })
+        .select()
+        .single();
 
       if (inviteError) throw inviteError;
 
-      // Also insert into company_users with user_id=null (pending)
-      const { error: userError } = await supabase
-        .from("company_users")
-        .insert({
-          business_id: businessId,
-          email: email.toLowerCase().trim(),
-          display_name: displayName.trim(),
-          role,
-          user_id: null,
-          invited_by: currentUserId,
-          invited_at: new Date().toISOString(),
-          is_active: true,
-          ...permissions,
-        });
-
-      if (userError) throw userError;
+      // Store the invite URL for manual sharing if email fails
+      const generatedInviteUrl = `${window.location.origin}/invite/accept?token=${invitation.token}`;
+      setInviteUrl(generatedInviteUrl);
 
       // Send invitation email via edge function
       let emailSent = false;
       try {
-        const inviterName = inviterData?.display_name || "A team member";
-        const companyName = inviterData?.businesses?.name || "your company";
-
         console.log("Invoking send-team-invitation edge function...");
         const { data, error: emailError } = await supabase.functions.invoke("send-team-invitation", {
           body: {
             email: email.toLowerCase().trim(),
-            displayName: displayName.trim(),
-            inviterName,
-            companyName,
+            inviterName: inviterData?.inviterName || "A team member",
+            companyName: inviterData?.companyName || "your company",
             role,
-            inviteToken,
+            inviteToken: invitation.token,
             origin: window.location.origin,
           },
         });
@@ -175,11 +129,12 @@ export function InviteUserDialog({
     },
     onSuccess: ({ emailSent, inviteUrl: url }) => {
       queryClient.invalidateQueries({ queryKey: ["team-members"] });
+      queryClient.invalidateQueries({ queryKey: ["pending-invitations"] });
       
       if (emailSent) {
         toast({
           title: "Invitation sent",
-          description: `${displayName} has been invited and will receive an email shortly.`,
+          description: `An invitation email has been sent to ${email}.`,
         });
         onOpenChange(false);
         resetForm();
@@ -205,21 +160,15 @@ export function InviteUserDialog({
 
   const resetForm = () => {
     setEmail("");
-    setDisplayName("");
-    setRole("company_user");
-    setPermissions(defaultPermissions.company_user);
+    setRole("member");
     setInviteUrl(null);
     setCopied(false);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !displayName) return;
+    if (!email) return;
     inviteMutation.mutate();
-  };
-
-  const togglePermission = (key: keyof typeof permissions) => {
-    setPermissions((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
   return (
@@ -246,54 +195,21 @@ export function InviteUserDialog({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="displayName">Name *</Label>
-            <Input
-              id="displayName"
-              placeholder="John Doe"
-              value={displayName}
-              onChange={(e) => setDisplayName(e.target.value)}
-              required
-            />
-          </div>
-
-          <div className="space-y-2">
             <Label htmlFor="role">Role</Label>
-            <Select value={role} onValueChange={(v) => handleRoleChange(v as any)}>
+            <Select value={role} onValueChange={(v) => setRole(v as "admin" | "member")}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="company_admin">Admin</SelectItem>
-                <SelectItem value="company_user">User</SelectItem>
+                <SelectItem value="admin">Admin</SelectItem>
+                <SelectItem value="member">Member</SelectItem>
               </SelectContent>
             </Select>
-          </div>
-
-          <div className="space-y-3">
-            <Label>Permissions</Label>
-            <div className="grid grid-cols-2 gap-3">
-              {[
-                { key: "can_claim_tickets", label: "Claim Tickets" },
-                { key: "can_register_events", label: "Register Events" },
-                { key: "can_apply_speaking", label: "Apply Speaking" },
-                { key: "can_edit_profile", label: "Edit Profile" },
-                { key: "can_rsvp_dinners", label: "RSVP Dinners" },
-                { key: "can_request_resources", label: "Request Resources" },
-              ].map(({ key, label }) => (
-                <div key={key} className="flex items-center justify-between">
-                  <Label htmlFor={key} className="text-sm font-normal">
-                    {label}
-                  </Label>
-                  <Switch
-                    id={key}
-                    checked={permissions[key as keyof typeof permissions]}
-                    onCheckedChange={() =>
-                      togglePermission(key as keyof typeof permissions)
-                    }
-                  />
-                </div>
-              ))}
-            </div>
+            <p className="text-xs text-muted-foreground">
+              {role === "admin" 
+                ? "Admins can manage team members and edit company profile."
+                : "Members can access member benefits but cannot manage the team."}
+            </p>
           </div>
 
           {/* Show invite link if email failed */}

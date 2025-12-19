@@ -9,7 +9,7 @@ import { Loader2, CheckCircle, XCircle, Clock, Building2 } from "lucide-react";
 interface InvitationData {
   id: string;
   email: string;
-  display_name: string | null;
+  token: string;
   role: string;
   status: string;
   expires_at: string | null;
@@ -48,21 +48,21 @@ export default function InviteAccept() {
         return;
       }
 
-      // Fetch invitation
+      // Fetch invitation from NEW invitations table
       const { data, error: fetchError } = await supabase
-        .from("user_invitations")
+        .from("invitations")
         .select(`
           id,
           email,
-          display_name,
+          token,
           role,
           status,
           expires_at,
           business_id,
           businesses:business_id (name),
-          inviter:company_users!user_invitations_invited_by_fkey (display_name)
+          inviter:profiles!invitations_invited_by_fkey (display_name)
         `)
-        .eq("invite_token", token)
+        .eq("token", token)
         .maybeSingle();
 
       if (fetchError) {
@@ -88,6 +88,13 @@ export default function InviteAccept() {
       // Check if already accepted
       if (data.status === "accepted") {
         setError("This invitation has already been accepted");
+        setLoading(false);
+        return;
+      }
+
+      // Check if revoked
+      if (data.status === "revoked") {
+        setError("This invitation has been revoked");
         setLoading(false);
         return;
       }
@@ -125,7 +132,7 @@ export default function InviteAccept() {
 
       // Call edge function to accept invitation (bypasses RLS)
       const response = await supabase.functions.invoke("accept-invitation", {
-        body: { invitationId: invitation.id },
+        body: { token: invitation.token },
         headers: {
           Authorization: `Bearer ${sessionData.session.access_token}`,
         },
@@ -146,7 +153,7 @@ export default function InviteAccept() {
         await supabase.functions.invoke("send-onboarding-email", {
           body: {
             email: invitation.email,
-            displayName: invitation.display_name || invitation.email.split("@")[0],
+            displayName: invitation.email.split("@")[0],
             companyName: invitation.businesses?.name || "your company",
             role: invitation.role,
             origin: window.location.origin,
@@ -213,7 +220,12 @@ export default function InviteAccept() {
     return null;
   }
 
-  const roleDisplay = invitation.role === "company_admin" ? "Admin" : "Team Member";
+  const roleDisplayMap: Record<string, string> = {
+    owner: "Owner",
+    admin: "Admin",
+    member: "Team Member",
+  };
+  const roleDisplay = roleDisplayMap[invitation.role] || "Team Member";
   const emailMismatch = currentUserEmail && currentUserEmail.toLowerCase() !== invitation.email.toLowerCase();
 
   return (

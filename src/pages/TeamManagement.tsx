@@ -1,81 +1,94 @@
 import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useMember } from "@/contexts/member/MemberContext";
+import { useUser } from "@/contexts/UserContext";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, UserPlus, Users, Shield, Clock } from "lucide-react";
+import { Loader2, UserPlus, Users, Shield, Clock, Mail, X } from "lucide-react";
 import { InviteUserDialog } from "@/components/team/InviteUserDialog";
-import { EditUserDialog } from "@/components/team/EditUserDialog";
 import type { Tables } from "@/integrations/supabase/types";
 
-type CompanyUser = Tables<"company_users">;
-type Membership = Tables<"memberships">;
-type TierLimit = Tables<"tier_limits">;
+type TeamMembership = Tables<"team_memberships">;
+type Profile = Tables<"profiles">;
+type Invitation = Tables<"invitations">;
+
+interface TeamMemberWithProfile extends TeamMembership {
+  profiles: Profile | null;
+}
 
 const roleColors: Record<string, string> = {
-  company_admin: "bg-bitcoin-orange text-white",
-  company_user: "bg-secondary text-secondary-foreground",
-  super_admin: "bg-purple-600 text-white",
+  owner: "bg-purple-600 text-white",
+  admin: "bg-bitcoin-orange text-white",
+  member: "bg-secondary text-secondary-foreground",
 };
 
 const roleLabels: Record<string, string> = {
-  company_admin: "Admin",
-  company_user: "User",
-  super_admin: "Super Admin",
-};
-
-const permissionLabels: Record<string, string> = {
-  can_claim_tickets: "Tickets",
-  can_register_events: "Events",
-  can_apply_speaking: "Speaking",
-  can_edit_profile: "Profile",
-  can_rsvp_dinners: "Dinners",
-  can_request_resources: "Resources",
+  owner: "Owner",
+  admin: "Admin",
+  member: "Member",
 };
 
 export default function TeamManagement() {
-  const { companyUser, isLoading: memberLoading } = useMember();
+  const { profile, activeCompanyId, permissions, isLoading: userLoading } = useUser();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
-  const [editingUser, setEditingUser] = useState<CompanyUser | null>(null);
 
-  // Fetch company users for this business
+  // Fetch team memberships with profiles for this business
   const { data: teamMembers = [], isLoading: teamLoading } = useQuery({
-    queryKey: ["team-members", companyUser?.business_id],
+    queryKey: ["team-members", activeCompanyId],
     queryFn: async () => {
-      if (!companyUser?.business_id) return [];
+      if (!activeCompanyId) return [];
       const { data, error } = await supabase
-        .from("company_users")
-        .select("*")
-        .eq("business_id", companyUser.business_id)
-        .order("created_at", { ascending: true });
+        .from("team_memberships")
+        .select(`
+          *,
+          profiles!team_memberships_profile_id_fkey (*)
+        `)
+        .eq("business_id", activeCompanyId)
+        .order("joined_at", { ascending: true });
       if (error) throw error;
-      return data;
+      return data as unknown as TeamMemberWithProfile[];
     },
-    enabled: !!companyUser?.business_id,
+    enabled: !!activeCompanyId,
+  });
+
+  // Fetch pending invitations
+  const { data: pendingInvitations = [] } = useQuery({
+    queryKey: ["pending-invitations", activeCompanyId],
+    queryFn: async () => {
+      if (!activeCompanyId) return [];
+      const { data, error } = await supabase
+        .from("invitations")
+        .select("*")
+        .eq("business_id", activeCompanyId)
+        .eq("status", "pending")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data as Invitation[];
+    },
+    enabled: !!activeCompanyId,
   });
 
   // Fetch membership to get tier
   const { data: membership } = useQuery({
-    queryKey: ["membership", companyUser?.business_id],
+    queryKey: ["membership", activeCompanyId],
     queryFn: async () => {
-      if (!companyUser?.business_id) return null;
+      if (!activeCompanyId) return null;
       const { data, error } = await supabase
         .from("memberships")
         .select("*")
-        .eq("business_id", companyUser.business_id)
+        .eq("business_id", activeCompanyId)
         .eq("is_active", true)
         .maybeSingle();
       if (error) throw error;
       return data;
     },
-    enabled: !!companyUser?.business_id,
+    enabled: !!activeCompanyId,
   });
 
   // Fetch tier limits
@@ -94,10 +107,26 @@ export default function TeamManagement() {
     enabled: !!membership?.tier,
   });
 
-  const activeTeamCount = teamMembers.filter((u) => u.is_active).length;
+  const handleRevokeInvitation = async (invitationId: string) => {
+    try {
+      const { error } = await supabase
+        .from("invitations")
+        .update({ status: "revoked", revoked_at: new Date().toISOString(), revoked_by: profile?.id })
+        .eq("id", invitationId);
+      
+      if (error) throw error;
+      
+      queryClient.invalidateQueries({ queryKey: ["pending-invitations"] });
+      toast({ title: "Invitation revoked" });
+    } catch (err: any) {
+      toast({ variant: "destructive", title: "Error", description: err.message });
+    }
+  };
+
+  const activeTeamCount = teamMembers.length;
   const maxUsers = tierLimit?.max_users ?? 0;
   const canInviteMore = maxUsers === -1 || activeTeamCount < maxUsers;
-  const canManageUsers = companyUser?.can_manage_users || companyUser?.role === "company_admin";
+  const canManageTeam = permissions?.canManageTeam || false;
 
   const getInitials = (name: string) =>
     name
@@ -107,20 +136,9 @@ export default function TeamManagement() {
       .toUpperCase()
       .slice(0, 2);
 
-  const getActivePermissions = (user: CompanyUser) => {
-    const permissions: string[] = [];
-    if (user.can_claim_tickets) permissions.push("Tickets");
-    if (user.can_register_events) permissions.push("Events");
-    if (user.can_apply_speaking) permissions.push("Speaking");
-    if (user.can_edit_profile) permissions.push("Profile");
-    if (user.can_rsvp_dinners) permissions.push("Dinners");
-    if (user.can_request_resources) permissions.push("Resources");
-    return permissions;
-  };
-
   const breadcrumbs = [{ label: "Team Management" }];
 
-  if (memberLoading || teamLoading) {
+  if (userLoading || teamLoading) {
     return (
       <DashboardLayout breadcrumbs={breadcrumbs}>
         <div className="flex items-center justify-center py-12">
@@ -130,7 +148,7 @@ export default function TeamManagement() {
     );
   }
 
-  if (!companyUser || !canManageUsers) {
+  if (!profile || !activeCompanyId || !canManageTeam) {
     return (
       <DashboardLayout breadcrumbs={breadcrumbs}>
         <Card className="max-w-2xl mx-auto">
@@ -163,10 +181,10 @@ export default function TeamManagement() {
               {maxUsers !== -1 && ` of ${maxUsers}`})
             </h1>
             <p className="text-muted-foreground">
-              Manage your team members and their permissions
+              Manage your team members and invitations
             </p>
           </div>
-          {canManageUsers && (
+          {canManageTeam && (
             <Button
               onClick={() => setInviteDialogOpen(true)}
               disabled={!canInviteMore}
@@ -188,68 +206,90 @@ export default function TeamManagement() {
           </Card>
         )}
 
+        {/* Pending Invitations */}
+        {pendingInvitations.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Mail className="h-5 w-5" />
+                Pending Invitations ({pendingInvitations.length})
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {pendingInvitations.map((invitation) => (
+                  <div
+                    key={invitation.id}
+                    className="flex items-center justify-between p-3 bg-muted rounded-lg"
+                  >
+                    <div className="flex items-center gap-3">
+                      <Clock className="h-4 w-4 text-muted-foreground" />
+                      <div>
+                        <p className="text-sm font-medium text-foreground">{invitation.email}</p>
+                        <p className="text-xs text-muted-foreground">
+                          Invited as {roleLabels[invitation.role] || invitation.role}
+                        </p>
+                      </div>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleRevokeInvitation(invitation.id)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Team Grid */}
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {teamMembers.map((user) => (
+          {teamMembers.map((member) => (
             <Card
-              key={user.id}
-              className={`bg-card border-border cursor-pointer transition-colors hover:border-primary/50 ${
-                !user.is_active ? "opacity-60" : ""
-              }`}
-              onClick={() => setEditingUser(user)}
+              key={member.id}
+              className="bg-card border-border"
             >
               <CardHeader className="pb-2">
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">
                     <Avatar className="h-10 w-10">
                       <AvatarFallback className="bg-muted text-muted-foreground">
-                        {getInitials(user.display_name)}
+                        {getInitials(member.profiles?.display_name || "?")}
                       </AvatarFallback>
                     </Avatar>
                     <div>
                       <CardTitle className="text-base text-foreground">
-                        {user.display_name}
+                        {member.profiles?.display_name || "Unknown"}
                       </CardTitle>
                       <CardDescription className="text-xs">
-                        {user.email}
+                        {member.profiles?.email}
                       </CardDescription>
                     </div>
                   </div>
                   <div className="flex flex-col gap-1 items-end">
-                    <Badge className={roleColors[user.role] || "bg-secondary"}>
-                      {roleLabels[user.role] || user.role}
+                    <Badge className={roleColors[member.role] || "bg-secondary"}>
+                      {roleLabels[member.role] || member.role}
                     </Badge>
-                    {!user.user_id && (
-                      <Badge variant="outline" className="text-xs gap-1">
-                        <Clock className="h-3 w-3" />
-                        Pending
-                      </Badge>
-                    )}
-                    {!user.is_active && (
-                      <Badge variant="destructive" className="text-xs">
-                        Inactive
+                    {member.is_primary && (
+                      <Badge variant="outline" className="text-xs">
+                        Primary
                       </Badge>
                     )}
                   </div>
                 </div>
               </CardHeader>
               <CardContent>
-                {user.title && (
+                {member.profiles?.title && (
                   <p className="text-sm text-muted-foreground mb-2">
-                    {user.title}
+                    {member.profiles.title}
                   </p>
                 )}
-                <div className="flex flex-wrap gap-1">
-                  {getActivePermissions(user).map((perm) => (
-                    <Badge
-                      key={perm}
-                      variant="secondary"
-                      className="text-xs bg-muted"
-                    >
-                      {perm}
-                    </Badge>
-                  ))}
-                </div>
+                <p className="text-xs text-muted-foreground">
+                  Joined {new Date(member.joined_at).toLocaleDateString()}
+                </p>
               </CardContent>
             </Card>
           ))}
@@ -277,19 +317,10 @@ export default function TeamManagement() {
       <InviteUserDialog
         open={inviteDialogOpen}
         onOpenChange={setInviteDialogOpen}
-        businessId={companyUser.business_id}
-        currentUserId={companyUser.id}
+        businessId={activeCompanyId}
+        currentUserId={profile.id}
         canInviteMore={canInviteMore}
       />
-
-      {editingUser && (
-        <EditUserDialog
-          open={!!editingUser}
-          onOpenChange={(open) => !open && setEditingUser(null)}
-          user={editingUser}
-          currentUserId={companyUser.id}
-        />
-      )}
     </DashboardLayout>
   );
 }
