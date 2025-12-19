@@ -289,39 +289,24 @@ export default function UsersAdmin() {
   const deleteMembershipMutation = useMutation({
     mutationFn: async ({ id, type, profileId }: { id: string; type: "member" | "invitation"; profileId?: string | null }) => {
       if (type === "member") {
-        // Call edge function to delete completely from system
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) throw new Error("Not authenticated");
+        const { data, error } = await supabase.functions.invoke("delete-user", {
+          body: {
+            teamMembershipId: id,
+            profileId: profileId,
+            deleteAuthUser: true,
+          },
+        });
 
-        const response = await fetch(
-          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/delete-user`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${session.access_token}`,
-            },
-            body: JSON.stringify({
-              teamMembershipId: id,
-              profileId: profileId,
-              deleteAuthUser: true,
-            }),
-          }
-        );
-
-        const result = await response.json();
-        if (!response.ok) {
-          throw new Error(result.error || "Failed to delete user");
-        }
-        return result;
-      } else {
-        // Revoke invitation
-        const { error } = await supabase
-          .from("invitations")
-          .update({ status: "revoked", revoked_at: new Date().toISOString() })
-          .eq("id", id);
         if (error) throw error;
+        return data;
       }
+
+      // Revoke invitation
+      const { error } = await supabase
+        .from("invitations")
+        .update({ status: "revoked", revoked_at: new Date().toISOString() })
+        .eq("id", id);
+      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-users"] });
@@ -360,7 +345,9 @@ export default function UsersAdmin() {
       const results = await Promise.allSettled(
         items.map(async ({ id, type }) => {
           if (type === "member") {
-            const { error } = await supabase.from("team_memberships").delete().eq("id", id);
+            const { error } = await supabase.functions.invoke("delete-user", {
+              body: { teamMembershipId: id, deleteAuthUser: true },
+            });
             if (error) throw error;
           } else {
             const { error } = await supabase.from("invitations").update({ status: "revoked" }).eq("id", id);
