@@ -205,6 +205,9 @@ export default function InviteAccept() {
         description: `You've successfully joined ${data.businessName || invitation.businesses?.name}. Let's get you started!`,
       });
 
+      // Refresh session to ensure fresh tokens with updated claims
+      await supabase.auth.refreshSession();
+
       // Small delay to let toast show before navigating
       setTimeout(() => {
         navigate("/dashboard");
@@ -299,17 +302,22 @@ export default function InviteAccept() {
             <div className="space-y-4">
               <div className="flex items-center gap-2 text-muted-foreground text-sm">
                 <Clock className="h-4 w-4" />
-                <span>Sign in to accept this invitation</span>
+                <span>Sign in or create an account to accept this invitation</span>
               </div>
               <div className="flex gap-3">
-                <Button asChild className="flex-1">
-                  <Link to={`/login?returnTo=${encodeURIComponent(`/invite/accept?token=${token}`)}`}>
+                <Button asChild variant="outline" className="flex-1">
+                  <Link to={`/login?returnTo=${encodeURIComponent(`/invite/accept?token=${token}`)}&email=${encodeURIComponent(invitation.email)}`}>
                     Sign In
+                  </Link>
+                </Button>
+                <Button asChild className="flex-1">
+                  <Link to={`/login?returnTo=${encodeURIComponent(`/invite/accept?token=${token}`)}&email=${encodeURIComponent(invitation.email)}&signup=true`}>
+                    Sign Up
                   </Link>
                 </Button>
               </div>
               <p className="text-sm text-muted-foreground text-center">
-                New to BFC? Sign up with the email address shown above.
+                Use the email address <strong>{invitation.email}</strong> to sign up or sign in.
               </p>
             </div>
           ) : emailMismatch ? (
