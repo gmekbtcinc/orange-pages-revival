@@ -37,15 +37,16 @@ interface UserDetailDialogProps {
 
 export function UserDetailDialog({ user, open, onOpenChange }: UserDetailDialogProps) {
   const { data: activityStats } = useQuery({
-    queryKey: ["user-activity", user?.id],
+    queryKey: ["user-activity", user?.user_id, user?.business_id],
     queryFn: async () => {
-      if (!user?.id) return null;
+      if (!user?.user_id || !user?.business_id) return null;
       
+      // Query using profile_id (which is user_id from auth) and business_id
       const [ticketClaims, symposiumRegs, speakerApps, dinnerRsvps] = await Promise.all([
-        supabase.from("ticket_claims").select("id", { count: "exact" }).eq("company_user_id", user.id),
-        supabase.from("symposium_registrations").select("id", { count: "exact" }).eq("company_user_id", user.id),
-        supabase.from("speaker_applications").select("id", { count: "exact" }),
-        supabase.from("vip_dinner_rsvps").select("id", { count: "exact" }).eq("company_user_id", user.id),
+        supabase.from("ticket_claims").select("id", { count: "exact" }).eq("profile_id", user.user_id).eq("business_id", user.business_id),
+        supabase.from("symposium_registrations").select("id", { count: "exact" }).eq("profile_id", user.user_id),
+        supabase.from("speaker_applications").select("id", { count: "exact" }).eq("profile_id", user.user_id),
+        supabase.from("vip_dinner_rsvps").select("id", { count: "exact" }).eq("profile_id", user.user_id),
       ]);
       
       return {
@@ -55,7 +56,7 @@ export function UserDetailDialog({ user, open, onOpenChange }: UserDetailDialogP
         dinnerRsvps: dinnerRsvps.count || 0,
       };
     },
-    enabled: !!user?.id && open,
+    enabled: !!user?.user_id && !!user?.business_id && open,
   });
 
   if (!user) return null;
