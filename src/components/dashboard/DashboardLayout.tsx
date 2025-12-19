@@ -1,5 +1,5 @@
 import { ReactNode } from "react";
-import { useMember } from "@/contexts/member/MemberContext";
+import { useUser } from "@/contexts/UserContext";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -48,7 +48,7 @@ const tierLabels: Record<string, string> = {
 };
 
 export function DashboardLayout({ children, breadcrumbs }: DashboardLayoutProps) {
-  const { profile, membership, signOut, permissions, activeCompanyId, teamRole } = useMember();
+  const { profile, membership, signOut, permissions, activeCompanyId, teamRole } = useUser();
   const navigate = useNavigate();
 
   const handleSignOut = async () => {

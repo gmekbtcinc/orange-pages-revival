@@ -16,7 +16,7 @@ import { AdminLayout } from '@/components/admin/AdminLayout';
 import { ImageUpload } from '@/components/ui/image-upload';
 import { BrandSelector } from '@/components/ui/brand-selector';
 import { BrandBadge } from '@/components/ui/brand-badge';
-import { useMember } from '@/contexts/member/MemberContext';
+import { useUser } from "@/contexts/UserContext";
 
 interface Benefit {
   id: string;
@@ -48,7 +48,7 @@ interface BrandTag {
 
 export default function BenefitsAdmin() {
   const navigate = useNavigate();
-  const { isSuperAdmin } = useMember();
+  const { isSuperAdmin } = useUser();
   const { toast } = useToast();
   const [benefits, setBenefits] = useState<Benefit[]>([]);
   const [categories, setCategories] = useState<BenefitCategory[]>([]);

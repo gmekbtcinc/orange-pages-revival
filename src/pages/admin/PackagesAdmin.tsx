@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { useMember } from '@/contexts/member/MemberContext';
+import { useUser } from "@/contexts/UserContext";
 
 interface TierTrackPackage {
   id: string;
@@ -39,7 +39,7 @@ interface Track {
 
 export default function PackagesAdmin() {
   const navigate = useNavigate();
-  const { isSuperAdmin } = useMember();
+  const { isSuperAdmin } = useUser();
   const { toast } = useToast();
   const [packages, setPackages] = useState<TierTrackPackage[]>([]);
   const [loading, setLoading] = useState(true);

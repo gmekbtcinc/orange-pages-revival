@@ -2,12 +2,12 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Building2, Ticket, Eye, Plus, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useMember } from "@/contexts/member/MemberContext";
+import { useUser } from "@/contexts/UserContext";
 import { SubmitBusinessDialog } from "@/components/submissions/SubmitBusinessDialog";
 
 export function FreeQuickActions() {
   const navigate = useNavigate();
-  const { activeCompanyId } = useMember();
+  const { activeCompanyId } = useUser();
   const [submitDialogOpen, setSubmitDialogOpen] = useState(false);
 
   return (

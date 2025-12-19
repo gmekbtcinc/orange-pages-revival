@@ -1,4 +1,4 @@
-import { useMember } from "@/contexts/member/MemberContext";
+import { useUser } from "@/contexts/UserContext";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { 
@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 
 export function QuickActions() {
-  const { permissions, teamRole } = useMember();
+  const { permissions, teamRole } = useUser();
   const navigate = useNavigate();
 
   const actions = [

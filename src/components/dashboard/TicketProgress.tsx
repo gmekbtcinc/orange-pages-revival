@@ -1,12 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useMember } from "@/contexts/member/MemberContext";
+import { useUser } from "@/contexts/UserContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { CheckCircle2, Ticket } from "lucide-react";
 
 export function TicketProgress() {
-  const { companyUserId, allocations } = useMember();
+  const { allocations, activeCompanyId } = useUser();
 
   // Fetch events for allocations
   const { data: events } = useQuery({
@@ -25,18 +25,18 @@ export function TicketProgress() {
     enabled: allocations.length > 0,
   });
 
-  // Fetch ticket claims for this company user
+  // Fetch ticket claims for this company
   const { data: ticketClaims } = useQuery({
-    queryKey: ["ticket-claims-progress", companyUserId],
+    queryKey: ["ticket-claims-progress", activeCompanyId],
     queryFn: async () => {
-      if (!companyUserId) return [];
+      if (!activeCompanyId) return [];
       const { data } = await supabase
         .from("ticket_claims")
         .select("event_id")
-        .eq("company_user_id", companyUserId);
+        .eq("business_id", activeCompanyId);
       return data || [];
     },
-    enabled: !!companyUserId,
+    enabled: !!activeCompanyId,
   });
 
   // Calculate progress for each event

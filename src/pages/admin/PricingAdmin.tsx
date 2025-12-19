@@ -12,7 +12,7 @@ import { Switch } from '@/components/ui/switch';
 import { Loader2, Plus, Pencil, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { AdminLayout } from '@/components/admin/AdminLayout';
-import { useMember } from '@/contexts/member/MemberContext';
+import { useUser } from "@/contexts/UserContext";
 
 interface PricingThreshold {
   id: string;
@@ -26,7 +26,7 @@ interface PricingThreshold {
 
 export default function PricingAdmin() {
   const navigate = useNavigate();
-  const { isSuperAdmin } = useMember();
+  const { isSuperAdmin } = useUser();
   const { toast } = useToast();
   const [thresholds, setThresholds] = useState<PricingThreshold[]>([]);
   const [loading, setLoading] = useState(true);

@@ -15,7 +15,7 @@ import { AdminLayout } from '@/components/admin/AdminLayout';
 import { BrandSelector } from '@/components/ui/brand-selector';
 import { BrandBadge } from '@/components/ui/brand-badge';
 import { ImageUpload } from '@/components/ui/image-upload';
-import { useMember } from '@/contexts/member/MemberContext';
+import { useUser } from "@/contexts/UserContext";
 
 interface Tier {
   id: string;
@@ -44,7 +44,7 @@ interface BrandTag {
 
 export default function TiersTracksAdmin() {
   const navigate = useNavigate();
-  const { isSuperAdmin } = useMember();
+  const { isSuperAdmin } = useUser();
   const { toast } = useToast();
   const [tiers, setTiers] = useState<Tier[]>([]);
   const [tracks, setTracks] = useState<Track[]>([]);

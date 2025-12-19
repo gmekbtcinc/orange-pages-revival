@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { useMember } from "@/contexts/member/MemberContext";
+import { useUser } from "@/contexts/UserContext";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,7 @@ interface SubmissionStatusCardProps {
 }
 
 export function SubmissionStatusCard({ userId }: SubmissionStatusCardProps) {
-  const { refetch } = useMember();
+  const { refetch } = useUser();
   const navigate = useNavigate();
 
   const { data: submissions = [] } = useQuery({

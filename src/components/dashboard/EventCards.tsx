@@ -1,6 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useMember } from "@/contexts/member/MemberContext";
 import { useUser } from "@/contexts/UserContext";
 import { EventCard } from "./EventCard";
 import { EmptyState } from "./EmptyState";
@@ -10,8 +9,7 @@ import type { Tables } from "@/integrations/supabase/types";
 type Event = Tables<"events">;
 
 export function EventCards() {
-  const { allocations, activeCompanyId } = useMember();
-  const { profile } = useUser();
+  const { allocations, activeCompanyId, profile } = useUser();
 
   const { data: events, isLoading } = useQuery({
     queryKey: ["events"],

@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useMember } from "@/contexts/member/MemberContext";
 import { useUser } from "@/contexts/UserContext";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -49,8 +48,7 @@ const resources = [
 ];
 
 export function MemberResources() {
-  const { activeCompanyId } = useMember();
-  const { profile } = useUser();
+  const { activeCompanyId, profile } = useUser();
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [loadingResource, setLoadingResource] = useState<string | null>(null);

@@ -1,10 +1,10 @@
 import { Award, Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { useMember } from "@/contexts/member/MemberContext";
+import { useUser } from "@/contexts/UserContext";
 
 export function FreeDashboardWelcome() {
-  const { profile } = useMember();
+  const { profile } = useUser();
   
   // Get greeting based on time of day
   const getGreeting = () => {
