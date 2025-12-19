@@ -11,26 +11,28 @@ type TicketClaim = Tables<"ticket_claims">;
 
 interface TicketClaimModuleProps {
   eventId: string;
-  companyUserId: string;
+  businessId: string;
+  profileId: string;
   allocated: number;
 }
 
-export function TicketClaimModule({ eventId, companyUserId, allocated }: TicketClaimModuleProps) {
+export function TicketClaimModule({ eventId, businessId, profileId, allocated }: TicketClaimModuleProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
+  // Query by business_id to count all claims for the company allocation
   const { data: claims = [], isLoading } = useQuery({
-    queryKey: ["ticket_claims", companyUserId, eventId],
+    queryKey: ["ticket_claims", businessId, eventId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("ticket_claims")
         .select("*")
-        .eq("company_user_id", companyUserId)
+        .eq("business_id", businessId)
         .eq("event_id", eventId);
 
       if (error) throw error;
       return data as TicketClaim[];
     },
-    enabled: !!companyUserId,
+    enabled: !!businessId,
   });
 
   const claimed = claims.length;
@@ -69,7 +71,8 @@ export function TicketClaimModule({ eventId, companyUserId, allocated }: TicketC
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         eventId={eventId}
-        companyUserId={companyUserId}
+        businessId={businessId}
+        profileId={profileId}
         remaining={remaining}
       />
     </div>

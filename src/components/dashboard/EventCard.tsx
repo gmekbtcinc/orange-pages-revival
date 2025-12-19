@@ -13,12 +13,12 @@ type EventAllocation = Tables<"event_allocations">;
 interface EventCardProps {
   event: Event;
   allocation: EventAllocation | undefined;
-  companyUserId: string;
+  businessId: string;
   profileId: string;
   isPrimary: boolean;
 }
 
-export function EventCard({ event, allocation, companyUserId, profileId, isPrimary }: EventCardProps) {
+export function EventCard({ event, allocation, businessId, profileId, isPrimary }: EventCardProps) {
   const formatDate = (dateStr: string | null) => {
     if (!dateStr) return "";
     return new Date(dateStr).toLocaleDateString("en-US", {
@@ -85,10 +85,11 @@ export function EventCard({ event, allocation, companyUserId, profileId, isPrima
       </CardHeader>
 
       <CardContent className="space-y-4">
-        {/* Conference Tickets - Always shown (uses companyUserId for company-level tracking) */}
+        {/* Conference Tickets - uses businessId for company-level allocation tracking */}
         <TicketClaimModule
           eventId={event.id}
-          companyUserId={companyUserId}
+          businessId={businessId}
+          profileId={profileId}
           allocated={allocation?.conference_tickets || 0}
         />
 

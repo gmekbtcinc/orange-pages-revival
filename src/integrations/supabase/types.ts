@@ -1647,6 +1647,7 @@ export type Database = {
           attendee_email: string
           attendee_name: string
           attendee_title: string | null
+          business_id: string | null
           claimed_at: string
           company_user_id: string | null
           confirmed_at: string | null
@@ -1654,6 +1655,7 @@ export type Database = {
           id: string
           is_external_attendee: boolean | null
           notes: string | null
+          profile_id: string | null
           status: Database["public"]["Enums"]["rsvp_status"] | null
           ticket_code: string | null
         }
@@ -1663,6 +1665,7 @@ export type Database = {
           attendee_email: string
           attendee_name: string
           attendee_title?: string | null
+          business_id?: string | null
           claimed_at?: string
           company_user_id?: string | null
           confirmed_at?: string | null
@@ -1670,6 +1673,7 @@ export type Database = {
           id?: string
           is_external_attendee?: boolean | null
           notes?: string | null
+          profile_id?: string | null
           status?: Database["public"]["Enums"]["rsvp_status"] | null
           ticket_code?: string | null
         }
@@ -1679,6 +1683,7 @@ export type Database = {
           attendee_email?: string
           attendee_name?: string
           attendee_title?: string | null
+          business_id?: string | null
           claimed_at?: string
           company_user_id?: string | null
           confirmed_at?: string | null
@@ -1686,6 +1691,7 @@ export type Database = {
           id?: string
           is_external_attendee?: boolean | null
           notes?: string | null
+          profile_id?: string | null
           status?: Database["public"]["Enums"]["rsvp_status"] | null
           ticket_code?: string | null
         }
@@ -1695,6 +1701,13 @@ export type Database = {
             columns: ["assigned_by"]
             isOneToOne: false
             referencedRelation: "company_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ticket_claims_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
             referencedColumns: ["id"]
           },
           {
@@ -1709,6 +1722,13 @@ export type Database = {
             columns: ["event_id"]
             isOneToOne: false
             referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ticket_claims_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
