@@ -62,7 +62,7 @@ export function ManageRolesDialog({
   }, [existingRole]);
 
 
-  // Search for user by email
+  // Search for user by email in profiles table
   const searchUser = async () => {
     if (!searchEmail.trim()) {
       toast.error("Please enter an email address");
@@ -71,22 +71,21 @@ export function ManageRolesDialog({
     
     setSearching(true);
     try {
-      // Search in company_users
-      const { data: companyUser } = await supabase
-        .from("company_users")
-        .select("user_id, email")
+      // Search in profiles table (created on user signup)
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("id, email")
         .eq("email", searchEmail.trim())
-        .not("user_id", "is", null)
         .maybeSingle();
 
-      if (companyUser?.user_id) {
-        setFoundUser({ id: companyUser.user_id, email: companyUser.email });
-        setUserId(companyUser.user_id);
+      if (profile) {
+        setFoundUser({ id: profile.id, email: profile.email });
+        setUserId(profile.id);
         toast.success("User found!");
         return;
       }
 
-      toast.error("No user found with that email. User must have logged in at least once.");
+      toast.error("No user found with that email. User must have signed up first.");
     } catch (error) {
       toast.error("Error searching for user");
     } finally {
