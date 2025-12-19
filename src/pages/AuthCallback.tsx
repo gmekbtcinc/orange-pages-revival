@@ -19,35 +19,17 @@ export default function AuthCallback() {
       clearTimeout(timeout);
 
       if (event === "SIGNED_IN" && session) {
-        // Auto-link company_users record by email if exists and not yet linked
-        const userEmail = session.user.email;
-        const userId = session.user.id;
-        
-        if (userEmail) {
-          const { data: unlinkedUser } = await supabase
-            .from("company_users")
-            .select("id")
-            .eq("email", userEmail)
-            .is("user_id", null)
-            .maybeSingle();
-          
-          if (unlinkedUser) {
-            await supabase
-              .from("company_users")
-              .update({ 
-                user_id: userId, 
-                accepted_at: new Date().toISOString() 
-              })
-              .eq("id", unlinkedUser.id);
-          }
-        }
+        // Note: Invitation auto-acceptance is handled by the database trigger
+        // `handle_new_user_signup_v2` which runs on auth.users INSERT.
+        // For existing users with pending invitations, they accept via /invite/accept page.
 
         // Send welcome email for OAuth signups (fire and forget)
         // Check if this is a new user by seeing if created_at is recent (within last 60 seconds)
+        const userEmail = session.user.email;
         const createdAt = new Date(session.user.created_at).getTime();
         const now = Date.now();
         const isNewUser = now - createdAt < 60000; // within 60 seconds
-        
+
         if (isNewUser && userEmail) {
           const displayName = session.user.user_metadata?.full_name || userEmail.split("@")[0];
           supabase.functions.invoke("send-welcome-email", {
