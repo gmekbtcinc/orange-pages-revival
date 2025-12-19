@@ -86,8 +86,27 @@ export default function InviteAccept() {
         return;
       }
 
-      // Check if already accepted
+      // Check if already accepted - but handle gracefully for auto-accepted invitations
       if (data.status === "accepted") {
+        // If user is authenticated with matching email, check if they're already a team member
+        if (session?.user && session.user.email?.toLowerCase() === data.email.toLowerCase()) {
+          const { data: membership } = await supabase
+            .from("team_memberships")
+            .select("id")
+            .eq("profile_id", session.user.id)
+            .eq("business_id", data.business_id)
+            .maybeSingle();
+
+          if (membership) {
+            // User is already a team member - redirect to dashboard
+            toast({
+              title: "Welcome to the team!",
+              description: `You've already joined ${data.businesses?.name || "the company"}. Redirecting to dashboard...`,
+            });
+            setTimeout(() => navigate("/dashboard"), 1500);
+            return;
+          }
+        }
         setError("This invitation has already been accepted");
         setLoading(false);
         return;
