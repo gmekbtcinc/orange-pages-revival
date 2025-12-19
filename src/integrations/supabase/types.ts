@@ -680,6 +680,75 @@ export type Database = {
         }
         Relationships: []
       }
+      company_leadership: {
+        Row: {
+          bio: string | null
+          business_id: string
+          created_at: string
+          display_name: string
+          display_order: number
+          email: string | null
+          headshot_url: string | null
+          id: string
+          is_primary: boolean
+          is_visible: boolean
+          linkedin_url: string | null
+          profile_id: string | null
+          title: string
+          twitter_url: string | null
+          updated_at: string
+        }
+        Insert: {
+          bio?: string | null
+          business_id: string
+          created_at?: string
+          display_name: string
+          display_order?: number
+          email?: string | null
+          headshot_url?: string | null
+          id?: string
+          is_primary?: boolean
+          is_visible?: boolean
+          linkedin_url?: string | null
+          profile_id?: string | null
+          title: string
+          twitter_url?: string | null
+          updated_at?: string
+        }
+        Update: {
+          bio?: string | null
+          business_id?: string
+          created_at?: string
+          display_name?: string
+          display_order?: number
+          email?: string | null
+          headshot_url?: string | null
+          id?: string
+          is_primary?: boolean
+          is_visible?: boolean
+          linkedin_url?: string | null
+          profile_id?: string | null
+          title?: string
+          twitter_url?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_leadership_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_leadership_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       company_users: {
         Row: {
           accepted_at: string | null
@@ -894,6 +963,86 @@ export type Database = {
           vip_dinner_venue?: string | null
         }
         Relationships: []
+      }
+      invitations: {
+        Row: {
+          accepted_at: string | null
+          accepted_by: string | null
+          business_id: string
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          invited_by: string | null
+          revoked_at: string | null
+          revoked_by: string | null
+          role: Database["public"]["Enums"]["team_role"]
+          status: Database["public"]["Enums"]["invitation_status"]
+          token: string
+          updated_at: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          accepted_by?: string | null
+          business_id: string
+          created_at?: string
+          email: string
+          expires_at?: string
+          id?: string
+          invited_by?: string | null
+          revoked_at?: string | null
+          revoked_by?: string | null
+          role?: Database["public"]["Enums"]["team_role"]
+          status?: Database["public"]["Enums"]["invitation_status"]
+          token?: string
+          updated_at?: string
+        }
+        Update: {
+          accepted_at?: string | null
+          accepted_by?: string | null
+          business_id?: string
+          created_at?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          invited_by?: string | null
+          revoked_at?: string | null
+          revoked_by?: string | null
+          role?: Database["public"]["Enums"]["team_role"]
+          status?: Database["public"]["Enums"]["invitation_status"]
+          token?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invitations_accepted_by_fkey"
+            columns: ["accepted_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invitations_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invitations_invited_by_fkey"
+            columns: ["invited_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invitations_revoked_by_fkey"
+            columns: ["revoked_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       member_resource_requests: {
         Row: {
@@ -1184,6 +1333,48 @@ export type Database = {
         }
         Relationships: []
       }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          bio: string | null
+          created_at: string
+          display_name: string
+          email: string
+          id: string
+          linkedin_url: string | null
+          phone: string | null
+          title: string | null
+          twitter_url: string | null
+          updated_at: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string
+          display_name: string
+          email: string
+          id: string
+          linkedin_url?: string | null
+          phone?: string | null
+          title?: string | null
+          twitter_url?: string | null
+          updated_at?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string
+          display_name?: string
+          email?: string
+          id?: string
+          linkedin_url?: string | null
+          phone?: string | null
+          title?: string | null
+          twitter_url?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       speaker_applications: {
         Row: {
           admin_notes: string | null
@@ -1370,6 +1561,64 @@ export type Database = {
           slug?: string
         }
         Relationships: []
+      }
+      team_memberships: {
+        Row: {
+          business_id: string
+          created_at: string
+          id: string
+          invited_by: string | null
+          is_primary: boolean
+          joined_at: string
+          profile_id: string
+          role: Database["public"]["Enums"]["team_role"]
+          updated_at: string
+        }
+        Insert: {
+          business_id: string
+          created_at?: string
+          id?: string
+          invited_by?: string | null
+          is_primary?: boolean
+          joined_at?: string
+          profile_id: string
+          role?: Database["public"]["Enums"]["team_role"]
+          updated_at?: string
+        }
+        Update: {
+          business_id?: string
+          created_at?: string
+          id?: string
+          invited_by?: string | null
+          is_primary?: boolean
+          joined_at?: string
+          profile_id?: string
+          role?: Database["public"]["Enums"]["team_role"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_memberships_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_memberships_invited_by_fkey"
+            columns: ["invited_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_memberships_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       ticket_claims: {
         Row: {
@@ -1757,11 +2006,16 @@ export type Database = {
         }
         Returns: string
       }
+      get_primary_company: { Args: { _profile_id: string }; Returns: string }
       get_remaining_user_slots: {
         Args: { _business_id: string }
         Returns: number
       }
       get_user_business_id: { Args: { _user_id: string }; Returns: string }
+      get_user_permissions: {
+        Args: { _business_id: string; _profile_id: string }
+        Returns: Json
+      }
       has_admin_role: { Args: { _user_id: string }; Returns: boolean }
       has_moderator_role: { Args: { _user_id: string }; Returns: boolean }
       has_role: {
@@ -1781,6 +2035,14 @@ export type Database = {
       }
       is_member_business: { Args: { _business_id: string }; Returns: boolean }
       is_super_admin: { Args: { _user_id: string }; Returns: boolean }
+      is_team_admin: {
+        Args: { _business_id: string; _profile_id: string }
+        Returns: boolean
+      }
+      is_team_member: {
+        Args: { _business_id: string; _profile_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       app_role: "super_admin" | "admin" | "moderator"
@@ -1788,6 +2050,7 @@ export type Database = {
       claim_status: "pending" | "approved" | "rejected"
       company_type: "public" | "private" | "subsidiary"
       event_type: "flagship" | "regional" | "secondary"
+      invitation_status: "pending" | "accepted" | "expired" | "revoked"
       invite_status: "pending" | "accepted" | "expired" | "revoked"
       member_tier:
         | "silver"
@@ -1811,6 +2074,7 @@ export type Database = {
         | "approved"
         | "rejected"
         | "waitlisted"
+      team_role: "owner" | "admin" | "member"
       user_role: "super_admin" | "company_admin" | "company_user"
     }
     CompositeTypes: {
@@ -1944,6 +2208,7 @@ export const Constants = {
       claim_status: ["pending", "approved", "rejected"],
       company_type: ["public", "private", "subsidiary"],
       event_type: ["flagship", "regional", "secondary"],
+      invitation_status: ["pending", "accepted", "expired", "revoked"],
       invite_status: ["pending", "accepted", "expired", "revoked"],
       member_tier: [
         "silver",
@@ -1970,6 +2235,7 @@ export const Constants = {
         "rejected",
         "waitlisted",
       ],
+      team_role: ["owner", "admin", "member"],
       user_role: ["super_admin", "company_admin", "company_user"],
     },
   },
