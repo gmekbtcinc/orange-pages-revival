@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useMember } from "@/contexts/member/MemberContext";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -48,10 +48,30 @@ const resources = [
 ];
 
 export function MemberResources() {
-  const { companyUserId } = useMember();
+  const { activeCompanyId } = useMember();
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [loadingResource, setLoadingResource] = useState<string | null>(null);
+  
+  // Get current user's company_user id
+  const { data: companyUserId } = useQuery({
+    queryKey: ["company-user-id-resources", activeCompanyId],
+    queryFn: async () => {
+      if (!activeCompanyId) return null;
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return null;
+      
+      const { data } = await supabase
+        .from("company_users")
+        .select("id")
+        .eq("business_id", activeCompanyId)
+        .eq("user_id", user.id)
+        .maybeSingle();
+      
+      return data?.id || null;
+    },
+    enabled: !!activeCompanyId,
+  });
 
   const requestMutation = useMutation({
     mutationFn: async (resourceType: string) => {

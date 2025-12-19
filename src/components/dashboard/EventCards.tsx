@@ -9,7 +9,27 @@ import type { Tables } from "@/integrations/supabase/types";
 type Event = Tables<"events">;
 
 export function EventCards() {
-  const { companyUserId, allocations } = useMember();
+  const { allocations, activeCompanyId } = useMember();
+  
+  // Get current user's company_user id for this business
+  const { data: companyUserId } = useQuery({
+    queryKey: ["company-user-id", activeCompanyId],
+    queryFn: async () => {
+      if (!activeCompanyId) return null;
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return null;
+      
+      const { data } = await supabase
+        .from("company_users")
+        .select("id")
+        .eq("business_id", activeCompanyId)
+        .eq("user_id", user.id)
+        .maybeSingle();
+      
+      return data?.id || null;
+    },
+    enabled: !!activeCompanyId,
+  });
 
   const { data: events, isLoading } = useQuery({
     queryKey: ["events"],

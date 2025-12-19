@@ -44,6 +44,7 @@ interface UserContextType extends UserState {
   permissions: UserPermissions;
   businessId: string | null;
   businessName: string | null;
+  teamRole: TeamRole | null;
   
   // Legacy compatibility (deprecated - use profile/activeCompany instead)
   companyUser: LegacyCompanyUser | null;
@@ -299,6 +300,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const businessId = activeCompanyId;
   const businessName = activeCompany?.business?.name || null;
   const membership = activeCompany?.membership || null;
+  const teamRole = activeCompany?.teamMembership?.role as TeamRole | null;
 
   // Legacy companyUser object for backwards compatibility
   const companyUser: LegacyCompanyUser | null = profile && activeCompany?.teamMembership ? {
@@ -364,6 +366,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
         permissions,
         businessId,
         businessName,
+        teamRole,
         
         // Legacy compatibility
         companyUser,

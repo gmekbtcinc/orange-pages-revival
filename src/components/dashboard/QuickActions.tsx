@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 
 export function QuickActions() {
-  const { companyUser } = useMember();
+  const { permissions, teamRole } = useMember();
   const navigate = useNavigate();
 
   const actions = [
@@ -19,7 +19,7 @@ export function QuickActions() {
       label: "Claim Tickets",
       icon: Ticket,
       href: "#events",
-      permission: companyUser?.can_claim_tickets,
+      permission: permissions?.canClaimTickets,
       onClick: () => {
         const element = document.getElementById("events-section");
         element?.scrollIntoView({ behavior: "smooth" });
@@ -29,7 +29,7 @@ export function QuickActions() {
       label: "Register for Symposium",
       icon: Calendar,
       href: "#events",
-      permission: companyUser?.can_register_events,
+      permission: permissions?.canRegisterEvents,
       onClick: () => {
         const element = document.getElementById("events-section");
         element?.scrollIntoView({ behavior: "smooth" });
@@ -39,7 +39,7 @@ export function QuickActions() {
       label: "Apply to Speak",
       icon: Mic2,
       href: "#events",
-      permission: companyUser?.can_apply_speaking,
+      permission: permissions?.canApplySpeaking,
       onClick: () => {
         const element = document.getElementById("events-section");
         element?.scrollIntoView({ behavior: "smooth" });
@@ -49,7 +49,7 @@ export function QuickActions() {
       label: "RSVP to VIP Dinner",
       icon: UtensilsCrossed,
       href: "#events",
-      permission: companyUser?.can_rsvp_dinners,
+      permission: permissions?.canRsvpDinners,
       onClick: () => {
         const element = document.getElementById("events-section");
         element?.scrollIntoView({ behavior: "smooth" });
@@ -59,14 +59,14 @@ export function QuickActions() {
       label: "Edit Company Profile",
       icon: Building2,
       href: "/dashboard/company-profile",
-      permission: companyUser?.can_edit_profile,
+      permission: permissions?.canEditProfile,
       onClick: () => navigate("/dashboard/company-profile"),
     },
     {
       label: "Manage Team",
       icon: Users,
       href: "/dashboard/team",
-      permission: companyUser?.can_manage_users || companyUser?.role === "company_admin",
+      permission: permissions?.canManageTeam || teamRole === "owner" || teamRole === "admin",
       onClick: () => navigate("/dashboard/team"),
     },
   ];

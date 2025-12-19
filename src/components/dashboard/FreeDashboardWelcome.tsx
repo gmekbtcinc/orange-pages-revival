@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { useMember } from "@/contexts/member/MemberContext";
 
 export function FreeDashboardWelcome() {
-  const { companyUser } = useMember();
+  const { profile } = useMember();
   
   // Get greeting based on time of day
   const getGreeting = () => {
@@ -21,7 +21,7 @@ export function FreeDashboardWelcome() {
         <div>
           <div className="flex items-center gap-2 mb-1">
             <h1 className="text-2xl font-bold text-foreground">
-              {getGreeting()}, {companyUser?.display_name?.split(" ")[0] || "there"}
+              {getGreeting()}, {profile?.display_name?.split(" ")[0] || "there"}
             </h1>
             <Badge variant="outline" className="text-muted-foreground">
               Free Account

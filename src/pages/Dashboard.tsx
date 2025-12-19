@@ -22,7 +22,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
 export default function Dashboard() {
-  const { companyUser, isLoading, membership } = useMember();
+  const { profile, isLoading, membership, activeCompanyId, activeCompany } = useMember();
   const [userId, setUserId] = useState<string | null>(null);
   const [submitDialogOpen, setSubmitDialogOpen] = useState(false);
   const [pendingSubmissionData, setPendingSubmissionData] = useState<Record<string, unknown> | null>(null);
@@ -71,23 +71,10 @@ export default function Dashboard() {
     sessionStorage.removeItem("pendingBusinessSubmission");
   };
 
-  // Check if user's business has an active membership
-  const { data: hasMembership, isLoading: membershipLoading } = useQuery({
-    queryKey: ["business-membership-status", companyUser?.business_id],
-    queryFn: async () => {
-      if (!companyUser?.business_id) return false;
-      const { data } = await supabase
-        .from("memberships")
-        .select("id")
-        .eq("business_id", companyUser.business_id)
-        .eq("is_active", true)
-        .maybeSingle();
-      return !!data;
-    },
-    enabled: !!companyUser?.business_id,
-  });
+  // Check if user's business has an active membership - use activeCompanyId
+  const hasMembership = membership?.is_active ?? false;
 
-  const isFreeUser = !hasMembership && !membershipLoading;
+  const isFreeUser = !hasMembership && !isLoading;
 
   if (isLoading) {
     return (
@@ -100,7 +87,7 @@ export default function Dashboard() {
     );
   }
 
-  if (!companyUser) {
+  if (!activeCompanyId) {
     return (
       <DashboardLayout>
         <div className="max-w-2xl mx-auto py-12">

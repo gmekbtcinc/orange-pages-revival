@@ -48,7 +48,7 @@ const tierLabels: Record<string, string> = {
 };
 
 export function DashboardLayout({ children, breadcrumbs }: DashboardLayoutProps) {
-  const { companyUser, membership, signOut } = useMember();
+  const { profile, membership, signOut, permissions, activeCompanyId, teamRole } = useMember();
   const navigate = useNavigate();
 
   const handleSignOut = async () => {
@@ -56,7 +56,7 @@ export function DashboardLayout({ children, breadcrumbs }: DashboardLayoutProps)
     navigate("/login");
   };
 
-  const initials = companyUser?.display_name
+  const initials = profile?.display_name
     ?.split(" ")
     .map((n) => n[0])
     .join("")
@@ -64,7 +64,7 @@ export function DashboardLayout({ children, breadcrumbs }: DashboardLayoutProps)
     .slice(0, 2) || "BF";
 
   const tier = membership?.tier || "industry";
-  const canManageUsers = companyUser?.can_manage_users || companyUser?.role === "company_admin";
+  const canManageUsers = permissions?.canManageTeam || teamRole === "owner" || teamRole === "admin";
 
   const { data: isAdmin } = useQuery({
     queryKey: ["user-is-admin"],
@@ -134,15 +134,15 @@ export function DashboardLayout({ children, breadcrumbs }: DashboardLayoutProps)
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="flex items-center gap-2 text-foreground hover:text-foreground hover:bg-muted">
                   <Avatar className="h-8 w-8">
-                    {companyUser?.avatar_url && (
-                      <AvatarImage src={companyUser.avatar_url} alt={companyUser.display_name} />
+                    {profile?.avatar_url && (
+                      <AvatarImage src={profile.avatar_url} alt={profile.display_name} />
                     )}
                     <AvatarFallback className="bg-bitcoin-orange text-white text-sm">
                       {initials}
                     </AvatarFallback>
                   </Avatar>
                   <span className="hidden sm:inline text-foreground">
-                    {companyUser?.display_name}
+                    {profile?.display_name}
                   </span>
                   <ChevronDown className="h-4 w-4 text-muted-foreground" />
                 </Button>
@@ -169,7 +169,7 @@ export function DashboardLayout({ children, breadcrumbs }: DashboardLayoutProps)
                   <Settings className="mr-2 h-4 w-4" />
                   Account Settings
                 </DropdownMenuItem>
-                {companyUser?.business_id && (
+                {activeCompanyId && (
                   <DropdownMenuItem 
                     className="cursor-pointer"
                     onClick={() => navigate("/dashboard/company-profile")}
@@ -178,7 +178,7 @@ export function DashboardLayout({ children, breadcrumbs }: DashboardLayoutProps)
                     Company Profile
                   </DropdownMenuItem>
                 )}
-                {canManageUsers && companyUser?.business_id && (
+                {canManageUsers && activeCompanyId && (
                   <DropdownMenuItem 
                     className="cursor-pointer"
                     onClick={() => navigate("/dashboard/team")}

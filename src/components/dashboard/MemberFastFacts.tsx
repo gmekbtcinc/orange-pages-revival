@@ -6,6 +6,8 @@ import { useState } from "react";
 
 export function MemberFastFacts() {
   const { membership } = useMember();
+  
+  if (!membership) return null;
   const [showDetails, setShowDetails] = useState(false);
 
   const formatDate = (dateStr: string | null) => {
