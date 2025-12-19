@@ -285,16 +285,37 @@ export default function UsersAdmin() {
     },
   });
 
-  // Delete team membership mutation
+  // Delete user completely (including auth.users)
   const deleteMembershipMutation = useMutation({
-    mutationFn: async ({ id, type }: { id: string; type: "member" | "invitation" }) => {
+    mutationFn: async ({ id, type, profileId }: { id: string; type: "member" | "invitation"; profileId?: string | null }) => {
       if (type === "member") {
-        const { error } = await supabase
-          .from("team_memberships")
-          .delete()
-          .eq("id", id);
-        if (error) throw error;
+        // Call edge function to delete completely from system
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) throw new Error("Not authenticated");
+
+        const response = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/delete-user`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${session.access_token}`,
+            },
+            body: JSON.stringify({
+              teamMembershipId: id,
+              profileId: profileId,
+              deleteAuthUser: true,
+            }),
+          }
+        );
+
+        const result = await response.json();
+        if (!response.ok) {
+          throw new Error(result.error || "Failed to delete user");
+        }
+        return result;
       } else {
+        // Revoke invitation
         const { error } = await supabase
           .from("invitations")
           .update({ status: "revoked", revoked_at: new Date().toISOString() })
@@ -305,12 +326,12 @@ export default function UsersAdmin() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-users"] });
       queryClient.invalidateQueries({ queryKey: ["admin-users-stats"] });
-      toast.success("User removed successfully");
+      toast.success("User deleted successfully");
       setDeleteConfirmOpen(false);
       setUserToDelete(null);
     },
     onError: (error) => {
-      toast.error("Failed to remove user: " + error.message);
+      toast.error("Failed to delete user: " + error.message);
     },
   });
 
@@ -908,12 +929,12 @@ export default function UsersAdmin() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {userToDelete?.type === "invitation" ? "Revoke Invitation" : "Remove User"}
+              {userToDelete?.type === "invitation" ? "Revoke Invitation" : "Delete User"}
             </AlertDialogTitle>
             <AlertDialogDescription>
               {userToDelete?.type === "invitation" 
                 ? `Are you sure you want to revoke the invitation for ${userToDelete?.email}?`
-                : `Are you sure you want to remove ${userToDelete?.display_name}? This action cannot be undone.`
+                : `Are you sure you want to permanently delete ${userToDelete?.display_name}? This will remove them from all teams, delete their profile, and remove their login account. This action cannot be undone.`
               }
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -921,9 +942,13 @@ export default function UsersAdmin() {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              onClick={() => userToDelete && deleteMembershipMutation.mutate({ id: userToDelete.id, type: userToDelete.type })}
+              onClick={() => userToDelete && deleteMembershipMutation.mutate({ 
+                id: userToDelete.id, 
+                type: userToDelete.type,
+                profileId: userToDelete.profile_id 
+              })}
             >
-              {userToDelete?.type === "invitation" ? "Revoke" : "Remove"}
+              {userToDelete?.type === "invitation" ? "Revoke" : "Delete User"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
