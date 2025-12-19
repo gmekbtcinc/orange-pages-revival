@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { MemberProvider } from "@/contexts/member/MemberContext";
+import { UserProvider } from "@/contexts/UserContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AdminProtectedRoute } from "@/components/AdminProtectedRoute";
 import Index from "./pages/Index";
@@ -51,7 +51,7 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <BrowserRouter>
-        <MemberProvider>
+        <UserProvider>
           <Routes>
             {/* Public routes */}
             <Route path="/" element={<Index />} />
@@ -222,7 +222,7 @@ const App = () => (
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
-        </MemberProvider>
+        </UserProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
