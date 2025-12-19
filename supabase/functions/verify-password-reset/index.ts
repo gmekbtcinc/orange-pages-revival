@@ -42,6 +42,15 @@ const handler = async (req: Request): Promise<Response> => {
         );
       }
 
+      // Validate token format (64 hex characters for 32-byte token)
+      if (!/^[a-f0-9]{64}$/i.test(token)) {
+        console.log("Invalid token format received");
+        return new Response(
+          JSON.stringify({ valid: false, error: "Invalid token format" }),
+          { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        );
+      }
+
       const { data: tokenData, error: tokenError } = await supabase
         .from("password_reset_tokens")
         .select("email, expires_at, used_at")
@@ -87,6 +96,15 @@ const handler = async (req: Request): Promise<Response> => {
       if (!token || !newPassword) {
         return new Response(
           JSON.stringify({ success: false, error: "Token and new password are required" }),
+          { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        );
+      }
+
+      // Validate token format (64 hex characters for 32-byte token)
+      if (!/^[a-f0-9]{64}$/i.test(token)) {
+        console.log("Invalid token format received for reset");
+        return new Response(
+          JSON.stringify({ success: false, error: "Invalid token format" }),
           { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
         );
       }
