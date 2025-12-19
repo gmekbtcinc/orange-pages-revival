@@ -48,54 +48,23 @@ export default function InviteAccept() {
         return;
       }
 
-      // Try user_invitations table first (admin-created invitations)
-      let data = null;
-      let fetchError = null;
-
-      const { data: userInviteData, error: userInviteError } = await supabase
-        .from("user_invitations")
+      // Fetch invitation from the invitations table
+      const { data, error: fetchError } = await supabase
+        .from("invitations")
         .select(`
           id,
           email,
-          invite_token,
+          token,
           role,
           status,
           expires_at,
           business_id,
           display_name,
-          businesses:business_id (name)
+          businesses:business_id (name),
+          inviter:profiles!invitations_invited_by_fkey (display_name)
         `)
-        .eq("invite_token", token)
+        .eq("token", token)
         .maybeSingle();
-
-      if (userInviteData) {
-        // Map user_invitations fields to expected format
-        data = {
-          ...userInviteData,
-          token: userInviteData.invite_token,
-          inviter: null, // user_invitations doesn't track inviter name
-        };
-      } else {
-        // Fallback to team invitations table
-        const { data: teamInviteData, error: teamInviteError } = await supabase
-          .from("invitations")
-          .select(`
-            id,
-            email,
-            token,
-            role,
-            status,
-            expires_at,
-            business_id,
-            businesses:business_id (name),
-            inviter:profiles!invitations_invited_by_fkey (display_name)
-          `)
-          .eq("token", token)
-          .maybeSingle();
-
-        data = teamInviteData;
-        fetchError = teamInviteError || userInviteError;
-      }
 
       if (fetchError) {
         console.error("Error fetching invitation:", fetchError);
@@ -126,6 +95,40 @@ export default function InviteAccept() {
 
       // Check if revoked
       if (data.status === "revoked") {
+        setError("This invitation has been revoked");
+        setLoading(false);
+        return;
+      }
+
+      if (fetchError) {
+        console.error("Error fetching invitation:", fetchError);
+        setError("Failed to load invitation");
+        setLoading(false);
+        return;
+      }
+
+      if (!data) {
+        setError("Invitation not found or has been revoked");
+        setLoading(false);
+        return;
+      }
+
+      // Check if expired
+      if (data.expires_at && new Date(data.expires_at) < new Date()) {
+        setError("This invitation has expired");
+        setLoading(false);
+        return;
+      }
+
+      // Check if already accepted
+      if ((data.status as string) === "accepted") {
+        setError("This invitation has already been accepted");
+        setLoading(false);
+        return;
+      }
+
+      // Check if revoked
+      if ((data.status as string) === "revoked") {
         setError("This invitation has been revoked");
         setLoading(false);
         return;

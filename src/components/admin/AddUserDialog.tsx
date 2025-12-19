@@ -94,29 +94,25 @@ export function AddUserDialog({ open, onOpenChange }: AddUserDialogProps) {
       const generatedInviteUrl = `${window.location.origin}/invite/accept?token=${inviteToken}`;
       setInviteUrl(generatedInviteUrl);
 
-      const isAdmin = role === "company_admin";
+      // Map user_role to team_role for invitations table
+      const teamRole = role === "company_admin" ? "admin" : "member";
 
-      // Create user_invitations record
+      // Create invitation record in the consolidated invitations table
       const { error: inviteError } = await supabase
-        .from("user_invitations")
+        .from("invitations")
         .insert({
           business_id: businessId,
           email: normalizedEmail,
           display_name: displayName.trim(),
-          role,
+          role: teamRole,
           status: "pending",
-          invite_token: inviteToken,
+          token: inviteToken,
           expires_at: expiresAt.toISOString(),
-          can_claim_tickets: isAdmin,
-          can_register_events: isAdmin,
-          can_apply_speaking: isAdmin,
-          can_edit_profile: isAdmin,
-          can_manage_users: isAdmin,
-          can_rsvp_dinners: isAdmin,
-          can_request_resources: isAdmin,
         });
 
       if (inviteError) throw inviteError;
+
+      const isAdmin = role === "company_admin";
 
       // Create the company_user record (pending - no user_id)
       const { error: userError } = await supabase.from("company_users").insert({
