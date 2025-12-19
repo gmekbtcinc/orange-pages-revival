@@ -20,6 +20,7 @@ import { toast } from "sonner";
 import { UserDetailDialog } from "@/components/admin/UserDetailDialog";
 import { ManageRolesDialog } from "@/components/admin/ManageRolesDialog";
 import { AddUserDialog } from "@/components/admin/AddUserDialog";
+import { DirectAssignDialog } from "@/components/admin/DirectAssignDialog";
 import { ChangeCompanyDialog } from "@/components/admin/ChangeCompanyDialog";
 import { Database } from "@/integrations/supabase/types";
 
@@ -61,6 +62,7 @@ export default function UsersAdmin() {
   const [editingRole, setEditingRole] = useState<{ id: string; user_id: string; role: AppRole; email?: string } | null>(null);
   const [roleToRevoke, setRoleToRevoke] = useState<{ id: string; email: string; role: string } | null>(null);
   const [addUserOpen, setAddUserOpen] = useState(false);
+  const [directAssignOpen, setDirectAssignOpen] = useState(false);
   const [changeCompanyOpen, setChangeCompanyOpen] = useState(false);
   const [userToChangeCompany, setUserToChangeCompany] = useState<UserListItem | null>(null);
   
@@ -439,10 +441,16 @@ export default function UsersAdmin() {
             </h1>
             <p className="text-muted-foreground">Manage platform users and permissions</p>
           </div>
-          <Button onClick={() => setAddUserOpen(true)}>
-            <UserPlus className="h-4 w-4 mr-2" />
-            Add User
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setDirectAssignOpen(true)}>
+              <UserCheck className="h-4 w-4 mr-2" />
+              Direct Assign
+            </Button>
+            <Button onClick={() => setAddUserOpen(true)}>
+              <UserPlus className="h-4 w-4 mr-2" />
+              Invite User
+            </Button>
+          </div>
         </div>
 
         {/* Stats Cards */}
@@ -947,6 +955,12 @@ export default function UsersAdmin() {
         user={userToChangeCompany as any}
         open={changeCompanyOpen}
         onOpenChange={setChangeCompanyOpen}
+      />
+
+      {/* Direct Assign Dialog */}
+      <DirectAssignDialog
+        open={directAssignOpen}
+        onOpenChange={setDirectAssignOpen}
       />
     </AdminLayout>
   );
