@@ -107,7 +107,7 @@ export default function UsersAdmin() {
             business_id,
             profile_id,
             created_at,
-            profiles!inner (
+            profiles (
               id,
               display_name,
               email,
@@ -120,9 +120,8 @@ export default function UsersAdmin() {
           `)
           .order("created_at", { ascending: false });
 
-        if (search) {
-          memberQuery = memberQuery.or(`profiles.display_name.ilike.%${search}%,profiles.email.ilike.%${search}%`);
-        }
+        // Note: filtering on joined tables with .or() on nullable joins can be tricky
+        // For now, we'll filter client-side for search if profiles is null
 
         if (roleFilter !== "all") {
           memberQuery = memberQuery.eq("role", roleFilter as TeamRole);
@@ -199,8 +198,18 @@ export default function UsersAdmin() {
         });
       }
 
+      // Client-side search filter (since we removed the inner join filter)
+      let filteredItems = items;
+      if (search) {
+        const searchLower = search.toLowerCase();
+        filteredItems = items.filter(item => 
+          item.display_name?.toLowerCase().includes(searchLower) ||
+          item.email?.toLowerCase().includes(searchLower)
+        );
+      }
+
       // Sort by created_at descending
-      items.sort((a, b) => {
+      filteredItems.sort((a, b) => {
         const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
         const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
         return dateB - dateA;
@@ -208,9 +217,9 @@ export default function UsersAdmin() {
 
       // Paginate
       const start = page * pageSize;
-      const paginated = items.slice(start, start + pageSize);
+      const paginated = filteredItems.slice(start, start + pageSize);
 
-      return { users: paginated, count: items.length };
+      return { users: paginated, count: filteredItems.length };
     },
   });
 
