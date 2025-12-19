@@ -72,24 +72,23 @@ export function AdminLayout({ children, breadcrumbs }: AdminLayoutProps) {
 
       if (!roleData) return null;
 
-      // Get avatar from company_users
-      const { data: companyUser } = await supabase
-        .from("company_users")
+      // Get avatar and display name from profiles
+      const { data: profile } = await supabase
+        .from("profiles")
         .select("avatar_url, display_name")
-        .eq("user_id", user.id)
-        .eq("is_active", true)
+        .eq("id", user.id)
         .maybeSingle();
 
-      // Get display name from company_users, auth metadata, or email
-      const displayName = companyUser?.display_name || 
-        user.user_metadata?.full_name || 
-        user.email?.split('@')[0] || 
+      // Get display name from profile, auth metadata, or email
+      const displayName = profile?.display_name ||
+        user.user_metadata?.full_name ||
+        user.email?.split('@')[0] ||
         'Admin';
 
       return {
         display_name: displayName,
         email: user.email,
-        avatar_url: companyUser?.avatar_url || null,
+        avatar_url: profile?.avatar_url || null,
         role: roleData.role as AppRole,
       };
     },

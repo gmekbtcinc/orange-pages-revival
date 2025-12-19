@@ -111,8 +111,14 @@ export default function CompanyDetail() {
     queryKey: ["admin-company-team", id],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("company_users")
-        .select("*")
+        .from("team_memberships")
+        .select(`
+          id,
+          role,
+          is_primary,
+          created_at,
+          profiles (id, display_name, email, avatar_url)
+        `)
         .eq("business_id", id)
         .order("created_at", { ascending: true });
 
@@ -552,34 +558,32 @@ export default function CompanyDetail() {
                         <TableHead>Name</TableHead>
                         <TableHead>Email</TableHead>
                         <TableHead>Role</TableHead>
-                        <TableHead>Status</TableHead>
+                        <TableHead>Primary</TableHead>
                         <TableHead>Joined</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {teamMembers.map((member) => (
+                      {teamMembers.map((member: any) => (
                         <TableRow key={member.id}>
-                          <TableCell className="font-medium">{member.display_name}</TableCell>
-                          <TableCell>{member.email}</TableCell>
+                          <TableCell className="font-medium">{member.profiles?.display_name || "—"}</TableCell>
+                          <TableCell>{member.profiles?.email || "—"}</TableCell>
                           <TableCell>
-                            <Badge variant={member.role === "company_admin" ? "default" : "secondary"}>
-                              {member.role === "company_admin" ? "Admin" : "User"}
+                            <Badge variant={member.role === "owner" || member.role === "admin" ? "default" : "secondary"} className="capitalize">
+                              {member.role}
                             </Badge>
                           </TableCell>
                           <TableCell>
-                            {member.user_id ? (
-                              <Badge variant="outline" className="bg-green-500/10 text-green-500 border-green-500/30">
-                                Active
+                            {member.is_primary ? (
+                              <Badge variant="outline" className="bg-blue-500/10 text-blue-500 border-blue-500/30">
+                                Primary
                               </Badge>
                             ) : (
-                              <Badge variant="outline" className="bg-yellow-500/10 text-yellow-500 border-yellow-500/30">
-                                Pending
-                              </Badge>
+                              <span className="text-muted-foreground">—</span>
                             )}
                           </TableCell>
                           <TableCell>
-                            {member.accepted_at
-                              ? format(new Date(member.accepted_at), "MMM d, yyyy")
+                            {member.created_at
+                              ? format(new Date(member.created_at), "MMM d, yyyy")
                               : "—"}
                           </TableCell>
                         </TableRow>

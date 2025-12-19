@@ -30,7 +30,7 @@ export default function AdminDashboard() {
         supabase.from("businesses").select("id", { count: "exact", head: true }),
         supabase.from("memberships").select("id", { count: "exact", head: true }).eq("is_active", true),
         supabase.from("business_claims").select("id", { count: "exact", head: true }).eq("status", "pending"),
-        supabase.from("company_users").select("id", { count: "exact", head: true }),
+        supabase.from("profiles").select("id", { count: "exact", head: true }),
       ]);
 
       return {
@@ -65,12 +65,12 @@ export default function AdminDashboard() {
     queryKey: ["admin-recent-users"],
     queryFn: async () => {
       const { data } = await supabase
-        .from("company_users")
+        .from("team_memberships")
         .select(`
           id,
-          display_name,
           role,
           created_at,
+          profiles (display_name),
           businesses (name)
         `)
         .order("created_at", { ascending: false })
@@ -219,25 +219,25 @@ export default function AdminDashboard() {
                 <p className="text-sm text-muted-foreground text-center py-4">No users yet</p>
               ) : (
                 <div className="space-y-3">
-                  {recentUsers.map((user: any) => (
-                    <div key={user.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                  {recentUsers.map((membership: any) => (
+                    <div key={membership.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
                       <div className="flex items-center gap-3">
                         <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
                           <UserPlus className="h-4 w-4 text-primary" />
                         </div>
                         <div>
-                          <p className="font-medium text-sm text-foreground">{user.display_name}</p>
+                          <p className="font-medium text-sm text-foreground">{membership.profiles?.display_name || "Unknown"}</p>
                           <p className="text-xs text-muted-foreground">
-                            {user.businesses?.name || "Unknown Company"}
+                            {membership.businesses?.name || "Unknown Company"}
                           </p>
                         </div>
                       </div>
                       <div className="text-right">
-                        <Badge variant="outline" className="text-xs">
-                          {user.role}
+                        <Badge variant="outline" className="text-xs capitalize">
+                          {membership.role}
                         </Badge>
                         <p className="text-xs text-muted-foreground mt-1">
-                          {user.created_at && format(new Date(user.created_at), "MMM d")}
+                          {membership.created_at && format(new Date(membership.created_at), "MMM d")}
                         </p>
                       </div>
                     </div>
