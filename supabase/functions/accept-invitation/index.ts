@@ -10,7 +10,8 @@ const corsHeaders = {
 };
 
 interface AcceptInvitationRequest {
-  invitationId: string;
+  invitationId?: string;
+  token?: string;
 }
 
 serve(async (req) => {
@@ -33,11 +34,11 @@ serve(async (req) => {
       });
     }
 
-    const token = authHeader.replace("Bearer ", "");
+    const authToken = authHeader.replace("Bearer ", "");
     const {
       data: { user },
       error: authError,
-    } = await supabaseAdmin.auth.getUser(token);
+    } = await supabaseAdmin.auth.getUser(authToken);
 
     if (authError || !user) {
       console.error("Auth error:", authError);
@@ -49,21 +50,25 @@ serve(async (req) => {
 
     console.log("Authenticated user:", user.id, user.email);
 
-    const { invitationId }: AcceptInvitationRequest = await req.json();
+    const { invitationId, token }: AcceptInvitationRequest = await req.json();
 
-    if (!invitationId) {
-      return new Response(JSON.stringify({ error: "invitationId is required" }), {
+    if (!invitationId && !token) {
+      return new Response(JSON.stringify({ error: "invitationId or token is required" }), {
         status: 400,
         headers: { "Content-Type": "application/json", ...corsHeaders },
       });
     }
 
-    // Fetch the invitation
-    const { data: invitation, error: inviteError } = await supabaseAdmin
-      .from("user_invitations")
-      .select("*")
-      .eq("id", invitationId)
-      .maybeSingle();
+    // Fetch the invitation from the NEW invitations table
+    let query = supabaseAdmin.from("invitations").select("*");
+    
+    if (invitationId) {
+      query = query.eq("id", invitationId);
+    } else if (token) {
+      query = query.eq("token", token);
+    }
+
+    const { data: invitation, error: inviteError } = await query.maybeSingle();
 
     if (inviteError) {
       console.error("Error fetching invitation:", inviteError);
@@ -99,6 +104,14 @@ serve(async (req) => {
       });
     }
 
+    // Check if revoked
+    if (invitation.status === "revoked") {
+      return new Response(JSON.stringify({ error: "Invitation has been revoked" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    }
+
     // Check if expired
     if (invitation.expires_at && new Date(invitation.expires_at) < new Date()) {
       return new Response(JSON.stringify({ error: "Invitation has expired" }), {
@@ -109,94 +122,83 @@ serve(async (req) => {
 
     const now = new Date().toISOString();
 
-    // Step 1: Delete any existing company_users record for this user with no business_id
-    // (created by signup trigger)
-    console.log("Deleting orphan company_users records for user:", user.id);
-    const { error: deleteError } = await supabaseAdmin
-      .from("company_users")
-      .delete()
-      .eq("user_id", user.id)
-      .is("business_id", null);
-
-    if (deleteError) {
-      console.log("Delete orphan error (may be fine):", deleteError);
-    }
-
-    // Step 2: Find the invitation-created company_users record and link the user_id
-    // NOTE: email casing in DB may vary, so we match case-insensitively.
-    console.log(
-      "Linking company user for invitation email/business:",
-      invitation.email,
-      invitation.business_id
-    );
-
-    const { data: candidateCompanyUsers, error: candidateError } = await supabaseAdmin
-      .from("company_users")
-      .select("id, email, user_id, business_id")
+    // Check if user already has a team membership for this business
+    const { data: existingMembership } = await supabaseAdmin
+      .from("team_memberships")
+      .select("id")
+      .eq("profile_id", user.id)
       .eq("business_id", invitation.business_id)
-      .ilike("email", invitation.email);
+      .maybeSingle();
 
-    if (candidateError) {
-      console.error("Error fetching company_users candidates:", candidateError);
-      return new Response(JSON.stringify({ error: "Failed to locate company user record" }), {
-        status: 500,
-        headers: { "Content-Type": "application/json", ...corsHeaders },
-      });
-    }
+    if (existingMembership) {
+      console.log("User already has membership for this business");
+      // Just mark invitation as accepted
+      await supabaseAdmin
+        .from("invitations")
+        .update({ status: "accepted", accepted_at: now, accepted_by: user.id })
+        .eq("id", invitation.id);
 
-    const companyUserToLink = (candidateCompanyUsers || []).find((r) => r.user_id === null);
-
-    if (!companyUserToLink) {
-      console.error("No unlinked company_users record found to update", {
-        business_id: invitation.business_id,
-        email: invitation.email,
-        candidates: candidateCompanyUsers,
-      });
+      const { data: business } = await supabaseAdmin
+        .from("businesses")
+        .select("name")
+        .eq("id", invitation.business_id)
+        .maybeSingle();
 
       return new Response(
         JSON.stringify({
-          error:
-            "Company user record not found (or already linked) — please ask an admin to resend the invite.",
+          success: true,
+          message: "You are already a member of this company",
+          businessName: business?.name || "the company",
         }),
-        {
-          status: 404,
-          headers: { "Content-Type": "application/json", ...corsHeaders },
-        }
+        { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
 
-    const { data: updatedCompanyUser, error: updateError } = await supabaseAdmin
-      .from("company_users")
-      .update({
-        user_id: user.id,
-        accepted_at: now,
-      })
-      .eq("id", companyUserToLink.id)
-      .select()
-      .maybeSingle();
+    // Check if user has any existing memberships to determine is_primary
+    const { data: existingMemberships } = await supabaseAdmin
+      .from("team_memberships")
+      .select("id")
+      .eq("profile_id", user.id);
 
-    if (updateError || !updatedCompanyUser) {
-      console.error("Error updating company_users:", updateError);
-      return new Response(JSON.stringify({ error: "Failed to link user to company" }), {
+    const isPrimary = !existingMemberships || existingMemberships.length === 0;
+
+    // Create the team_membership record
+    console.log("Creating team_membership for user:", user.id, "business:", invitation.business_id);
+    const { data: newMembership, error: membershipError } = await supabaseAdmin
+      .from("team_memberships")
+      .insert({
+        profile_id: user.id,
+        business_id: invitation.business_id,
+        role: invitation.role,
+        is_primary: isPrimary,
+        invited_by: invitation.invited_by,
+      })
+      .select()
+      .single();
+
+    if (membershipError) {
+      console.error("Error creating team_membership:", membershipError);
+      return new Response(JSON.stringify({ error: "Failed to create team membership" }), {
         status: 500,
         headers: { "Content-Type": "application/json", ...corsHeaders },
       });
     }
 
-    console.log("Company user updated:", updatedCompanyUser.id);
+    console.log("Team membership created:", newMembership.id);
 
-    // Step 3: Update invitation status
+    // Update invitation status
     const { error: statusError } = await supabaseAdmin
-      .from("user_invitations")
+      .from("invitations")
       .update({
         status: "accepted",
         accepted_at: now,
+        accepted_by: user.id,
       })
-      .eq("id", invitationId);
+      .eq("id", invitation.id);
 
     if (statusError) {
       console.error("Error updating invitation status:", statusError);
-      // Don't fail - the important part (linking) is done
+      // Don't fail - the important part (creating membership) is done
     }
 
     // Fetch business name for response
@@ -210,7 +212,7 @@ serve(async (req) => {
     let inviterInfo = null;
     if (invitation.invited_by) {
       const { data: inviter } = await supabaseAdmin
-        .from("company_users")
+        .from("profiles")
         .select("email, display_name")
         .eq("id", invitation.invited_by)
         .maybeSingle();
@@ -221,6 +223,14 @@ serve(async (req) => {
     if (inviterInfo?.email) {
       try {
         console.log("Sending acceptance notification to inviter:", inviterInfo.email);
+        
+        // Get the accepted user's profile
+        const { data: acceptedProfile } = await supabaseAdmin
+          .from("profiles")
+          .select("display_name")
+          .eq("id", user.id)
+          .maybeSingle();
+
         const notifyResponse = await fetch(
           `${SUPABASE_URL}/functions/v1/send-acceptance-notification`,
           {
@@ -231,7 +241,7 @@ serve(async (req) => {
             body: JSON.stringify({
               inviterEmail: inviterInfo.email,
               inviterName: inviterInfo.display_name || "Team Admin",
-              acceptedUserName: updatedCompanyUser.display_name || user.email,
+              acceptedUserName: acceptedProfile?.display_name || user.email,
               acceptedUserEmail: user.email,
               companyName: business?.name || "your company",
             }),
@@ -250,7 +260,7 @@ serve(async (req) => {
         success: true,
         message: "Invitation accepted successfully",
         businessName: business?.name || "the company",
-        companyUserId: updatedCompanyUser.id,
+        teamMembershipId: newMembership.id,
       }),
       { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
     );
