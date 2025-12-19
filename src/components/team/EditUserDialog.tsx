@@ -161,11 +161,14 @@ export function EditUserDialog({
       const expiresAt = new Date();
       expiresAt.setDate(expiresAt.getDate() + 7);
 
+      // Map user_role to team_role for invitations table
+      const teamRole = user.role === "company_admin" ? "admin" : "member";
+
       // Update existing invitation with new token
       const { error: updateInviteError } = await supabase
-        .from("user_invitations")
+        .from("invitations")
         .update({
-          invite_token: inviteToken,
+          token: inviteToken,
           expires_at: expiresAt.toISOString(),
           status: "pending",
         })
@@ -175,23 +178,15 @@ export function EditUserDialog({
       if (updateInviteError) {
         // If no invitation exists, create one
         const { error: insertError } = await supabase
-          .from("user_invitations")
+          .from("invitations")
           .insert({
             business_id: user.business_id!,
             email: user.email.toLowerCase(),
             display_name: user.display_name,
-            role: user.role,
-            invited_by: currentUserId,
+            role: teamRole,
             status: "pending",
-            invite_token: inviteToken,
+            token: inviteToken,
             expires_at: expiresAt.toISOString(),
-            can_claim_tickets: user.can_claim_tickets,
-            can_register_events: user.can_register_events,
-            can_apply_speaking: user.can_apply_speaking,
-            can_edit_profile: user.can_edit_profile,
-            can_manage_users: user.can_manage_users,
-            can_rsvp_dinners: user.can_rsvp_dinners,
-            can_request_resources: user.can_request_resources,
           });
         if (insertError) throw insertError;
       }

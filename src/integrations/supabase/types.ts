@@ -970,6 +970,7 @@ export type Database = {
           accepted_by: string | null
           business_id: string
           created_at: string
+          display_name: string | null
           email: string
           expires_at: string
           id: string
@@ -986,6 +987,7 @@ export type Database = {
           accepted_by?: string | null
           business_id: string
           created_at?: string
+          display_name?: string | null
           email: string
           expires_at?: string
           id?: string
@@ -1002,6 +1004,7 @@ export type Database = {
           accepted_by?: string | null
           business_id?: string
           created_at?: string
+          display_name?: string | null
           email?: string
           expires_at?: string
           id?: string
@@ -1787,100 +1790,6 @@ export type Database = {
             columns: ["track_id"]
             isOneToOne: false
             referencedRelation: "membership_tracks"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      user_invitations: {
-        Row: {
-          accepted_at: string | null
-          business_id: string
-          can_apply_speaking: boolean | null
-          can_claim_tickets: boolean | null
-          can_edit_profile: boolean | null
-          can_manage_users: boolean | null
-          can_register_events: boolean | null
-          can_request_resources: boolean | null
-          can_rsvp_dinners: boolean | null
-          created_at: string | null
-          display_name: string | null
-          email: string
-          expires_at: string | null
-          id: string
-          invite_token: string | null
-          invited_by: string | null
-          is_self_request: boolean | null
-          revoked_at: string | null
-          revoked_by: string | null
-          role: Database["public"]["Enums"]["user_role"] | null
-          status: Database["public"]["Enums"]["invite_status"] | null
-        }
-        Insert: {
-          accepted_at?: string | null
-          business_id: string
-          can_apply_speaking?: boolean | null
-          can_claim_tickets?: boolean | null
-          can_edit_profile?: boolean | null
-          can_manage_users?: boolean | null
-          can_register_events?: boolean | null
-          can_request_resources?: boolean | null
-          can_rsvp_dinners?: boolean | null
-          created_at?: string | null
-          display_name?: string | null
-          email: string
-          expires_at?: string | null
-          id?: string
-          invite_token?: string | null
-          invited_by?: string | null
-          is_self_request?: boolean | null
-          revoked_at?: string | null
-          revoked_by?: string | null
-          role?: Database["public"]["Enums"]["user_role"] | null
-          status?: Database["public"]["Enums"]["invite_status"] | null
-        }
-        Update: {
-          accepted_at?: string | null
-          business_id?: string
-          can_apply_speaking?: boolean | null
-          can_claim_tickets?: boolean | null
-          can_edit_profile?: boolean | null
-          can_manage_users?: boolean | null
-          can_register_events?: boolean | null
-          can_request_resources?: boolean | null
-          can_rsvp_dinners?: boolean | null
-          created_at?: string | null
-          display_name?: string | null
-          email?: string
-          expires_at?: string | null
-          id?: string
-          invite_token?: string | null
-          invited_by?: string | null
-          is_self_request?: boolean | null
-          revoked_at?: string | null
-          revoked_by?: string | null
-          role?: Database["public"]["Enums"]["user_role"] | null
-          status?: Database["public"]["Enums"]["invite_status"] | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "user_invitations_business_id_fkey"
-            columns: ["business_id"]
-            isOneToOne: false
-            referencedRelation: "businesses"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "user_invitations_invited_by_fkey"
-            columns: ["invited_by"]
-            isOneToOne: false
-            referencedRelation: "company_users"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "user_invitations_revoked_by_fkey"
-            columns: ["revoked_by"]
-            isOneToOne: false
-            referencedRelation: "company_users"
             referencedColumns: ["id"]
           },
         ]
