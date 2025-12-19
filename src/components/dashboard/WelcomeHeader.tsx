@@ -1,4 +1,4 @@
-import { useMember } from "@/contexts/member/MemberContext";
+import { useUser } from "@/contexts/UserContext";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -18,7 +18,7 @@ const tierLabels: Record<string, string> = {
 };
 
 export function WelcomeHeader() {
-  const { profile, membership, activeCompany, activeCompanyId } = useMember();
+  const { profile, membership, activeCompany, activeCompanyId } = useUser();
 
   // Fetch upcoming events count
   const { data: events } = useQuery({

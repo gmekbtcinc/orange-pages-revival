@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
 import { Ticket, Calendar, Mic2, UtensilsCrossed, Users, Building2, Search } from "lucide-react";
-import { useMember } from "@/contexts/member/MemberContext";
+import { useUser } from "@/contexts/UserContext";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { WelcomeHeader } from "@/components/dashboard/WelcomeHeader";
 import { QuickActions } from "@/components/dashboard/QuickActions";
@@ -22,7 +22,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
 export default function Dashboard() {
-  const { profile, isLoading, membership, activeCompanyId, activeCompany } = useMember();
+  const { profile, isLoading, membership, activeCompanyId, activeCompany } = useUser();
   const [userId, setUserId] = useState<string | null>(null);
   const [submitDialogOpen, setSubmitDialogOpen] = useState(false);
   const [pendingSubmissionData, setPendingSubmissionData] = useState<Record<string, unknown> | null>(null);

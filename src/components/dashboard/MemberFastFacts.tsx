@@ -1,11 +1,11 @@
-import { useMember } from "@/contexts/member/MemberContext";
+import { useUser } from "@/contexts/UserContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calendar, CreditCard, Clock, DollarSign, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 
 export function MemberFastFacts() {
-  const { membership } = useMember();
+  const { membership } = useUser();
   
   if (!membership) return null;
   const [showDetails, setShowDetails] = useState(false);

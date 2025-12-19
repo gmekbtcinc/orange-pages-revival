@@ -13,42 +13,17 @@ import type {
 } from "@/types/user";
 import { DEFAULT_PERMISSIONS, Membership } from "@/types/user";
 
-// Backwards compatibility: Create a companyUser-like object from profile + activeCompany
-interface LegacyCompanyUser {
-  id: string;
-  user_id: string | null;
-  business_id: string | null;
-  email: string;
-  display_name: string;
-  title: string | null;
-  phone: string | null;
-  avatar_url: string | null;
-  role: string;
-  is_active: boolean;
-  can_claim_tickets: boolean;
-  can_register_events: boolean;
-  can_apply_speaking: boolean;
-  can_edit_profile: boolean;
-  can_manage_users: boolean;
-  can_rsvp_dinners: boolean;
-  can_request_resources: boolean;
-}
-
 interface UserContextType extends UserState {
   // Actions
   switchCompany: (businessId: string) => void;
   refetch: () => Promise<void>;
   signOut: () => Promise<void>;
   
-  // Convenience accessors (backwards compatibility)
+  // Convenience accessors
   permissions: UserPermissions;
   businessId: string | null;
   businessName: string | null;
   teamRole: TeamRole | null;
-  
-  // Legacy compatibility (deprecated - use profile/activeCompany instead)
-  companyUser: LegacyCompanyUser | null;
-  companyUserId: string | null;
   membership: Membership | null;
 }
 
@@ -295,55 +270,12 @@ export function UserProvider({ children }: { children: ReactNode }) {
     };
   }, [profile?.id, fetchUser]);
 
-  // Convenience accessors for backwards compatibility
+  // Convenience accessors
   const permissions = activeCompany?.permissions || DEFAULT_PERMISSIONS;
   const businessId = activeCompanyId;
   const businessName = activeCompany?.business?.name || null;
   const membership = activeCompany?.membership || null;
   const teamRole = activeCompany?.teamMembership?.role as TeamRole | null;
-
-  // Legacy companyUser object for backwards compatibility
-  const companyUser: LegacyCompanyUser | null = profile && activeCompany?.teamMembership ? {
-    id: activeCompany.teamMembership.id,
-    user_id: profile.id,
-    business_id: activeCompanyId,
-    email: profile.email,
-    display_name: profile.display_name,
-    title: profile.title,
-    phone: profile.phone,
-    avatar_url: profile.avatar_url,
-    role: activeCompany.teamMembership.role === 'owner' ? 'company_admin' : 
-          activeCompany.teamMembership.role === 'admin' ? 'company_admin' : 'company_user',
-    is_active: true,
-    can_claim_tickets: permissions.canClaimTickets,
-    can_register_events: permissions.canRegisterEvents,
-    can_apply_speaking: permissions.canApplySpeaking,
-    can_edit_profile: permissions.canEditProfile,
-    can_manage_users: permissions.canManageTeam,
-    can_rsvp_dinners: permissions.canRsvpDinners,
-    can_request_resources: permissions.canRequestResources,
-  } : profile ? {
-    // User exists but has no company - still provide basic info
-    id: profile.id,
-    user_id: profile.id,
-    business_id: null,
-    email: profile.email,
-    display_name: profile.display_name,
-    title: profile.title,
-    phone: profile.phone,
-    avatar_url: profile.avatar_url,
-    role: 'company_user',
-    is_active: true,
-    can_claim_tickets: false,
-    can_register_events: false,
-    can_apply_speaking: false,
-    can_edit_profile: false,
-    can_manage_users: false,
-    can_rsvp_dinners: false,
-    can_request_resources: false,
-  } : null;
-
-  const companyUserId = companyUser?.id || null;
 
   return (
     <UserContext.Provider
@@ -367,10 +299,6 @@ export function UserProvider({ children }: { children: ReactNode }) {
         businessId,
         businessName,
         teamRole,
-        
-        // Legacy compatibility
-        companyUser,
-        companyUserId,
         membership,
       }}
     >
@@ -386,6 +314,3 @@ export function useUser() {
   }
   return context;
 }
-
-// Backwards compatibility alias
-export const useMember = useUser;
