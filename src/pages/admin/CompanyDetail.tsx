@@ -139,43 +139,59 @@ export default function CompanyDetail() {
 
   // Fetch activity (ticket claims, symposium registrations, speaker applications)
   const { data: activity = [] } = useQuery({
-    queryKey: ["admin-company-activity", id, teamMembers],
+    queryKey: ["admin-company-activity", id],
     queryFn: async () => {
-      if (!teamMembers.length) return [];
-      
-      // Get all company_user IDs for this business
-      const companyUserIds = teamMembers.map(m => m.id);
+      if (!id) return [];
 
-      const [tickets, symposiums, speakers] = await Promise.all([
+      const [tickets, symposiums, speakers, dinners] = await Promise.all([
         supabase
           .from("ticket_claims")
-          .select("*, events(name)")
-          .in("company_user_id", companyUserIds)
+          .select("*, events(name), profiles:profile_id(display_name)")
+          .eq("business_id", id)
           .order("claimed_at", { ascending: false })
           .limit(10),
         supabase
           .from("symposium_registrations")
-          .select("*, events(name)")
-          .in("company_user_id", companyUserIds)
+          .select("*, events(name), profiles:profile_id(display_name)")
+          .eq("event_id", id) // Note: symposium_registrations doesn't have business_id, filter by profile
           .order("registered_at", { ascending: false })
           .limit(10),
         supabase
           .from("speaker_applications")
-          .select("*, events(name)")
-          .in("company_user_id", companyUserIds)
+          .select("*, events(name), profiles:profile_id(display_name)")
           .order("created_at", { ascending: false })
+          .limit(10),
+        supabase
+          .from("vip_dinner_rsvps")
+          .select("*, events(name), profiles:profile_id(display_name)")
+          .order("rsvp_at", { ascending: false })
           .limit(10),
       ]);
 
+      // For symposiums and speakers, we need to filter by profiles belonging to this company
+      const { data: companyProfiles } = await supabase
+        .from("team_memberships")
+        .select("profile_id")
+        .eq("business_id", id);
+      
+      const profileIds = companyProfiles?.map(p => p.profile_id) || [];
+
       const combined = [
         ...(tickets.data || []).map((t: any) => ({ ...t, type: "ticket", date: t.claimed_at })),
-        ...(symposiums.data || []).map((s: any) => ({ ...s, type: "symposium", date: s.registered_at })),
-        ...(speakers.data || []).map((s: any) => ({ ...s, type: "speaker", date: s.created_at })),
+        ...(symposiums.data || [])
+          .filter((s: any) => profileIds.includes(s.profile_id))
+          .map((s: any) => ({ ...s, type: "symposium", date: s.registered_at })),
+        ...(speakers.data || [])
+          .filter((s: any) => profileIds.includes(s.profile_id))
+          .map((s: any) => ({ ...s, type: "speaker", date: s.created_at })),
+        ...(dinners.data || [])
+          .filter((d: any) => profileIds.includes(d.profile_id))
+          .map((d: any) => ({ ...d, type: "dinner", date: d.rsvp_at })),
       ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
       return combined.slice(0, 20);
     },
-    enabled: teamMembers.length > 0,
+    enabled: !!id,
   });
 
   // Edit company mutation

@@ -69,7 +69,7 @@ export default function EventDetail() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("ticket_claims")
-        .select("*, members(display_name, email, businesses(name))")
+        .select("*, profiles:profile_id(display_name, email), businesses:business_id(name)")
         .eq("event_id", id)
         .order("claimed_at", { ascending: false });
       if (error) throw error;
@@ -84,7 +84,7 @@ export default function EventDetail() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("symposium_registrations")
-        .select("*, members(display_name, businesses(name))")
+        .select("*, profiles:profile_id(display_name, email)")
         .eq("event_id", id)
         .order("registered_at", { ascending: false });
       if (error) throw error;
@@ -99,7 +99,7 @@ export default function EventDetail() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("speaker_applications")
-        .select("*, members(display_name, businesses(name))")
+        .select("*, profiles:profile_id(display_name, email)")
         .eq("event_id", id)
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -114,7 +114,7 @@ export default function EventDetail() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("vip_dinner_rsvps")
-        .select("*, members(display_name, businesses(name))")
+        .select("*, profiles:profile_id(display_name, email)")
         .eq("event_id", id)
         .order("rsvp_at", { ascending: false });
       if (error) throw error;
@@ -511,7 +511,7 @@ export default function EventDetail() {
                               <p className="text-sm text-muted-foreground">{claim.attendee_email}</p>
                             </div>
                           </TableCell>
-                          <TableCell>{claim.attendee_company || (claim.members as any)?.businesses?.name || "N/A"}</TableCell>
+                          <TableCell>{claim.attendee_company || (claim.businesses as any)?.name || "N/A"}</TableCell>
                           <TableCell>
                             {claim.is_external_attendee ? (
                               <Badge variant="outline">External</Badge>
@@ -559,7 +559,7 @@ export default function EventDetail() {
                               <p className="text-sm text-muted-foreground">{reg.attendee_email}</p>
                             </div>
                           </TableCell>
-                          <TableCell>{reg.attendee_company || (reg.members as any)?.businesses?.name || "N/A"}</TableCell>
+                          <TableCell>{reg.attendee_company || "N/A"}</TableCell>
                           <TableCell className="text-sm">{reg.dietary_requirements || "None"}</TableCell>
                           <TableCell className="text-sm">{format(new Date(reg.registered_at), "MMM d, yyyy")}</TableCell>
                           <TableCell>{getStatusBadge(reg.status)}</TableCell>
@@ -656,7 +656,7 @@ export default function EventDetail() {
                               <p className="text-sm text-muted-foreground">{rsvp.guest_email}</p>
                             </div>
                           </TableCell>
-                          <TableCell>{rsvp.guest_company || (rsvp.members as any)?.businesses?.name || "N/A"}</TableCell>
+                          <TableCell>{rsvp.guest_company || "N/A"}</TableCell>
                           <TableCell className="text-sm">{rsvp.dietary_requirements || "None"}</TableCell>
                           <TableCell>{getStatusBadge(rsvp.status)}</TableCell>
                           <TableCell>
