@@ -162,6 +162,17 @@ export function SubmitBusinessDialog({ isOpen, onClose, initialData }: SubmitBus
         },
       }).catch((err) => console.error("Submission confirmation email error:", err));
       
+      // Notify admins of new submission (fire and forget)
+      supabase.functions.invoke("notify-admin", {
+        body: {
+          type: "new_submission",
+          businessName: name,
+          submitterName,
+          submitterEmail: userEmail,
+          origin: window.location.origin,
+        },
+      }).catch((err) => console.error("Admin notification error:", err));
+      
       toast({
         title: "Submission received!",
         description: wantsToClaim 
