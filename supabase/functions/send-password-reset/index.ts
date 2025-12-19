@@ -4,13 +4,15 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+const PRODUCTION_URL = "https://orangepages.bitcoinforcorporations.com";
 
 const ALLOWED_ORIGINS = ['https://orangepages.bitcoinforcorporations.com', 'https://bitcoinforcorporations.com', 'http://localhost:5173', 'http://localhost:8080'];
 
 const getCorsHeaders = (origin: string | null) => {
   const isAllowed = origin && (
     ALLOWED_ORIGINS.some(allowed => origin.startsWith(allowed.replace(/\/$/, ''))) ||
-    origin.endsWith('.lovableproject.com')
+    origin.endsWith('.lovableproject.com') ||
+    origin.endsWith('.lovable.app')
   );
   return { 'Access-Control-Allow-Origin': isAllowed ? origin : ALLOWED_ORIGINS[0], 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type' };
 };
@@ -41,7 +43,12 @@ const handler = async (req: Request): Promise<Response> => {
     await supabase.from("password_reset_tokens").update({ used_at: new Date().toISOString() }).eq("email", email.toLowerCase()).is("used_at", null);
     await supabase.from("password_reset_tokens").insert({ email: email.toLowerCase(), token, expires_at: new Date(Date.now() + 3600000).toISOString() });
 
-    const resetUrl = `${requestOrigin}/reset-password?token=${token}`;
+    // Use production URL for reset links to ensure consistent user experience
+    const baseUrl = requestOrigin.includes("lovable") || requestOrigin.includes("localhost") 
+      ? PRODUCTION_URL 
+      : requestOrigin;
+    const resetUrl = `${baseUrl}/reset-password?token=${token}`;
+    
     await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${RESEND_API_KEY}` },

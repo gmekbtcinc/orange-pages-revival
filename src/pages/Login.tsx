@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useToast } from "@/hooks/use-toast";
 import { z } from "zod";
 import { Loader2 } from "lucide-react";
+import { getProductionUrl } from "@/lib/urlUtils";
 
 const authSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -105,7 +106,7 @@ export default function Login() {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: `${window.location.origin}/auth/callback?returnTo=${encodeURIComponent(returnTo)}`,
+          redirectTo: `${getProductionUrl()}/auth/callback?returnTo=${encodeURIComponent(returnTo)}`,
         },
       });
       if (error) throw error;
@@ -127,7 +128,7 @@ export default function Login() {
     setResetLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke("send-password-reset", {
-        body: { email, origin: window.location.origin },
+        body: { email, origin: getProductionUrl() },
       });
 
       if (error) throw error;
@@ -168,7 +169,7 @@ export default function Login() {
           email,
           password,
           options: {
-            emailRedirectTo: `${window.location.origin}/auth/callback?returnTo=${encodeURIComponent(returnTo)}`,
+            emailRedirectTo: `${getProductionUrl()}/auth/callback?returnTo=${encodeURIComponent(returnTo)}`,
           },
         });
         if (error) throw error;
@@ -176,7 +177,7 @@ export default function Login() {
         // Send welcome email (fire and forget - don't block on errors)
         const displayName = email.split("@")[0];
         supabase.functions.invoke("send-welcome-email", {
-          body: { email, displayName, origin: window.location.origin },
+          body: { email, displayName, origin: getProductionUrl() },
         }).catch((err) => console.error("Welcome email error:", err));
         
         // With auto-confirm enabled, the user is signed in immediately

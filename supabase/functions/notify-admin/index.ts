@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
 const ADMIN_EMAIL = "directory@bitcoinforclubs.com";
+const PRODUCTION_URL = "https://orangepages.bitcoinforcorporations.com";
 
 // Allowed origins for CORS
 const ALLOWED_ORIGINS = [
@@ -14,7 +15,8 @@ const ALLOWED_ORIGINS = [
 const getCorsHeaders = (origin: string | null) => {
   const isAllowed = origin && (
     ALLOWED_ORIGINS.some(allowed => origin.startsWith(allowed.replace(/\/$/, ''))) ||
-    origin.endsWith('.lovableproject.com')
+    origin.endsWith('.lovableproject.com') ||
+    origin.endsWith('.lovable.app')
   );
   return {
     'Access-Control-Allow-Origin': isAllowed ? origin : ALLOWED_ORIGINS[0],
@@ -48,7 +50,11 @@ serve(async (req: Request) => {
       throw new Error("RESEND_API_KEY is not configured");
     }
 
-    const adminUrl = `${requestOrigin}/admin/claims`;
+    // Use production URL for admin links to ensure consistent user experience
+    const baseUrl = requestOrigin.includes("lovable") || requestOrigin.includes("localhost") 
+      ? PRODUCTION_URL 
+      : requestOrigin;
+    const adminUrl = `${baseUrl}/admin/claims`;
     
     let subject: string;
     let heading: string;
