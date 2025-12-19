@@ -12,7 +12,7 @@ const PRODUCTION_URL = "https://orangepages.bitcoinforcorporations.com";
 
 interface InvitationEmailRequest {
   email: string;
-  displayName: string;
+  displayName?: string;
   inviterName: string;
   companyName: string;
   role: string;
@@ -33,6 +33,7 @@ const handler = async (req: Request): Promise<Response> => {
     console.log("Sending invitation email to:", email);
     console.log("Company:", companyName);
     console.log("Inviter:", inviterName);
+    console.log("Role:", role);
 
     // Always use production URL for invitation links to avoid Lovable preview/auth-bridge issues
     const baseUrl = origin.includes("lovable.app") || origin.includes("lovable.dev") || origin.includes("localhost") 
@@ -40,7 +41,16 @@ const handler = async (req: Request): Promise<Response> => {
       : origin;
     
     const acceptUrl = `${baseUrl}/invite/accept?token=${inviteToken}`;
-    const roleDisplay = role === "company_admin" ? "Admin" : "Team Member";
+    
+    // Map team_role to display name
+    const roleDisplayMap: Record<string, string> = {
+      owner: "Owner",
+      admin: "Admin",
+      member: "Team Member",
+    };
+    const roleDisplay = roleDisplayMap[role] || "Team Member";
+    
+    const recipientName = displayName || email.split("@")[0];
 
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
@@ -69,7 +79,7 @@ const handler = async (req: Request): Promise<Response> => {
                 
                 <!-- Main Content -->
                 <h2 style="color: #18181b; font-size: 20px; margin-bottom: 16px;">
-                  Hi ${displayName},
+                  Hi ${recipientName},
                 </h2>
                 
                 <p style="color: #3f3f46; font-size: 16px; line-height: 1.6; margin-bottom: 16px;">
