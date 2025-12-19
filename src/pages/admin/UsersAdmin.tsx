@@ -11,45 +11,38 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Users, UserCheck, Mail, Shield, Search, MoreHorizontal, Eye, Edit, Building2, UserX, UserPlus, Trash2, Ticket, Calendar, Mic, Utensils, BookOpen, ShieldCheck, ShieldAlert, UserCog, Link2, X, Check, ArrowRightLeft } from "lucide-react";
+import { Users, UserCheck, Mail, Shield, Search, MoreHorizontal, Eye, Edit, Building2, UserX, UserPlus, Trash2, ShieldCheck, ShieldAlert, UserCog, X, Check, ArrowRightLeft } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { UserDetailDialog } from "@/components/admin/UserDetailDialog";
-import { EditUserPermissionsDialog } from "@/components/admin/EditUserPermissionsDialog";
 import { ManageRolesDialog } from "@/components/admin/ManageRolesDialog";
 import { AddUserDialog } from "@/components/admin/AddUserDialog";
-import { LinkAccountDialog } from "@/components/admin/LinkAccountDialog";
 import { ChangeCompanyDialog } from "@/components/admin/ChangeCompanyDialog";
-import { BulkEditUsersDialog } from "@/components/admin/BulkEditUsersDialog";
 import { Database } from "@/integrations/supabase/types";
 
 type AppRole = Database["public"]["Enums"]["app_role"];
+type TeamRole = Database["public"]["Enums"]["team_role"];
 
-type UserWithBusiness = {
+// Combined view of team members and pending invitations
+type UserListItem = {
   id: string;
+  type: "member" | "invitation";
   display_name: string;
   email: string;
   phone: string | null;
   title: string | null;
-  role: string;
+  role: TeamRole | null;
   business_id: string | null;
-  user_id: string | null;
-  is_active: boolean | null;
-  can_claim_tickets: boolean | null;
-  can_register_events: boolean | null;
-  can_apply_speaking: boolean | null;
-  can_edit_profile: boolean | null;
-  can_manage_users: boolean | null;
-  can_rsvp_dinners: boolean | null;
-  can_request_resources: boolean | null;
-  invited_at: string | null;
-  accepted_at: string | null;
+  profile_id: string | null;
+  is_active: boolean;
   created_at: string | null;
-  updated_at: string | null;
-  businesses: { name: string } | null;
+  business_name: string | null;
+  // Invitation-specific
+  invitation_status?: string;
+  expires_at?: string | null;
 };
 
 export default function UsersAdmin() {
@@ -58,82 +51,166 @@ export default function UsersAdmin() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [roleFilter, setRoleFilter] = useState("all");
   const [page, setPage] = useState(0);
-  const [selectedUser, setSelectedUser] = useState<UserWithBusiness | null>(null);
+  const [selectedUser, setSelectedUser] = useState<UserListItem | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
-  const [permissionsOpen, setPermissionsOpen] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
-  const [userToDelete, setUserToDelete] = useState<UserWithBusiness | null>(null);
+  const [userToDelete, setUserToDelete] = useState<UserListItem | null>(null);
   const [rolesDialogOpen, setRolesDialogOpen] = useState(false);
   const [editingRole, setEditingRole] = useState<{ id: string; user_id: string; role: AppRole; email?: string } | null>(null);
   const [roleToRevoke, setRoleToRevoke] = useState<{ id: string; email: string; role: string } | null>(null);
   const [addUserOpen, setAddUserOpen] = useState(false);
-  const [linkAccountOpen, setLinkAccountOpen] = useState(false);
-  const [userToLink, setUserToLink] = useState<UserWithBusiness | null>(null);
   const [changeCompanyOpen, setChangeCompanyOpen] = useState(false);
-  const [userToChangeCompany, setUserToChangeCompany] = useState<UserWithBusiness | null>(null);
+  const [userToChangeCompany, setUserToChangeCompany] = useState<UserListItem | null>(null);
   
   // Bulk selection state
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [bulkEditOpen, setBulkEditOpen] = useState(false);
   
   // Inline editing state
-  const [editingCell, setEditingCell] = useState<{ userId: string; field: string } | null>(null);
+  const [editingCell, setEditingCell] = useState<{ id: string; field: string } | null>(null);
   const [editValue, setEditValue] = useState("");
   
   const pageSize = 25;
 
-  // Fetch stats
+  // Fetch stats from team_memberships and invitations
   const { data: stats } = useQuery({
     queryKey: ["admin-users-stats"],
     queryFn: async () => {
-      const [total, active, pending, admins, unlinked] = await Promise.all([
-        supabase.from("company_users").select("id", { count: "exact", head: true }),
-        supabase.from("company_users").select("id", { count: "exact", head: true }).eq("is_active", true).not("user_id", "is", null).not("business_id", "is", null),
-        supabase.from("company_users").select("id", { count: "exact", head: true }).eq("is_active", true).is("user_id", null).not("business_id", "is", null),
-        supabase.from("company_users").select("id", { count: "exact", head: true }).eq("role", "company_admin"),
-        supabase.from("company_users").select("id", { count: "exact", head: true }).is("business_id", null),
+      const [members, pendingInvites, owners, admins] = await Promise.all([
+        supabase.from("team_memberships").select("id", { count: "exact", head: true }),
+        supabase.from("invitations").select("id", { count: "exact", head: true }).eq("status", "pending"),
+        supabase.from("team_memberships").select("id", { count: "exact", head: true }).eq("role", "owner"),
+        supabase.from("team_memberships").select("id", { count: "exact", head: true }).eq("role", "admin"),
       ]);
       return {
-        total: total.count || 0,
-        active: active.count || 0,
-        pending: pending.count || 0,
+        total: (members.count || 0) + (pendingInvites.count || 0),
+        active: members.count || 0,
+        pending: pendingInvites.count || 0,
+        owners: owners.count || 0,
         admins: admins.count || 0,
-        unlinked: unlinked.count || 0,
       };
     },
   });
 
-  // Fetch users
+  // Fetch users from team_memberships with profiles, and pending invitations
   const { data: usersData, isLoading } = useQuery({
     queryKey: ["admin-users", search, statusFilter, roleFilter, page],
     queryFn: async () => {
-      let query = supabase
-        .from("company_users")
-        .select("*, businesses(name)", { count: "exact" })
-        .order("created_at", { ascending: false })
-        .range(page * pageSize, (page + 1) * pageSize - 1);
+      const items: UserListItem[] = [];
 
-      if (search) {
-        query = query.or(`display_name.ilike.%${search}%,email.ilike.%${search}%`);
+      // Fetch team memberships with profiles and businesses
+      if (statusFilter === "all" || statusFilter === "active") {
+        let memberQuery = supabase
+          .from("team_memberships")
+          .select(`
+            id,
+            role,
+            business_id,
+            profile_id,
+            created_at,
+            profiles!inner (
+              id,
+              display_name,
+              email,
+              phone,
+              title
+            ),
+            businesses (
+              name
+            )
+          `)
+          .order("created_at", { ascending: false });
+
+        if (search) {
+          memberQuery = memberQuery.or(`profiles.display_name.ilike.%${search}%,profiles.email.ilike.%${search}%`);
+        }
+
+        if (roleFilter !== "all") {
+          memberQuery = memberQuery.eq("role", roleFilter as TeamRole);
+        }
+
+        const { data: memberships, error } = await memberQuery;
+        if (error) throw error;
+
+        memberships?.forEach((m: any) => {
+          items.push({
+            id: m.id,
+            type: "member",
+            display_name: m.profiles?.display_name || "Unknown",
+            email: m.profiles?.email || "",
+            phone: m.profiles?.phone || null,
+            title: m.profiles?.title || null,
+            role: m.role,
+            business_id: m.business_id,
+            profile_id: m.profile_id,
+            is_active: true,
+            created_at: m.created_at,
+            business_name: m.businesses?.name || null,
+          });
+        });
       }
 
-      if (statusFilter === "active") {
-        query = query.eq("is_active", true).not("user_id", "is", null).not("business_id", "is", null);
-      } else if (statusFilter === "invited") {
-        query = query.is("user_id", null).eq("is_active", true).not("business_id", "is", null);
-      } else if (statusFilter === "inactive") {
-        query = query.eq("is_active", false);
-      } else if (statusFilter === "unlinked") {
-        query = query.is("business_id", null);
+      // Fetch pending invitations
+      if (statusFilter === "all" || statusFilter === "invited") {
+        let inviteQuery = supabase
+          .from("invitations")
+          .select(`
+            id,
+            email,
+            role,
+            business_id,
+            status,
+            expires_at,
+            created_at,
+            businesses (
+              name
+            )
+          `)
+          .eq("status", "pending")
+          .order("created_at", { ascending: false });
+
+        if (search) {
+          inviteQuery = inviteQuery.ilike("email", `%${search}%`);
+        }
+
+        if (roleFilter !== "all") {
+          inviteQuery = inviteQuery.eq("role", roleFilter as TeamRole);
+        }
+
+        const { data: invitations, error } = await inviteQuery;
+        if (error) throw error;
+
+        invitations?.forEach((inv: any) => {
+          items.push({
+            id: inv.id,
+            type: "invitation",
+            display_name: inv.email.split("@")[0],
+            email: inv.email,
+            phone: null,
+            title: null,
+            role: inv.role,
+            business_id: inv.business_id,
+            profile_id: null,
+            is_active: false,
+            created_at: inv.created_at,
+            business_name: inv.businesses?.name || null,
+            invitation_status: inv.status,
+            expires_at: inv.expires_at,
+          });
+        });
       }
 
-      if (roleFilter !== "all") {
-        query = query.eq("role", roleFilter as "company_admin" | "company_user");
-      }
+      // Sort by created_at descending
+      items.sort((a, b) => {
+        const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
+        const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
+        return dateB - dateA;
+      });
 
-      const { data, error, count } = await query;
-      if (error) throw error;
-      return { users: data as UserWithBusiness[], count: count || 0 };
+      // Paginate
+      const start = page * pageSize;
+      const paginated = items.slice(start, start + pageSize);
+
+      return { users: paginated, count: items.length };
     },
   });
 
@@ -147,17 +224,17 @@ export default function UsersAdmin() {
         .order("created_at", { ascending: false });
       if (error) throw error;
 
-      // Get email info for each role from company_users
+      // Get email info for each role from profiles
       const rolesWithEmail = await Promise.all(
         data.map(async (role) => {
-          const { data: companyUser } = await supabase
-            .from("company_users")
+          const { data: profile } = await supabase
+            .from("profiles")
             .select("email, display_name")
-            .eq("user_id", role.user_id)
+            .eq("id", role.user_id)
             .maybeSingle();
           
-          if (companyUser) {
-            return { ...role, email: companyUser.email, display_name: companyUser.display_name };
+          if (profile) {
+            return { ...role, email: profile.email, display_name: profile.display_name };
           }
 
           return { ...role, email: "Unknown", display_name: "Unknown User" };
@@ -187,53 +264,27 @@ export default function UsersAdmin() {
     },
   });
 
-  // Toggle active mutation
-  const toggleActiveMutation = useMutation({
-    mutationFn: async ({ userId, isActive }: { userId: string; isActive: boolean }) => {
-      const { error } = await supabase
-        .from("company_users")
-        .update({ is_active: isActive })
-        .eq("id", userId);
-      if (error) throw error;
+  // Delete team membership mutation
+  const deleteMembershipMutation = useMutation({
+    mutationFn: async ({ id, type }: { id: string; type: "member" | "invitation" }) => {
+      if (type === "member") {
+        const { error } = await supabase
+          .from("team_memberships")
+          .delete()
+          .eq("id", id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from("invitations")
+          .update({ status: "revoked", revoked_at: new Date().toISOString() })
+          .eq("id", id);
+        if (error) throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-users"] });
       queryClient.invalidateQueries({ queryKey: ["admin-users-stats"] });
-      toast.success("User status updated");
-    },
-    onError: (error) => {
-      toast.error("Failed to update user: " + error.message);
-    },
-  });
-
-  // Delete user mutation - calls edge function to delete from both company_users and auth.users
-  const deleteMutation = useMutation({
-    mutationFn: async (companyUserId: string) => {
-      const { data: sessionData } = await supabase.auth.getSession();
-      const response = await supabase.functions.invoke("delete-user", {
-        body: { companyUserId, deleteAuthUser: true },
-        headers: sessionData?.session?.access_token 
-          ? { Authorization: `Bearer ${sessionData.session.access_token}` }
-          : undefined,
-      });
-      
-      if (response.error) {
-        throw new Error(response.error.message || "Failed to delete user");
-      }
-      
-      if (response.data?.error) {
-        throw new Error(response.data.error);
-      }
-      
-      return response.data;
-    },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["admin-users"] });
-      queryClient.invalidateQueries({ queryKey: ["admin-users-stats"] });
-      toast.success(data?.warning ? "User removed (with warning)" : "User removed completely");
-      if (data?.warning) {
-        console.warn("Delete warning:", data.warning, data.authError);
-      }
+      toast.success("User removed successfully");
       setDeleteConfirmOpen(false);
       setUserToDelete(null);
     },
@@ -242,58 +293,49 @@ export default function UsersAdmin() {
     },
   });
 
-  const totalPages = Math.ceil((usersData?.count || 0) / pageSize);
-
-  // Inline edit mutation
-  const inlineEditMutation = useMutation({
-    mutationFn: async ({ userId, field, value }: { userId: string; field: string; value: string | boolean }) => {
+  // Update role mutation
+  const updateRoleMutation = useMutation({
+    mutationFn: async ({ id, role }: { id: string; role: TeamRole }) => {
       const { error } = await supabase
-        .from("company_users")
-        .update({ [field]: value })
-        .eq("id", userId);
+        .from("team_memberships")
+        .update({ role })
+        .eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-users"] });
-      toast.success("Updated successfully");
+      toast.success("Role updated successfully");
       setEditingCell(null);
     },
     onError: (error) => {
-      toast.error("Failed to update: " + error.message);
+      toast.error("Failed to update role: " + error.message);
     },
   });
 
-  // Bulk delete mutation - calls edge function for each user to delete from both company_users and auth.users
+  // Bulk delete mutation
   const bulkDeleteMutation = useMutation({
-    mutationFn: async (ids: string[]) => {
-      const { data: sessionData } = await supabase.auth.getSession();
+    mutationFn: async (items: { id: string; type: "member" | "invitation" }[]) => {
       const results = await Promise.allSettled(
-        ids.map(async (companyUserId) => {
-          const response = await supabase.functions.invoke("delete-user", {
-            body: { companyUserId, deleteAuthUser: true },
-            headers: sessionData?.session?.access_token 
-              ? { Authorization: `Bearer ${sessionData.session.access_token}` }
-              : undefined,
-          });
-          if (response.error) {
-            throw new Error(response.error.message || "Failed to delete user");
+        items.map(async ({ id, type }) => {
+          if (type === "member") {
+            const { error } = await supabase.from("team_memberships").delete().eq("id", id);
+            if (error) throw error;
+          } else {
+            const { error } = await supabase.from("invitations").update({ status: "revoked" }).eq("id", id);
+            if (error) throw error;
           }
-          if (response.data?.error) {
-            throw new Error(response.data.error);
-          }
-          return response.data;
         })
       );
       
       const failures = results.filter(r => r.status === 'rejected');
       if (failures.length > 0) {
-        throw new Error(`Failed to delete ${failures.length} of ${ids.length} users`);
+        throw new Error(`Failed to delete ${failures.length} of ${items.length} users`);
       }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-users"] });
       queryClient.invalidateQueries({ queryKey: ["admin-users-stats"] });
-      toast.success(`Deleted ${selectedIds.size} users completely`);
+      toast.success(`Deleted ${selectedIds.size} users`);
       setSelectedIds(new Set());
     },
     onError: (error) => {
@@ -301,6 +343,8 @@ export default function UsersAdmin() {
       toast.error("Failed to delete users: " + error.message);
     },
   });
+
+  const totalPages = Math.ceil((usersData?.count || 0) / pageSize);
 
   // Selection helpers
   const toggleSelectAll = () => {
@@ -322,18 +366,9 @@ export default function UsersAdmin() {
     setSelectedIds(newSet);
   };
 
-  const startInlineEdit = (userId: string, field: string, currentValue: string) => {
-    setEditingCell({ userId, field });
+  const startInlineEdit = (id: string, field: string, currentValue: string) => {
+    setEditingCell({ id, field });
     setEditValue(currentValue);
-  };
-
-  const saveInlineEdit = () => {
-    if (!editingCell) return;
-    inlineEditMutation.mutate({ 
-      userId: editingCell.userId, 
-      field: editingCell.field, 
-      value: editValue 
-    });
   };
 
   const cancelInlineEdit = () => {
@@ -341,10 +376,13 @@ export default function UsersAdmin() {
     setEditValue("");
   };
 
-  const getStatusBadge = (user: UserWithBusiness) => {
-    if (!user.business_id) return <Badge variant="outline" className="border-blue-500 text-blue-600">Unlinked</Badge>;
-    if (!user.is_active) return <Badge variant="destructive">Inactive</Badge>;
-    if (!user.user_id) return <Badge className="bg-yellow-500 hover:bg-yellow-600">Invited</Badge>;
+  const getStatusBadge = (user: UserListItem) => {
+    if (user.type === "invitation") {
+      return <Badge className="bg-yellow-500 hover:bg-yellow-600">Invited</Badge>;
+    }
+    if (!user.business_id) {
+      return <Badge variant="outline" className="border-blue-500 text-blue-600">No Company</Badge>;
+    }
     return <Badge className="bg-green-500 hover:bg-green-600">Active</Badge>;
   };
 
@@ -357,21 +395,18 @@ export default function UsersAdmin() {
       .slice(0, 2);
   };
 
-  const getPermissionIcons = (user: UserWithBusiness) => {
-    const perms = [
-      { enabled: user.can_claim_tickets, icon: Ticket, label: "Tickets" },
-      { enabled: user.can_register_events, icon: Calendar, label: "Events" },
-      { enabled: user.can_apply_speaking, icon: Mic, label: "Speaking" },
-      { enabled: user.can_edit_profile, icon: Edit, label: "Edit" },
-      { enabled: user.can_manage_users, icon: Users, label: "Users" },
-      { enabled: user.can_rsvp_dinners, icon: Utensils, label: "Dinners" },
-      { enabled: user.can_request_resources, icon: BookOpen, label: "Resources" },
-    ];
-    return perms.filter((p) => p.enabled).map((p) => (
-      <span key={p.label} title={p.label}>
-        <p.icon className="h-3 w-3 text-muted-foreground" />
-      </span>
-    ));
+  const getRoleBadge = (role: TeamRole | null) => {
+    if (!role) return null;
+    const roleStyles: Record<TeamRole, string> = {
+      owner: "bg-amber-500/20 text-amber-600 border-amber-500/30",
+      admin: "bg-blue-500/20 text-blue-600 border-blue-500/30",
+      member: "bg-slate-500/20 text-slate-600 border-slate-500/30",
+    };
+    return (
+      <Badge variant="outline" className={roleStyles[role]}>
+        {role.charAt(0).toUpperCase() + role.slice(1)}
+      </Badge>
+    );
   };
 
   return (
@@ -404,7 +439,7 @@ export default function UsersAdmin() {
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Active Users</CardTitle>
+              <CardTitle className="text-sm font-medium">Active Members</CardTitle>
               <UserCheck className="h-4 w-4 text-green-500" />
             </CardHeader>
             <CardContent>
@@ -422,11 +457,11 @@ export default function UsersAdmin() {
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Company Admins</CardTitle>
+              <CardTitle className="text-sm font-medium">Team Admins</CardTitle>
               <Shield className="h-4 w-4 text-primary" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats?.admins || 0}</div>
+              <div className="text-2xl font-bold">{(stats?.owners || 0) + (stats?.admins || 0)}</div>
             </CardContent>
           </Card>
         </div>
@@ -452,8 +487,6 @@ export default function UsersAdmin() {
                   <TabsTrigger value="all">All</TabsTrigger>
                   <TabsTrigger value="active">Active</TabsTrigger>
                   <TabsTrigger value="invited">Invited</TabsTrigger>
-                  <TabsTrigger value="unlinked">Unlinked ({stats?.unlinked || 0})</TabsTrigger>
-                  <TabsTrigger value="inactive">Inactive</TabsTrigger>
                 </TabsList>
               </Tabs>
               <Select value={roleFilter} onValueChange={(v) => { setRoleFilter(v); setPage(0); }}>
@@ -462,8 +495,9 @@ export default function UsersAdmin() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Roles</SelectItem>
-                  <SelectItem value="company_admin">Company Admin</SelectItem>
-                  <SelectItem value="company_user">Company User</SelectItem>
+                  <SelectItem value="owner">Owner</SelectItem>
+                  <SelectItem value="admin">Admin</SelectItem>
+                  <SelectItem value="member">Member</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -485,17 +519,16 @@ export default function UsersAdmin() {
                   </span>
                 </div>
                 <div className="flex gap-2">
-                  <Button variant="outline" size="sm" onClick={() => setBulkEditOpen(true)}>
-                    <Edit className="h-4 w-4 mr-2" />
-                    Edit Selected
-                  </Button>
                   <Button 
                     variant="outline" 
                     size="sm" 
                     className="text-destructive border-destructive hover:bg-destructive/10"
                     onClick={() => {
                       if (confirm(`Delete ${selectedIds.size} users? This cannot be undone.`)) {
-                        bulkDeleteMutation.mutate(Array.from(selectedIds));
+                        const items = usersData?.users
+                          .filter(u => selectedIds.has(u.id))
+                          .map(u => ({ id: u.id, type: u.type })) || [];
+                        bulkDeleteMutation.mutate(items);
                       }
                     }}
                   >
@@ -527,7 +560,6 @@ export default function UsersAdmin() {
                   <TableHead>Company</TableHead>
                   <TableHead>Role</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Permissions</TableHead>
                   <TableHead>Joined</TableHead>
                   <TableHead className="w-[50px]"></TableHead>
                 </TableRow>
@@ -535,13 +567,13 @@ export default function UsersAdmin() {
               <TableBody>
                 {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8">
+                    <TableCell colSpan={7} className="text-center py-8">
                       Loading...
                     </TableCell>
                   </TableRow>
                 ) : usersData?.users.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                       No users found
                     </TableCell>
                   </TableRow>
@@ -562,7 +594,7 @@ export default function UsersAdmin() {
                             </AvatarFallback>
                           </Avatar>
                           <div>
-                            {editingCell?.userId === user.id && editingCell?.field === "display_name" ? (
+                            {editingCell?.id === user.id && editingCell?.field === "display_name" ? (
                               <div className="flex items-center gap-1">
                                 <Input
                                   value={editValue}
@@ -570,13 +602,9 @@ export default function UsersAdmin() {
                                   className="h-7 w-[150px] text-sm"
                                   autoFocus
                                   onKeyDown={(e) => {
-                                    if (e.key === "Enter") saveInlineEdit();
                                     if (e.key === "Escape") cancelInlineEdit();
                                   }}
                                 />
-                                <Button size="icon" variant="ghost" className="h-6 w-6" onClick={saveInlineEdit}>
-                                  <Check className="h-3 w-3" />
-                                </Button>
                                 <Button size="icon" variant="ghost" className="h-6 w-6" onClick={cancelInlineEdit}>
                                   <X className="h-3 w-3" />
                                 </Button>
@@ -601,67 +629,35 @@ export default function UsersAdmin() {
                             className="text-primary hover:underline flex items-center gap-1"
                           >
                             <Building2 className="h-3 w-3" />
-                            {user.businesses?.name || "Unknown"}
+                            {user.business_name || "Unknown"}
                           </Link>
                         ) : (
-                          <div className="flex items-center gap-2">
-                            <span className="text-muted-foreground">No Company</span>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-6 px-2 text-xs"
-                              onClick={() => {
-                                setUserToLink(user);
-                                setLinkAccountOpen(true);
-                              }}
-                            >
-                              <Link2 className="h-3 w-3 mr-1" />
-                              Link
-                            </Button>
-                          </div>
+                          <span className="text-muted-foreground">No Company</span>
                         )}
                       </TableCell>
                       <TableCell>
-                        <Select
-                          value={user.role}
-                          onValueChange={(value) => inlineEditMutation.mutate({ 
-                            userId: user.id, 
-                            field: "role", 
-                            value 
-                          })}
-                        >
-                          <SelectTrigger className="w-[140px] h-8">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="company_admin">Company Admin</SelectItem>
-                            <SelectItem value="company_user">Company User</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
+                        {user.type === "member" ? (
                           <Select
-                            value={user.is_active ? "active" : "inactive"}
-                            onValueChange={(value) => toggleActiveMutation.mutate({ userId: user.id, isActive: value === "active" })}
-                            disabled={toggleActiveMutation.isPending}
+                            value={user.role || "member"}
+                            onValueChange={(value) => updateRoleMutation.mutate({ 
+                              id: user.id, 
+                              role: value as TeamRole 
+                            })}
                           >
-                            <SelectTrigger className="w-[110px] h-8">
+                            <SelectTrigger className="w-[120px] h-8">
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="active">Active</SelectItem>
-                              <SelectItem value="inactive">Inactive</SelectItem>
+                              <SelectItem value="owner">Owner</SelectItem>
+                              <SelectItem value="admin">Admin</SelectItem>
+                              <SelectItem value="member">Member</SelectItem>
                             </SelectContent>
                           </Select>
-                          {!user.user_id && user.is_active && (
-                            <Badge variant="outline" className="text-xs">Pending</Badge>
-                          )}
-                        </div>
+                        ) : (
+                          getRoleBadge(user.role)
+                        )}
                       </TableCell>
-                      <TableCell>
-                        <div className="flex gap-1">{getPermissionIcons(user)}</div>
-                      </TableCell>
+                      <TableCell>{getStatusBadge(user)}</TableCell>
                       <TableCell className="text-sm text-muted-foreground">
                         {user.created_at ? format(new Date(user.created_at), "MMM d, yyyy") : "N/A"}
                       </TableCell>
@@ -677,49 +673,25 @@ export default function UsersAdmin() {
                               <Eye className="h-4 w-4 mr-2" />
                               View Details
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => { setSelectedUser(user); setPermissionsOpen(true); }}>
-                              <Edit className="h-4 w-4 mr-2" />
-                              Edit Permissions
-                            </DropdownMenuItem>
-                            <DropdownMenuItem asChild>
-                              <Link to={`/admin/companies/${user.business_id}`}>
-                                <Building2 className="h-4 w-4 mr-2" />
-                                View Company
-                              </Link>
-                            </DropdownMenuItem>
-                            {user.user_id && (
+                            {user.business_id && (
+                              <DropdownMenuItem asChild>
+                                <Link to={`/admin/companies/${user.business_id}`}>
+                                  <Building2 className="h-4 w-4 mr-2" />
+                                  View Company
+                                </Link>
+                              </DropdownMenuItem>
+                            )}
+                            {user.type === "member" && (
                               <DropdownMenuItem onClick={() => { setUserToChangeCompany(user); setChangeCompanyOpen(true); }}>
                                 <ArrowRightLeft className="h-4 w-4 mr-2" />
                                 Change Company
                               </DropdownMenuItem>
                             )}
-                            <DropdownMenuSeparator />
-                            {user.is_active ? (
-                              <DropdownMenuItem
-                                onClick={() => toggleActiveMutation.mutate({ userId: user.id, isActive: false })}
-                              >
-                                <UserX className="h-4 w-4 mr-2" />
-                                Deactivate
+                            {user.type === "invitation" && (
+                              <DropdownMenuItem>
+                                <Mail className="h-4 w-4 mr-2" />
+                                Resend Invitation
                               </DropdownMenuItem>
-                            ) : (
-                              <DropdownMenuItem
-                                onClick={() => toggleActiveMutation.mutate({ userId: user.id, isActive: true })}
-                              >
-                                <UserPlus className="h-4 w-4 mr-2" />
-                                Reactivate
-                              </DropdownMenuItem>
-                            )}
-                            {!user.user_id && (
-                              <>
-                                <DropdownMenuItem onClick={() => { setUserToLink(user); setLinkAccountOpen(true); }}>
-                                  <Link2 className="h-4 w-4 mr-2" />
-                                  Link Auth Account
-                                </DropdownMenuItem>
-                                <DropdownMenuItem>
-                                  <Mail className="h-4 w-4 mr-2" />
-                                  Resend Invitation
-                                </DropdownMenuItem>
-                              </>
                             )}
                             <DropdownMenuSeparator />
                             <DropdownMenuItem
@@ -727,7 +699,7 @@ export default function UsersAdmin() {
                               onClick={() => { setUserToDelete(user); setDeleteConfirmOpen(true); }}
                             >
                               <Trash2 className="h-4 w-4 mr-2" />
-                              Remove User
+                              {user.type === "invitation" ? "Revoke Invitation" : "Remove User"}
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
@@ -872,8 +844,7 @@ export default function UsersAdmin() {
       </div>
 
       {/* Dialogs */}
-      <UserDetailDialog user={selectedUser} open={detailOpen} onOpenChange={setDetailOpen} />
-      <EditUserPermissionsDialog user={selectedUser} open={permissionsOpen} onOpenChange={setPermissionsOpen} />
+      <UserDetailDialog user={selectedUser as any} open={detailOpen} onOpenChange={setDetailOpen} />
       <ManageRolesDialog 
         open={rolesDialogOpen} 
         onOpenChange={setRolesDialogOpen}
@@ -885,18 +856,23 @@ export default function UsersAdmin() {
       <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Remove User</AlertDialogTitle>
+            <AlertDialogTitle>
+              {userToDelete?.type === "invitation" ? "Revoke Invitation" : "Remove User"}
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to remove {userToDelete?.display_name}? This action cannot be undone.
+              {userToDelete?.type === "invitation" 
+                ? `Are you sure you want to revoke the invitation for ${userToDelete?.email}?`
+                : `Are you sure you want to remove ${userToDelete?.display_name}? This action cannot be undone.`
+              }
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              onClick={() => userToDelete && deleteMutation.mutate(userToDelete.id)}
+              onClick={() => userToDelete && deleteMembershipMutation.mutate({ id: userToDelete.id, type: userToDelete.type })}
             >
-              Remove
+              {userToDelete?.type === "invitation" ? "Revoke" : "Remove"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -923,24 +899,9 @@ export default function UsersAdmin() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Link Account Dialog */}
-      <LinkAccountDialog
-        user={userToLink}
-        open={linkAccountOpen}
-        onOpenChange={setLinkAccountOpen}
-      />
-
-      {/* Bulk Edit Dialog */}
-      <BulkEditUsersDialog
-        open={bulkEditOpen}
-        onOpenChange={setBulkEditOpen}
-        selectedUserIds={Array.from(selectedIds)}
-        onComplete={() => setSelectedIds(new Set())}
-      />
-
       {/* Change Company Dialog */}
       <ChangeCompanyDialog
-        user={userToChangeCompany}
+        user={userToChangeCompany as any}
         open={changeCompanyOpen}
         onOpenChange={setChangeCompanyOpen}
       />

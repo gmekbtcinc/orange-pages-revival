@@ -80,7 +80,7 @@ interface CompanyWithMembership {
   is_bitcoin_only: boolean | null;
   created_at: string;
   memberships: { tier: string; is_active: boolean; member_since: string | null } | null;
-  company_users: { id: string }[];
+  team_memberships: { id: string }[];
 }
 
 type SortField = "name" | "joined" | "tier";
@@ -184,7 +184,7 @@ export default function CompaniesAdmin() {
           is_bitcoin_only,
           created_at,
           memberships (tier, is_active, member_since),
-          company_users (id)
+          team_memberships (id)
         `, { count: "exact" });
 
       if (searchQuery) {
@@ -290,7 +290,7 @@ export default function CompaniesAdmin() {
         c.memberships?.tier || "non-member",
         `"${[c.city, c.country].filter(Boolean).join(", ")}"`,
         c.memberships?.member_since || "",
-        c.company_users?.length || 0,
+        c.team_memberships?.length || 0,
       ].join(","))
     ].join("\n");
     
@@ -630,7 +630,7 @@ export default function CompaniesAdmin() {
                       <TableCell>
                         <div className="flex items-center gap-1 text-muted-foreground">
                           <Users className="h-4 w-4" />
-                          <span>{company.company_users?.length || 0}</span>
+                          <span>{company.team_memberships?.length || 0}</span>
                         </div>
                       </TableCell>
                       <TableCell onClick={(e) => e.stopPropagation()}>
