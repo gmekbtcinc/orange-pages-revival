@@ -1,10 +1,10 @@
 import { useMember } from "@/contexts/member/MemberContext";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Calendar, Ticket, Building2 } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 const tierLabels: Record<string, string> = {
   silver: "Silver Member",
@@ -12,25 +12,13 @@ const tierLabels: Record<string, string> = {
   platinum: "Platinum Member",
   chairman: "Chairman's Circle",
   executive: "Executive Member",
+  industry: "Industry Member",
+  premier: "Premier Member",
+  sponsor: "Sponsor",
 };
 
 export function WelcomeHeader() {
-  const { companyUser, membership, allocations } = useMember();
-
-  // Fetch company name and logo
-  const { data: business } = useQuery({
-    queryKey: ["business", companyUser?.business_id],
-    queryFn: async () => {
-      if (!companyUser?.business_id) return null;
-      const { data } = await supabase
-        .from("businesses")
-        .select("name, logo_url")
-        .eq("id", companyUser.business_id)
-        .single();
-      return data;
-    },
-    enabled: !!companyUser?.business_id,
-  });
+  const { profile, membership, activeCompany, activeCompanyId } = useMember();
 
   // Fetch upcoming events count
   const { data: events } = useQuery({
@@ -46,18 +34,26 @@ export function WelcomeHeader() {
     },
   });
 
-  // Fetch ticket claims count
+  // Fetch ticket claims count for this company
   const { data: ticketClaims } = useQuery({
-    queryKey: ["ticket-claims-count", companyUser?.id],
+    queryKey: ["ticket-claims-count", activeCompanyId],
     queryFn: async () => {
-      if (!companyUser?.id) return [];
+      if (!activeCompanyId) return [];
+      // Get all company_users for this business, then get their ticket claims
+      const { data: companyUsers } = await supabase
+        .from("company_users")
+        .select("id")
+        .eq("business_id", activeCompanyId);
+      
+      if (!companyUsers?.length) return [];
+      
       const { data } = await supabase
         .from("ticket_claims")
         .select("id")
-        .eq("company_user_id", companyUser.id);
+        .in("company_user_id", companyUsers.map(u => u.id));
       return data || [];
     },
-    enabled: !!companyUser?.id,
+    enabled: !!activeCompanyId,
   });
 
   const getGreeting = () => {
@@ -67,11 +63,11 @@ export function WelcomeHeader() {
     return "Good evening";
   };
 
-  const displayName = companyUser?.display_name || "there";
+  const displayName = profile?.display_name || "there";
   const firstName = displayName.split(" ")[0];
   const tier = membership?.tier || "industry";
-  const companyName = business?.name || "Your Company";
-  const companyLogo = business?.logo_url;
+  const companyName = activeCompany?.business?.name || "Your Company";
+  const companyLogo = activeCompany?.business?.logo_url;
   const companyInitials = companyName.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
 
   return (

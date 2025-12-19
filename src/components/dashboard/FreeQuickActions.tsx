@@ -7,7 +7,7 @@ import { SubmitBusinessDialog } from "@/components/submissions/SubmitBusinessDia
 
 export function FreeQuickActions() {
   const navigate = useNavigate();
-  const { companyUser } = useMember();
+  const { activeCompanyId } = useMember();
   const [submitDialogOpen, setSubmitDialogOpen] = useState(false);
 
   return (
@@ -35,10 +35,10 @@ export function FreeQuickActions() {
           </a>
         </Button>
         
-        {companyUser?.business_id && (
+        {activeCompanyId && (
           <Button 
             variant="outline" 
-            onClick={() => navigate(`/business/${companyUser.business_id}`)}
+            onClick={() => navigate(`/business/${activeCompanyId}`)}
             className="gap-2"
           >
             <Eye className="h-4 w-4" />
