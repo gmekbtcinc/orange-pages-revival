@@ -122,6 +122,38 @@ serve(async (req) => {
 
     const now = new Date().toISOString();
 
+    // Ensure user has a profile record
+    console.log("Ensuring profile exists for user:", user.id);
+    const { data: existingProfile } = await supabaseAdmin
+      .from("profiles")
+      .select("id, display_name")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    if (!existingProfile) {
+      // Create profile for the user
+      console.log("Creating profile for user:", user.id);
+      const { error: profileError } = await supabaseAdmin
+        .from("profiles")
+        .insert({
+          id: user.id,
+          email: user.email!,
+          display_name: invitation.display_name || user.email!.split("@")[0],
+        });
+
+      if (profileError) {
+        console.error("Error creating profile:", profileError);
+        // Don't fail - profile might already exist from trigger
+      }
+    } else if (invitation.display_name && existingProfile.display_name !== invitation.display_name) {
+      // Update display name if invitation has one
+      console.log("Updating profile display name");
+      await supabaseAdmin
+        .from("profiles")
+        .update({ display_name: invitation.display_name })
+        .eq("id", user.id);
+    }
+
     // Check if user already has a team membership for this business
     const { data: existingMembership } = await supabaseAdmin
       .from("team_memberships")
@@ -163,7 +195,7 @@ serve(async (req) => {
     const isPrimary = !existingMemberships || existingMemberships.length === 0;
 
     // Create the team_membership record
-    console.log("Creating team_membership for user:", user.id, "business:", invitation.business_id);
+    console.log("Creating team_membership for user:", user.id, "business:", invitation.business_id, "role:", invitation.role);
     const { data: newMembership, error: membershipError } = await supabaseAdmin
       .from("team_memberships")
       .insert({
