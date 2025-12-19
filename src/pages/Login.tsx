@@ -179,11 +179,22 @@ export default function Login() {
           body: { email, displayName, origin: window.location.origin },
         }).catch((err) => console.error("Welcome email error:", err));
         
-        toast({ 
-          title: "Account created!", 
-          description: "Check your email for a welcome message. You can now sign in." 
-        });
-        setIsLogin(true);
+        // With auto-confirm enabled, the user is signed in immediately
+        // The onAuthStateChange listener will handle navigation to returnTo
+        if (data.session) {
+          toast({ 
+            title: "Account created!", 
+            description: "Welcome to Orange Pages." 
+          });
+          // Navigation handled by onAuthStateChange
+        } else {
+          // If no session (email confirmation required), show message
+          toast({ 
+            title: "Account created!", 
+            description: "Check your email for a confirmation link." 
+          });
+          setIsLogin(true);
+        }
       }
     } catch (error: any) {
       let message = error.message;
