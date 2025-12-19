@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useMember } from "@/contexts/member/MemberContext";
+import { useUser } from "@/contexts/UserContext";
 import {
   Dialog,
   DialogContent,
@@ -30,7 +30,7 @@ interface SpeakerApplicationModalProps {
   onClose: () => void;
   eventId: string;
   eventName: string;
-  companyUserId: string;
+  profileId: string;
   existingApplication?: SpeakerApplication;
 }
 
@@ -47,10 +47,10 @@ export function SpeakerApplicationModal({
   onClose,
   eventId,
   eventName,
-  companyUserId,
+  profileId,
   existingApplication,
 }: SpeakerApplicationModalProps) {
-  const { companyUser } = useMember();
+  const { profile } = useUser();
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -78,19 +78,19 @@ export function SpeakerApplicationModal({
       setTargetAudience(existingApplication.target_audience || "");
       setPreviousSpeaking(existingApplication.previous_speaking || "");
     } else {
-      // Pre-fill from company user data
-      setSpeakerName(companyUser?.display_name || "");
-      setSpeakerEmail(companyUser?.email || "");
-      setSpeakerTitle(companyUser?.title || "");
+      // Pre-fill from profile data
+      setSpeakerName(profile?.display_name || "");
+      setSpeakerEmail(profile?.email || "");
+      setSpeakerTitle(profile?.title || "");
       setSpeakerCompany("");
     }
-  }, [existingApplication, companyUser, isOpen]);
+  }, [existingApplication, profile, isOpen]);
 
   const applicationMutation = useMutation({
     mutationFn: async () => {
       const data = {
         event_id: eventId,
-        company_user_id: companyUserId,
+        profile_id: profileId,
         speaker_name: speakerName,
         speaker_email: speakerEmail,
         speaker_title: speakerTitle || null,
@@ -118,7 +118,7 @@ export function SpeakerApplicationModal({
     },
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: ["speaker_applications", companyUserId, eventId],
+        queryKey: ["speaker_applications", profileId, eventId],
       });
       toast({
         title: existingApplication ? "Application updated!" : "Application submitted!",

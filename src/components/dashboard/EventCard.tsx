@@ -14,10 +14,11 @@ interface EventCardProps {
   event: Event;
   allocation: EventAllocation | undefined;
   companyUserId: string;
+  profileId: string;
   isPrimary: boolean;
 }
 
-export function EventCard({ event, allocation, companyUserId, isPrimary }: EventCardProps) {
+export function EventCard({ event, allocation, companyUserId, profileId, isPrimary }: EventCardProps) {
   const formatDate = (dateStr: string | null) => {
     if (!dateStr) return "";
     return new Date(dateStr).toLocaleDateString("en-US", {
@@ -84,7 +85,7 @@ export function EventCard({ event, allocation, companyUserId, isPrimary }: Event
       </CardHeader>
 
       <CardContent className="space-y-4">
-        {/* Conference Tickets - Always shown */}
+        {/* Conference Tickets - Always shown (uses companyUserId for company-level tracking) */}
         <TicketClaimModule
           eventId={event.id}
           companyUserId={companyUserId}
@@ -97,7 +98,7 @@ export function EventCard({ event, allocation, companyUserId, isPrimary }: Event
             {event.has_symposium && (
               <SymposiumModule
                 eventId={event.id}
-                companyUserId={companyUserId}
+                profileId={profileId}
                 allocated={allocation?.symposium_seats || 0}
                 symposiumDate={event.symposium_date}
                 symposiumVenue={event.symposium_venue}
@@ -108,7 +109,7 @@ export function EventCard({ event, allocation, companyUserId, isPrimary }: Event
               <SpeakingModule
                 eventId={event.id}
                 eventName={event.name}
-                companyUserId={companyUserId}
+                profileId={profileId}
                 deadline={event.speaking_deadline}
               />
             )}
@@ -116,7 +117,7 @@ export function EventCard({ event, allocation, companyUserId, isPrimary }: Event
             {event.has_vip_dinner && (
               <VipDinnerModule
                 eventId={event.id}
-                companyUserId={companyUserId}
+                profileId={profileId}
                 allocated={allocation?.vip_dinner_seats || 0}
                 dinnerDate={event.vip_dinner_date}
                 dinnerTime={event.vip_dinner_time}

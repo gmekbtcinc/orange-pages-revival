@@ -18,7 +18,7 @@ interface SymposiumRegisterModalProps {
   isOpen: boolean;
   onClose: () => void;
   eventId: string;
-  companyUserId: string;
+  profileId: string;
   remaining: number;
 }
 
@@ -26,7 +26,7 @@ export function SymposiumRegisterModal({
   isOpen,
   onClose,
   eventId,
-  companyUserId,
+  profileId,
   remaining,
 }: SymposiumRegisterModalProps) {
   const [attendeeName, setAttendeeName] = useState("");
@@ -42,7 +42,7 @@ export function SymposiumRegisterModal({
     mutationFn: async () => {
       const { error } = await supabase.from("symposium_registrations").insert({
         event_id: eventId,
-        company_user_id: companyUserId,
+        profile_id: profileId,
         attendee_name: attendeeName,
         attendee_email: attendeeEmail,
         attendee_title: attendeeTitle || null,
@@ -56,7 +56,7 @@ export function SymposiumRegisterModal({
     },
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: ["symposium_registrations", companyUserId, eventId],
+        queryKey: ["symposium_registrations", profileId, eventId],
       });
       toast({
         title: "Registered!",
