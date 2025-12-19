@@ -4,9 +4,20 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+// Allowed origins for CORS
+const ALLOWED_ORIGINS = [
+  'https://orangepages.bitcoinforcorporations.com',
+  'https://bitcoinforcorporations.com',
+  'http://localhost:5173',
+  'http://localhost:8080',
+];
+
+const getCorsHeaders = (origin: string | null) => {
+  const isAllowed = origin && ALLOWED_ORIGINS.some(allowed => origin.startsWith(allowed.replace(/\/$/, '')));
+  return {
+    'Access-Control-Allow-Origin': isAllowed ? origin : ALLOWED_ORIGINS[0],
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  };
 };
 
 interface RemoveTeamMemberRequest {
@@ -16,6 +27,9 @@ interface RemoveTeamMemberRequest {
 
 serve(async (req) => {
   console.log("=== remove-team-member function called ===");
+
+  const origin = req.headers.get("origin");
+  const corsHeaders = getCorsHeaders(origin);
 
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -144,6 +158,8 @@ serve(async (req) => {
     );
   } catch (error: any) {
     console.error("Error in remove-team-member:", error);
+    const origin = req.headers.get("origin");
+    const corsHeaders = getCorsHeaders(origin);
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
       headers: { "Content-Type": "application/json", ...corsHeaders },

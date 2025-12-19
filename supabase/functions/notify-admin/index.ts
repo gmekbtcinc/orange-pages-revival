@@ -3,9 +3,20 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
 const ADMIN_EMAIL = "directory@bitcoinforclubs.com";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+// Allowed origins for CORS
+const ALLOWED_ORIGINS = [
+  'https://orangepages.bitcoinforcorporations.com',
+  'https://bitcoinforcorporations.com',
+  'http://localhost:5173',
+  'http://localhost:8080',
+];
+
+const getCorsHeaders = (origin: string | null) => {
+  const isAllowed = origin && ALLOWED_ORIGINS.some(allowed => origin.startsWith(allowed.replace(/\/$/, '')));
+  return {
+    'Access-Control-Allow-Origin': isAllowed ? origin : ALLOWED_ORIGINS[0],
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  };
 };
 
 interface NotifyAdminRequest {
@@ -17,13 +28,16 @@ interface NotifyAdminRequest {
 }
 
 serve(async (req: Request) => {
+  const origin = req.headers.get("origin");
+  const corsHeaders = getCorsHeaders(origin);
+
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { type, businessName, submitterName, submitterEmail, origin }: NotifyAdminRequest = await req.json();
+    const { type, businessName, submitterName, submitterEmail, origin: requestOrigin }: NotifyAdminRequest = await req.json();
 
     console.log("[notify-admin] Received request:", { type, businessName, submitterName, submitterEmail });
 
@@ -31,7 +45,7 @@ serve(async (req: Request) => {
       throw new Error("RESEND_API_KEY is not configured");
     }
 
-    const adminUrl = `${origin}/admin/claims`;
+    const adminUrl = `${requestOrigin}/admin/claims`;
     
     let subject: string;
     let heading: string;
@@ -120,6 +134,8 @@ serve(async (req: Request) => {
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
     console.error("[notify-admin] Error:", error);
+    const origin = req.headers.get("origin");
+    const corsHeaders = getCorsHeaders(origin);
     return new Response(JSON.stringify({ error: errorMessage }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },

@@ -1,431 +1,55 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
-
+const ALLOWED_ORIGINS = ['https://orangepages.bitcoinforcorporations.com', 'https://bitcoinforcorporations.com', 'http://localhost:5173', 'http://localhost:8080'];
 const PRODUCTION_URL = "https://orangepages.bitcoinforcorporations.com";
+
+const getCorsHeaders = (origin: string | null) => {
+  const isAllowed = origin && ALLOWED_ORIGINS.some(allowed => origin.startsWith(allowed.replace(/\/$/, '')));
+  return { 'Access-Control-Allow-Origin': isAllowed ? origin : ALLOWED_ORIGINS[0], 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type' };
+};
 
 type EmailType = "submission_approved" | "submission_rejected" | "claim_approved" | "claim_rejected" | "submission_received" | "claim_received";
 
-interface StatusEmailRequest {
-  type: EmailType;
-  email: string;
-  recipientName: string;
-  businessName: string;
-  businessId?: string;
-  rejectionReason?: string;
-  origin: string;
-}
-
-function getEmailContent(params: StatusEmailRequest, baseUrl: string) {
-  const { type, recipientName, businessName, businessId, rejectionReason } = params;
-  const dashboardUrl = `${baseUrl}/dashboard`;
-  const businessUrl = businessId ? `${baseUrl}/business/${businessId}` : null;
-  const profileUrl = `${baseUrl}/dashboard/company-profile`;
-
-  switch (type) {
-    case "submission_approved":
-      return {
-        subject: `Your business "${businessName}" has been approved!`,
-        html: `
-          <!DOCTYPE html>
-          <html>
-          <head>
-            <meta charset="utf-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          </head>
-          <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 0; background-color: #f4f4f5;">
-            <div style="max-width: 600px; margin: 0 auto; padding: 40px 20px;">
-              <div style="background-color: #ffffff; border-radius: 8px; padding: 40px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-                <div style="text-align: center; margin-bottom: 24px;">
-                  <div style="display: inline-block; background-color: #dcfce7; border-radius: 50%; padding: 16px;">
-                    <span style="font-size: 32px;">✅</span>
-                  </div>
-                </div>
-                
-                <h2 style="color: #18181b; font-size: 20px; text-align: center; margin-bottom: 16px;">
-                  Your Business Has Been Approved!
-                </h2>
-                
-                <p style="color: #3f3f46; font-size: 16px; line-height: 1.6; margin-bottom: 16px;">
-                  Hi ${recipientName},
-                </p>
-                
-                <p style="color: #3f3f46; font-size: 16px; line-height: 1.6; margin-bottom: 24px;">
-                  Great news! <strong>${businessName}</strong> has been approved and is now live on Orange Pages.
-                </p>
-                
-                <div style="text-align: center; margin: 32px 0;">
-                  <a href="${profileUrl}" style="display: inline-block; background-color: #f7931a; color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 6px; font-weight: 600; font-size: 16px;">
-                    Edit Your Company Profile
-                  </a>
-                </div>
-                
-                ${businessUrl ? `<p style="color: #71717a; font-size: 14px; text-align: center;"><a href="${businessUrl}" style="color: #f7931a;">View your public listing →</a></p>` : ""}
-                
-                <hr style="border: none; border-top: 1px solid #e4e4e7; margin: 24px 0;">
-                
-                <p style="color: #71717a; font-size: 13px; line-height: 1.5;">
-                  Need help? Reply to this email and we'll be happy to assist.
-                </p>
-              </div>
-              
-              <div style="text-align: center; margin-top: 24px;">
-                <p style="color: #a1a1aa; font-size: 12px;">© ${new Date().getFullYear()} Bitcoin for Corporations</p>
-              </div>
-            </div>
-          </body>
-          </html>
-        `,
-      };
-
-    case "submission_rejected":
-      return {
-        subject: `Update on your business submission "${businessName}"`,
-        html: `
-          <!DOCTYPE html>
-          <html>
-          <head>
-            <meta charset="utf-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          </head>
-          <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 0; background-color: #f4f4f5;">
-            <div style="max-width: 600px; margin: 0 auto; padding: 40px 20px;">
-              <div style="background-color: #ffffff; border-radius: 8px; padding: 40px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-                <h2 style="color: #18181b; font-size: 20px; margin-bottom: 16px;">
-                  Update on Your Submission
-                </h2>
-                
-                <p style="color: #3f3f46; font-size: 16px; line-height: 1.6; margin-bottom: 16px;">
-                  Hi ${recipientName},
-                </p>
-                
-                <p style="color: #3f3f46; font-size: 16px; line-height: 1.6; margin-bottom: 24px;">
-                  Unfortunately, we weren't able to approve your submission for <strong>${businessName}</strong> at this time.
-                </p>
-                
-                ${rejectionReason ? `
-                <div style="background-color: #fef2f2; border-radius: 6px; padding: 16px; margin-bottom: 24px;">
-                  <p style="color: #991b1b; font-size: 14px; margin: 0;">
-                    <strong>Reason:</strong> ${rejectionReason}
-                  </p>
-                </div>
-                ` : ""}
-                
-                <p style="color: #3f3f46; font-size: 16px; line-height: 1.6; margin-bottom: 24px;">
-                  You're welcome to submit again with updated information. If you have questions, please reply to this email.
-                </p>
-                
-                <div style="text-align: center; margin: 32px 0;">
-                  <a href="${dashboardUrl}" style="display: inline-block; background-color: #f7931a; color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 6px; font-weight: 600; font-size: 16px;">
-                    Go to Dashboard
-                  </a>
-                </div>
-                
-                <hr style="border: none; border-top: 1px solid #e4e4e7; margin: 24px 0;">
-                
-                <p style="color: #71717a; font-size: 13px; line-height: 1.5;">
-                  Need help? Reply to this email and we'll be happy to assist.
-                </p>
-              </div>
-              
-              <div style="text-align: center; margin-top: 24px;">
-                <p style="color: #a1a1aa; font-size: 12px;">© ${new Date().getFullYear()} Bitcoin for Corporations</p>
-              </div>
-            </div>
-          </body>
-          </html>
-        `,
-      };
-
-    case "claim_approved":
-      return {
-        subject: `Your claim for "${businessName}" has been approved!`,
-        html: `
-          <!DOCTYPE html>
-          <html>
-          <head>
-            <meta charset="utf-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          </head>
-          <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 0; background-color: #f4f4f5;">
-            <div style="max-width: 600px; margin: 0 auto; padding: 40px 20px;">
-              <div style="background-color: #ffffff; border-radius: 8px; padding: 40px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-                <div style="text-align: center; margin-bottom: 24px;">
-                  <div style="display: inline-block; background-color: #dcfce7; border-radius: 50%; padding: 16px;">
-                    <span style="font-size: 32px;">🎉</span>
-                  </div>
-                </div>
-                
-                <h2 style="color: #18181b; font-size: 20px; text-align: center; margin-bottom: 16px;">
-                  Your Claim Has Been Approved!
-                </h2>
-                
-                <p style="color: #3f3f46; font-size: 16px; line-height: 1.6; margin-bottom: 16px;">
-                  Hi ${recipientName},
-                </p>
-                
-                <p style="color: #3f3f46; font-size: 16px; line-height: 1.6; margin-bottom: 24px;">
-                  Congratulations! Your claim for <strong>${businessName}</strong> has been verified and approved. You now have full access to manage your company profile on Orange Pages.
-                </p>
-                
-                <div style="text-align: center; margin: 32px 0;">
-                  <a href="${profileUrl}" style="display: inline-block; background-color: #f7931a; color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 6px; font-weight: 600; font-size: 16px;">
-                    Manage Your Profile
-                  </a>
-                </div>
-                
-                ${businessUrl ? `<p style="color: #71717a; font-size: 14px; text-align: center;"><a href="${businessUrl}" style="color: #f7931a;">View your public listing →</a></p>` : ""}
-                
-                <hr style="border: none; border-top: 1px solid #e4e4e7; margin: 24px 0;">
-                
-                <p style="color: #71717a; font-size: 13px; line-height: 1.5;">
-                  Need help? Reply to this email and we'll be happy to assist.
-                </p>
-              </div>
-              
-              <div style="text-align: center; margin-top: 24px;">
-                <p style="color: #a1a1aa; font-size: 12px;">© ${new Date().getFullYear()} Bitcoin for Corporations</p>
-              </div>
-            </div>
-          </body>
-          </html>
-        `,
-      };
-
-    case "claim_rejected":
-      return {
-        subject: `Update on your claim for "${businessName}"`,
-        html: `
-          <!DOCTYPE html>
-          <html>
-          <head>
-            <meta charset="utf-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          </head>
-          <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 0; background-color: #f4f4f5;">
-            <div style="max-width: 600px; margin: 0 auto; padding: 40px 20px;">
-              <div style="background-color: #ffffff; border-radius: 8px; padding: 40px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-                <h2 style="color: #18181b; font-size: 20px; margin-bottom: 16px;">
-                  Update on Your Claim
-                </h2>
-                
-                <p style="color: #3f3f46; font-size: 16px; line-height: 1.6; margin-bottom: 16px;">
-                  Hi ${recipientName},
-                </p>
-                
-                <p style="color: #3f3f46; font-size: 16px; line-height: 1.6; margin-bottom: 24px;">
-                  Unfortunately, we weren't able to verify your claim for <strong>${businessName}</strong> at this time.
-                </p>
-                
-                ${rejectionReason ? `
-                <div style="background-color: #fef2f2; border-radius: 6px; padding: 16px; margin-bottom: 24px;">
-                  <p style="color: #991b1b; font-size: 14px; margin: 0;">
-                    <strong>Reason:</strong> ${rejectionReason}
-                  </p>
-                </div>
-                ` : ""}
-                
-                <p style="color: #3f3f46; font-size: 16px; line-height: 1.6; margin-bottom: 24px;">
-                  If you believe this was an error or have additional documentation, please reply to this email.
-                </p>
-                
-                <div style="text-align: center; margin: 32px 0;">
-                  <a href="${dashboardUrl}" style="display: inline-block; background-color: #f7931a; color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 6px; font-weight: 600; font-size: 16px;">
-                    Go to Dashboard
-                  </a>
-                </div>
-                
-                <hr style="border: none; border-top: 1px solid #e4e4e7; margin: 24px 0;">
-                
-                <p style="color: #71717a; font-size: 13px; line-height: 1.5;">
-                  Need help? Reply to this email and we'll be happy to assist.
-                </p>
-              </div>
-              
-              <div style="text-align: center; margin-top: 24px;">
-                <p style="color: #a1a1aa; font-size: 12px;">© ${new Date().getFullYear()} Bitcoin for Corporations</p>
-              </div>
-            </div>
-          </body>
-          </html>
-        `,
-      };
-
-    case "submission_received":
-      return {
-        subject: `We received your submission for "${businessName}"`,
-        html: `
-          <!DOCTYPE html>
-          <html>
-          <head>
-            <meta charset="utf-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          </head>
-          <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 0; background-color: #f4f4f5;">
-            <div style="max-width: 600px; margin: 0 auto; padding: 40px 20px;">
-              <div style="background-color: #ffffff; border-radius: 8px; padding: 40px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-                <div style="text-align: center; margin-bottom: 24px;">
-                  <div style="display: inline-block; background-color: #fef3c7; border-radius: 50%; padding: 16px;">
-                    <span style="font-size: 32px;">📋</span>
-                  </div>
-                </div>
-                
-                <h2 style="color: #18181b; font-size: 20px; text-align: center; margin-bottom: 16px;">
-                  Submission Received!
-                </h2>
-                
-                <p style="color: #3f3f46; font-size: 16px; line-height: 1.6; margin-bottom: 16px;">
-                  Hi ${recipientName},
-                </p>
-                
-                <p style="color: #3f3f46; font-size: 16px; line-height: 1.6; margin-bottom: 24px;">
-                  Thanks for submitting <strong>${businessName}</strong> to Orange Pages! Our team is reviewing your submission and will get back to you shortly.
-                </p>
-                
-                <div style="background-color: #f4f4f5; border-radius: 6px; padding: 16px; margin-bottom: 24px;">
-                  <p style="color: #52525b; font-size: 14px; margin: 0;">
-                    <strong>What happens next?</strong><br>
-                    We typically review submissions within 1-2 business days. You'll receive an email once your submission is approved or if we need more information.
-                  </p>
-                </div>
-                
-                <div style="text-align: center; margin: 32px 0;">
-                  <a href="${dashboardUrl}" style="display: inline-block; background-color: #f7931a; color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 6px; font-weight: 600; font-size: 16px;">
-                    View Status in Dashboard
-                  </a>
-                </div>
-                
-                <hr style="border: none; border-top: 1px solid #e4e4e7; margin: 24px 0;">
-                
-                <p style="color: #71717a; font-size: 13px; line-height: 1.5;">
-                  Questions? Reply to this email and we'll be happy to assist.
-                </p>
-              </div>
-              
-              <div style="text-align: center; margin-top: 24px;">
-                <p style="color: #a1a1aa; font-size: 12px;">© ${new Date().getFullYear()} Bitcoin for Corporations</p>
-              </div>
-            </div>
-          </body>
-          </html>
-        `,
-      };
-
-    case "claim_received":
-      return {
-        subject: `We received your claim for "${businessName}"`,
-        html: `
-          <!DOCTYPE html>
-          <html>
-          <head>
-            <meta charset="utf-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          </head>
-          <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 0; background-color: #f4f4f5;">
-            <div style="max-width: 600px; margin: 0 auto; padding: 40px 20px;">
-              <div style="background-color: #ffffff; border-radius: 8px; padding: 40px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-                <div style="text-align: center; margin-bottom: 24px;">
-                  <div style="display: inline-block; background-color: #dbeafe; border-radius: 50%; padding: 16px;">
-                    <span style="font-size: 32px;">🔐</span>
-                  </div>
-                </div>
-                
-                <h2 style="color: #18181b; font-size: 20px; text-align: center; margin-bottom: 16px;">
-                  Claim Request Received!
-                </h2>
-                
-                <p style="color: #3f3f46; font-size: 16px; line-height: 1.6; margin-bottom: 16px;">
-                  Hi ${recipientName},
-                </p>
-                
-                <p style="color: #3f3f46; font-size: 16px; line-height: 1.6; margin-bottom: 24px;">
-                  We've received your request to claim <strong>${businessName}</strong> on Orange Pages. Our team will verify your relationship to the company and get back to you soon.
-                </p>
-                
-                <div style="background-color: #f4f4f5; border-radius: 6px; padding: 16px; margin-bottom: 24px;">
-                  <p style="color: #52525b; font-size: 14px; margin: 0;">
-                    <strong>What happens next?</strong><br>
-                    We typically verify claims within 1-3 business days. You'll receive an email once your claim is approved or if we need additional verification.
-                  </p>
-                </div>
-                
-                <div style="text-align: center; margin: 32px 0;">
-                  <a href="${dashboardUrl}" style="display: inline-block; background-color: #f7931a; color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 6px; font-weight: 600; font-size: 16px;">
-                    View Status in Dashboard
-                  </a>
-                </div>
-                
-                <hr style="border: none; border-top: 1px solid #e4e4e7; margin: 24px 0;">
-                
-                <p style="color: #71717a; font-size: 13px; line-height: 1.5;">
-                  Questions? Reply to this email and we'll be happy to assist.
-                </p>
-              </div>
-              
-              <div style="text-align: center; margin-top: 24px;">
-                <p style="color: #a1a1aa; font-size: 12px;">© ${new Date().getFullYear()} Bitcoin for Corporations</p>
-              </div>
-            </div>
-          </body>
-          </html>
-        `,
-      };
-  }
-}
+interface StatusEmailRequest { type: EmailType; email: string; recipientName: string; businessName: string; businessId?: string; rejectionReason?: string; origin: string; }
 
 const handler = async (req: Request): Promise<Response> => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
+  const origin = req.headers.get("origin");
+  const corsHeaders = getCorsHeaders(origin);
+
+  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const params: StatusEmailRequest = await req.json();
-    console.log("Sending status email:", params.type, "to:", params.email);
+    const { type, email, recipientName, businessName, businessId, rejectionReason, origin: requestOrigin }: StatusEmailRequest = await req.json();
+    const baseUrl = requestOrigin.includes("lovable") || requestOrigin.includes("localhost") ? PRODUCTION_URL : requestOrigin;
 
-    const baseUrl = params.origin.includes("lovable.app") || params.origin.includes("lovable.dev") || params.origin.includes("localhost")
-      ? PRODUCTION_URL
-      : params.origin;
+    const subjects: Record<EmailType, string> = {
+      submission_approved: `Your business "${businessName}" has been approved!`,
+      submission_rejected: `Update on your submission "${businessName}"`,
+      claim_approved: `Your claim for "${businessName}" has been approved!`,
+      claim_rejected: `Update on your claim for "${businessName}"`,
+      submission_received: `We received your submission for "${businessName}"`,
+      claim_received: `We received your claim for "${businessName}"`,
+    };
 
-    const { subject, html } = getEmailContent(params, baseUrl);
+    const bodies: Record<EmailType, string> = {
+      submission_approved: `<h1>Approved!</h1><p>Hi ${recipientName}, <strong>${businessName}</strong> is now live on Orange Pages.</p><a href="${baseUrl}/dashboard/company-profile">Edit Profile</a>`,
+      submission_rejected: `<h1>Update</h1><p>Hi ${recipientName}, we couldn't approve <strong>${businessName}</strong>.${rejectionReason ? ` Reason: ${rejectionReason}` : ""}</p>`,
+      claim_approved: `<h1>Claim Approved!</h1><p>Hi ${recipientName}, your claim for <strong>${businessName}</strong> has been verified.</p><a href="${baseUrl}/dashboard/company-profile">Manage Profile</a>`,
+      claim_rejected: `<h1>Update</h1><p>Hi ${recipientName}, we couldn't verify your claim for <strong>${businessName}</strong>.${rejectionReason ? ` Reason: ${rejectionReason}` : ""}</p>`,
+      submission_received: `<h1>Received!</h1><p>Hi ${recipientName}, thanks for submitting <strong>${businessName}</strong>. We'll review it soon.</p>`,
+      claim_received: `<h1>Received!</h1><p>Hi ${recipientName}, we've received your claim for <strong>${businessName}</strong>. We'll verify it soon.</p>`,
+    };
 
-    const res = await fetch("https://api.resend.com/emails", {
+    await fetch("https://api.resend.com/emails", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${RESEND_API_KEY}`,
-      },
-      body: JSON.stringify({
-        from: "BFC <noreply@orangepages.bitcoinforcorporations.com>",
-        to: [params.email],
-        subject,
-        html,
-      }),
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${RESEND_API_KEY}` },
+      body: JSON.stringify({ from: "BFC <noreply@orangepages.bitcoinforcorporations.com>", to: [email], subject: subjects[type], html: bodies[type] }),
     });
 
-    if (!res.ok) {
-      const errorText = await res.text();
-      console.error("Resend API error:", errorText);
-      throw new Error(`Failed to send email: ${errorText}`);
-    }
-
-    const emailResponse = await res.json();
-    console.log("Status email sent successfully:", emailResponse);
-
-    return new Response(JSON.stringify({ success: true, data: emailResponse }), {
-      status: 200,
-      headers: { "Content-Type": "application/json", ...corsHeaders },
-    });
+    return new Response(JSON.stringify({ success: true }), { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } });
   } catch (error: any) {
-    console.error("Error in send-status-email function:", error);
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 500,
-      headers: { "Content-Type": "application/json", ...corsHeaders },
-    });
+    return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } });
   }
 };
 
