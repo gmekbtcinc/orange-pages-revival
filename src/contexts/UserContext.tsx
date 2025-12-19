@@ -39,6 +39,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const [allocations, setAllocations] = useState<EventAllocation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   // Fetch active company details
   const fetchActiveCompanyDetails = useCallback(async (businessId: string, teamMemberships: TeamMembershipWithBusiness[]) => {
@@ -108,6 +109,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
         setActiveCompany(null);
         setAllocations([]);
         setIsSuperAdmin(false);
+        setIsAdmin(false);
         setIsLoading(false);
         return;
       }
@@ -115,6 +117,15 @@ export function UserProvider({ children }: { children: ReactNode }) {
       // Check if user is super admin
       const { data: adminCheck } = await supabase.rpc("is_super_admin", { _user_id: user.id });
       setIsSuperAdmin(adminCheck || false);
+
+      // Check if user has any admin role (super_admin, admin, or moderator)
+      const { data: adminRole } = await supabase
+        .from("user_roles")
+        .select("id")
+        .eq("user_id", user.id)
+        .in("role", ["super_admin", "admin", "moderator"])
+        .maybeSingle();
+      setIsAdmin(!!adminRole);
 
       // Fetch profile
       const { data: profileData } = await supabase
@@ -169,6 +180,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
       setActiveCompany(null);
       setAllocations([]);
       setIsSuperAdmin(false);
+      setIsAdmin(false);
     } finally {
       setIsLoading(false);
     }
@@ -196,6 +208,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
     setActiveCompany(null);
     setAllocations([]);
     setIsSuperAdmin(false);
+    setIsAdmin(false);
   };
 
   // Initial fetch and auth state listener
@@ -213,6 +226,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
         setActiveCompany(null);
         setAllocations([]);
         setIsSuperAdmin(false);
+        setIsAdmin(false);
       }
     });
 
@@ -281,17 +295,18 @@ export function UserProvider({ children }: { children: ReactNode }) {
         // State
         profile,
         isSuperAdmin,
+        isAdmin,
         companies,
         activeCompanyId,
         activeCompany,
         allocations,
         isLoading,
-        
+
         // Actions
         switchCompany,
         refetch: fetchUser,
         signOut,
-        
+
         // Convenience
         permissions,
         businessId,

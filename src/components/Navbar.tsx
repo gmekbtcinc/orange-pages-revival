@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { useUser } from "@/contexts/UserContext";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -14,49 +14,15 @@ import btcLogo from "@/assets/btc-logo.png";
 import { SubmitBusinessDialog } from "@/components/submissions/SubmitBusinessDialog";
 
 const Navbar = () => {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const { profile, isAdmin, signOut } = useUser();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [submitDialogOpen, setSubmitDialogOpen] = useState(false);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const checkAdminStatus = async (userId: string) => {
-      // Check user_roles table for super_admin or admin role
-      const { data: role } = await supabase
-        .from("user_roles")
-        .select("id")
-        .eq("user_id", userId)
-        .in("role", ["super_admin", "admin"])
-        .maybeSingle();
-
-      setIsAdmin(!!role);
-    };
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setIsAuthenticated(!!session);
-        if (session?.user) {
-          checkAdminStatus(session.user.id);
-        } else {
-          setIsAdmin(false);
-        }
-      }
-    );
-
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setIsAuthenticated(!!session);
-      if (session?.user) {
-        checkAdminStatus(session.user.id);
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
+  const isAuthenticated = !!profile;
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    setIsAuthenticated(false);
+    await signOut();
     navigate("/");
   };
 

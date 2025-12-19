@@ -49,7 +49,8 @@ export interface UserState {
   // Identity
   profile: Profile | null;
   isSuperAdmin: boolean;
-  
+  isAdmin: boolean; // super_admin, admin, or moderator
+
   // Multi-company support
   companies: TeamMembershipWithBusiness[];
   activeCompanyId: string | null;

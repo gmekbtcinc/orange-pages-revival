@@ -13,8 +13,6 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { LogOut, User, ChevronDown, Building2, Users, Shield, Home, Settings } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import bfcLogo from "@/assets/bfc-profile-icon.png";
 import { DashboardBreadcrumb, BreadcrumbItem } from "./DashboardBreadcrumb";
 
@@ -48,7 +46,7 @@ const tierLabels: Record<string, string> = {
 };
 
 export function DashboardLayout({ children, breadcrumbs }: DashboardLayoutProps) {
-  const { profile, membership, signOut, permissions, activeCompanyId, teamRole } = useUser();
+  const { profile, membership, signOut, permissions, activeCompanyId, teamRole, isAdmin } = useUser();
   const navigate = useNavigate();
 
   const handleSignOut = async () => {
@@ -65,24 +63,6 @@ export function DashboardLayout({ children, breadcrumbs }: DashboardLayoutProps)
 
   const tier = membership?.tier || "industry";
   const canManageUsers = permissions?.canManageTeam || teamRole === "owner" || teamRole === "admin";
-
-  const { data: isAdmin } = useQuery({
-    queryKey: ["user-is-admin"],
-    queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return false;
-
-      // Check user_roles table for super_admin or admin role
-      const { data: role } = await supabase
-        .from("user_roles")
-        .select("id")
-        .eq("user_id", user.id)
-        .in("role", ["super_admin", "admin"])
-        .maybeSingle();
-
-      return !!role;
-    },
-  });
 
   return (
     <div className="min-h-screen bg-background">
