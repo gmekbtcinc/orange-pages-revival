@@ -61,7 +61,6 @@ export function SubmitBusinessDialog({ isOpen, onClose, initialData }: SubmitBus
   // Check auth status
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
-      console.log("[SubmitBusinessDialog] Auth check - user:", user?.id, user?.email);
       setUserId(user?.id || null);
       setUserEmail(user?.email || "");
     });
@@ -70,7 +69,6 @@ export function SubmitBusinessDialog({ isOpen, onClose, initialData }: SubmitBus
   // Populate form with initial data if provided
   useEffect(() => {
     if (initialData && isOpen) {
-      console.log("[SubmitBusinessDialog] Populating form with initial data:", initialData);
       setName((initialData.name as string) || "");
       setDescription((initialData.description as string) || "");
       setWebsite((initialData.website as string) || "");
@@ -110,12 +108,7 @@ export function SubmitBusinessDialog({ isOpen, onClose, initialData }: SubmitBus
 
   const submitMutation = useMutation({
     mutationFn: async () => {
-      console.log("[SubmitBusinessDialog] Starting submission...");
-      console.log("[SubmitBusinessDialog] User ID:", userId);
-      console.log("[SubmitBusinessDialog] User Email:", userEmail);
-      
       if (!userId) {
-        console.error("[SubmitBusinessDialog] No user ID found");
         throw new Error("You must be logged in to submit a business");
       }
 
@@ -134,21 +127,16 @@ export function SubmitBusinessDialog({ isOpen, onClose, initialData }: SubmitBus
         claim_title: wantsToClaim ? claimTitle : null,
         claim_relationship: wantsToClaim ? claimRelationship : null,
       };
-      
-      console.log("[SubmitBusinessDialog] Submitting payload:", payload);
 
       const { data, error } = await supabase.from("business_submissions").insert(payload).select();
 
       if (error) {
-        console.error("[SubmitBusinessDialog] Supabase error:", error);
         throw error;
       }
-      
-      console.log("[SubmitBusinessDialog] Submission successful:", data);
+
       return data;
     },
-    onSuccess: (data) => {
-      console.log("[SubmitBusinessDialog] onSuccess - data:", data);
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["business-submissions"] });
       
       // Send confirmation email (fire and forget)
@@ -210,17 +198,13 @@ export function SubmitBusinessDialog({ isOpen, onClose, initialData }: SubmitBus
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("[SubmitBusinessDialog] handleSubmit called");
-    console.log("[SubmitBusinessDialog] Current userId:", userId);
-    
+
     if (!userId) {
-      console.log("[SubmitBusinessDialog] User not logged in, storing data and redirecting");
       // Store form data and redirect to login
       const pendingData = {
         name, description, website, city, state, country, categoryId,
         wantsToClaim, claimTitle, claimRelationship, submitterName,
       };
-      console.log("[SubmitBusinessDialog] Storing pending data:", pendingData);
       sessionStorage.setItem("pendingBusinessSubmission", JSON.stringify(pendingData));
       onClose();
       navigate("/login?returnTo=/dashboard&openSubmit=true");

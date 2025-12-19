@@ -103,7 +103,6 @@ export function InviteUserDialog({
       // Send invitation email via edge function
       let emailSent = false;
       try {
-        console.log("Invoking send-team-invitation edge function...");
         const { data, error: emailError } = await supabase.functions.invoke("send-team-invitation", {
           body: {
             email: email.toLowerCase().trim(),
@@ -121,7 +120,6 @@ export function InviteUserDialog({
         } else if (data?.error) {
           console.error("Email sending failed:", data.error);
         } else {
-          console.log("Email sent successfully:", data);
           emailSent = true;
         }
       } catch (emailErr) {

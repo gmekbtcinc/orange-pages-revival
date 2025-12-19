@@ -160,7 +160,6 @@ export default function InviteAccept() {
             origin: window.location.origin,
           },
         });
-        console.log("Onboarding email sent");
       } catch (emailErr) {
         console.error("Failed to send onboarding email:", emailErr);
         // Don't fail the whole process if email fails

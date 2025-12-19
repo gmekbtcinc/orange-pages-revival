@@ -43,7 +43,6 @@ export default function Dashboard() {
     if (pendingData && userId) {
       try {
         const parsed = JSON.parse(pendingData);
-        console.log("[Dashboard] Found pending submission data:", parsed);
         setPendingSubmissionData(parsed);
         setSubmitDialogOpen(true);
         // Clear URL param

@@ -133,7 +133,6 @@ export function AddUserDialog({ open, onOpenChange }: AddUserDialogProps) {
       // Send invitation email
       let emailSent = false;
       try {
-        console.log("Sending invitation email to:", normalizedEmail);
         const { data, error: emailError } = await supabase.functions.invoke("send-team-invitation", {
           body: {
             email: normalizedEmail,
@@ -151,7 +150,6 @@ export function AddUserDialog({ open, onOpenChange }: AddUserDialogProps) {
         } else if (data?.error) {
           console.error("Email sending failed:", data.error);
         } else {
-          console.log("Email sent successfully:", data);
           emailSent = true;
         }
       } catch (emailErr) {

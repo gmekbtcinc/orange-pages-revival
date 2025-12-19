@@ -237,7 +237,6 @@ export function UserProvider({ children }: { children: ReactNode }) {
           filter: `id=eq.${profile.id}`,
         },
         (payload) => {
-          console.log("Profile updated:", payload);
           if (payload.eventType === "UPDATE") {
             setProfile(payload.new as Profile);
           }
@@ -257,7 +256,6 @@ export function UserProvider({ children }: { children: ReactNode }) {
           filter: `profile_id=eq.${profile.id}`,
         },
         (payload) => {
-          console.log("Team membership changed:", payload);
           // Refetch to get updated data with joins
           fetchUser();
         }

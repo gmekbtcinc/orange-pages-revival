@@ -177,14 +177,7 @@ export default function ClaimsQueue() {
 
       // Link user to business using admin RPC function (bypasses RLS)
       if (claim.claimant_user_id) {
-        console.log('Linking user to business:', {
-          userId: claim.claimant_user_id,
-          businessId: claim.business_id,
-          email: claim.claimant_email,
-          isBFCMember
-        });
-        
-        const { data: linkResult, error: linkError } = await supabase.rpc('admin_link_user_to_business', {
+        const { error: linkError } = await supabase.rpc('admin_link_user_to_business', {
           _user_id: claim.claimant_user_id,
           _business_id: claim.business_id,
           _email: claim.claimant_email,
@@ -194,7 +187,6 @@ export default function ClaimsQueue() {
           _is_member: isBFCMember,
         });
 
-        console.log('Link result:', { linkResult, linkError });
         if (linkError) throw linkError;
       }
 
@@ -310,13 +302,7 @@ export default function ClaimsQueue() {
 
       // If submitter wanted to claim, link user using admin RPC function (bypasses RLS)
       if (submission.wants_to_claim && submission.submitter_user_id) {
-        console.log('Linking submitter to new business:', {
-          userId: submission.submitter_user_id,
-          businessId: newBusiness.id,
-          email: submission.submitter_email
-        });
-        
-        const { data: linkResult, error: linkError } = await supabase.rpc('admin_link_user_to_business', {
+        const { error: linkError } = await supabase.rpc('admin_link_user_to_business', {
           _user_id: submission.submitter_user_id,
           _business_id: newBusiness.id,
           _email: submission.submitter_email,
@@ -326,7 +312,6 @@ export default function ClaimsQueue() {
           _is_member: false,
         });
 
-        console.log('Submission link result:', { linkResult, linkError });
         if (linkError) throw linkError;
       }
 
