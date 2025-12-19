@@ -21,9 +21,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { UserPlus, Loader2, Copy, Check } from "lucide-react";
-import { Database } from "@/integrations/supabase/types";
+import type { Enums } from "@/integrations/supabase/types";
 
-type UserRole = Database["public"]["Enums"]["user_role"];
+type TeamRole = Enums<"team_role">;
 
 interface AddUserDialogProps {
   open: boolean;
@@ -36,7 +36,7 @@ export function AddUserDialog({ open, onOpenChange }: AddUserDialogProps) {
   const [email, setEmail] = useState("");
   const [title, setTitle] = useState("");
   const [businessId, setBusinessId] = useState("");
-  const [role, setRole] = useState<UserRole>("company_user");
+  const [role, setRole] = useState<TeamRole>("member");
   const [inviteUrl, setInviteUrl] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
@@ -70,16 +70,37 @@ export function AddUserDialog({ open, onOpenChange }: AddUserDialogProps) {
 
       const normalizedEmail = email.trim().toLowerCase();
 
-      // Check if user already exists for this business
-      const { data: existing } = await supabase
-        .from("company_users")
-        .select("id")
+      // Check if invitation already exists for this email and business
+      const { data: existingInvite } = await supabase
+        .from("invitations")
+        .select("id, status")
         .eq("email", normalizedEmail)
         .eq("business_id", businessId)
+        .eq("status", "pending")
         .maybeSingle();
 
-      if (existing) {
-        throw new Error("A user with this email already exists for this company");
+      if (existingInvite) {
+        throw new Error("A pending invitation already exists for this email");
+      }
+
+      // Check if user already has a team membership for this business
+      const { data: existingProfile } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("email", normalizedEmail)
+        .maybeSingle();
+
+      if (existingProfile) {
+        const { data: existingMembership } = await supabase
+          .from("team_memberships")
+          .select("id")
+          .eq("profile_id", existingProfile.id)
+          .eq("business_id", businessId)
+          .maybeSingle();
+
+        if (existingMembership) {
+          throw new Error("This user is already a team member of this company");
+        }
       }
 
       // Get company name for the email
@@ -94,46 +115,20 @@ export function AddUserDialog({ open, onOpenChange }: AddUserDialogProps) {
       const generatedInviteUrl = `${window.location.origin}/invite/accept?token=${inviteToken}`;
       setInviteUrl(generatedInviteUrl);
 
-      // Map user_role to team_role for invitations table
-      const teamRole = role === "company_admin" ? "admin" : "member";
-
-      // Create invitation record in the consolidated invitations table
+      // Create invitation record ONLY - no company_users record
       const { error: inviteError } = await supabase
         .from("invitations")
         .insert({
           business_id: businessId,
           email: normalizedEmail,
           display_name: displayName.trim(),
-          role: teamRole,
+          role: role,
           status: "pending",
           token: inviteToken,
           expires_at: expiresAt.toISOString(),
         });
 
       if (inviteError) throw inviteError;
-
-      const isAdmin = role === "company_admin";
-
-      // Create the company_user record (pending - no user_id)
-      const { error: userError } = await supabase.from("company_users").insert({
-        display_name: displayName.trim(),
-        email: normalizedEmail,
-        title: title.trim() || null,
-        business_id: businessId,
-        role,
-        user_id: null,
-        is_active: true,
-        can_claim_tickets: isAdmin,
-        can_register_events: isAdmin,
-        can_apply_speaking: isAdmin,
-        can_edit_profile: isAdmin,
-        can_manage_users: isAdmin,
-        can_rsvp_dinners: isAdmin,
-        can_request_resources: isAdmin,
-        invited_at: new Date().toISOString(),
-      });
-
-      if (userError) throw userError;
 
       // Send invitation email
       let emailSent = false;
@@ -145,7 +140,7 @@ export function AddUserDialog({ open, onOpenChange }: AddUserDialogProps) {
             displayName: displayName.trim(),
             inviterName: "BFC Admin",
             companyName,
-            role,
+            role: role === "admin" ? "Admin" : role === "owner" ? "Owner" : "Member",
             inviteToken,
             origin: window.location.origin,
           },
@@ -170,10 +165,10 @@ export function AddUserDialog({ open, onOpenChange }: AddUserDialogProps) {
       queryClient.invalidateQueries({ queryKey: ["admin-users-stats"] });
       
       if (emailSent) {
-        toast.success("User added and invitation email sent");
+        toast.success("User invited and invitation email sent");
         handleClose();
       } else {
-        toast.warning("User added but email could not be sent. Share the invite link manually.");
+        toast.warning("User invited but email could not be sent. Share the invite link manually.");
       }
     },
     onError: (error) => {
@@ -186,7 +181,7 @@ export function AddUserDialog({ open, onOpenChange }: AddUserDialogProps) {
     setEmail("");
     setTitle("");
     setBusinessId("");
-    setRole("company_user");
+    setRole("member");
     setInviteUrl(null);
     setCopied(false);
     onOpenChange(false);
@@ -198,10 +193,10 @@ export function AddUserDialog({ open, onOpenChange }: AddUserDialogProps) {
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <UserPlus className="h-5 w-5" />
-            Add User
+            Invite User
           </DialogTitle>
           <DialogDescription>
-            Add a new user to a member company. They'll receive an invitation email.
+            Invite a new user to a member company. They'll receive an invitation email.
           </DialogDescription>
         </DialogHeader>
 
@@ -228,16 +223,6 @@ export function AddUserDialog({ open, onOpenChange }: AddUserDialogProps) {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="title">Job Title</Label>
-            <Input
-              id="title"
-              placeholder="CEO, CFO, etc."
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-            />
-          </div>
-
-          <div className="space-y-2">
             <Label htmlFor="company">Company *</Label>
             <Select value={businessId} onValueChange={setBusinessId}>
               <SelectTrigger>
@@ -255,21 +240,27 @@ export function AddUserDialog({ open, onOpenChange }: AddUserDialogProps) {
 
           <div className="space-y-2">
             <Label htmlFor="role">Role</Label>
-            <Select value={role} onValueChange={(v) => setRole(v as UserRole)}>
+            <Select value={role} onValueChange={(v) => setRole(v as TeamRole)}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="company_admin">
+                <SelectItem value="owner">
                   <div className="flex flex-col">
-                    <span className="font-medium">Company Admin</span>
-                    <span className="text-xs text-muted-foreground">Full access to company features</span>
+                    <span className="font-medium">Owner</span>
+                    <span className="text-xs text-muted-foreground">Full control over company</span>
                   </div>
                 </SelectItem>
-                <SelectItem value="company_user">
+                <SelectItem value="admin">
                   <div className="flex flex-col">
-                    <span className="font-medium">Company User</span>
-                    <span className="text-xs text-muted-foreground">Limited access based on permissions</span>
+                    <span className="font-medium">Admin</span>
+                    <span className="text-xs text-muted-foreground">Can manage team and profile</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="member">
+                  <div className="flex flex-col">
+                    <span className="font-medium">Member</span>
+                    <span className="text-xs text-muted-foreground">Access to member benefits only</span>
                   </div>
                 </SelectItem>
               </SelectContent>
@@ -316,7 +307,7 @@ export function AddUserDialog({ open, onOpenChange }: AddUserDialogProps) {
               {addUserMutation.isPending && (
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
               )}
-              Add User
+              Send Invitation
             </Button>
           )}
         </DialogFooter>

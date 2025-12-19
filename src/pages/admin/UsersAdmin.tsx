@@ -39,7 +39,9 @@ type UserListItem = {
   profile_id: string | null;
   is_active: boolean;
   created_at: string | null;
+  joined_at: string | null;
   business_name: string | null;
+  is_primary: boolean;
   // Invitation-specific
   invitation_status?: string;
   expires_at?: string | null;
@@ -107,14 +109,18 @@ export default function UsersAdmin() {
             business_id,
             profile_id,
             created_at,
+            joined_at,
+            is_primary,
             profiles!team_memberships_profile_id_fkey (
               id,
               display_name,
               email,
               phone,
-              title
+              title,
+              avatar_url
             ),
             businesses (
+              id,
               name
             )
           `)
@@ -143,7 +149,9 @@ export default function UsersAdmin() {
             profile_id: m.profile_id,
             is_active: true,
             created_at: m.created_at,
+            joined_at: m.joined_at || m.created_at,
             business_name: m.businesses?.name || null,
+            is_primary: m.is_primary || false,
           });
         });
       }
@@ -182,7 +190,7 @@ export default function UsersAdmin() {
           items.push({
             id: inv.id,
             type: "invitation",
-            display_name: inv.email.split("@")[0],
+            display_name: inv.display_name || inv.email.split("@")[0],
             email: inv.email,
             phone: null,
             title: null,
@@ -191,7 +199,9 @@ export default function UsersAdmin() {
             profile_id: null,
             is_active: false,
             created_at: inv.created_at,
+            joined_at: null,
             business_name: inv.businesses?.name || null,
+            is_primary: false,
             invitation_status: inv.status,
             expires_at: inv.expires_at,
           });
@@ -853,7 +863,31 @@ export default function UsersAdmin() {
       </div>
 
       {/* Dialogs */}
-      <UserDetailDialog user={selectedUser as any} open={detailOpen} onOpenChange={setDetailOpen} />
+      <UserDetailDialog 
+        user={selectedUser && selectedUser.type === "member" && selectedUser.profile_id ? {
+          id: selectedUser.id,
+          profile_id: selectedUser.profile_id,
+          business_id: selectedUser.business_id!,
+          role: selectedUser.role || "member",
+          is_primary: selectedUser.is_primary,
+          joined_at: selectedUser.joined_at || selectedUser.created_at || "",
+          created_at: selectedUser.created_at || "",
+          profiles: {
+            id: selectedUser.profile_id,
+            display_name: selectedUser.display_name,
+            email: selectedUser.email,
+            phone: selectedUser.phone,
+            title: selectedUser.title,
+            avatar_url: null,
+          },
+          businesses: selectedUser.business_id ? {
+            id: selectedUser.business_id,
+            name: selectedUser.business_name || "Unknown",
+          } : null,
+        } : null}
+        open={detailOpen} 
+        onOpenChange={setDetailOpen} 
+      />
       <ManageRolesDialog 
         open={rolesDialogOpen} 
         onOpenChange={setRolesDialogOpen}

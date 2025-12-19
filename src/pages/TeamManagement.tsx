@@ -8,8 +8,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, UserPlus, Users, Shield, Clock, Mail, X } from "lucide-react";
+import { Loader2, UserPlus, Users, Shield, Clock, Mail, X, Eye } from "lucide-react";
 import { InviteUserDialog } from "@/components/team/InviteUserDialog";
+import { UserDetailSheet } from "@/components/shared/UserDetailSheet";
 import type { Tables } from "@/integrations/supabase/types";
 
 type TeamMembership = Tables<"team_memberships">;
@@ -33,10 +34,12 @@ const roleLabels: Record<string, string> = {
 };
 
 export default function TeamManagement() {
-  const { profile, activeCompanyId, permissions, isLoading: userLoading } = useUser();
+  const { profile, activeCompanyId, activeCompany, permissions, isLoading: userLoading } = useUser();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
+  const [selectedMember, setSelectedMember] = useState<TeamMemberWithProfile | null>(null);
+  const [detailSheetOpen, setDetailSheetOpen] = useState(false);
 
   // Fetch team memberships with profiles for this business
   const { data: teamMembers = [], isLoading: teamLoading } = useQuery({
@@ -250,7 +253,11 @@ export default function TeamManagement() {
           {teamMembers.map((member) => (
             <Card
               key={member.id}
-              className="bg-card border-border"
+              className="bg-card border-border cursor-pointer hover:border-primary/50 transition-colors"
+              onClick={() => {
+                setSelectedMember(member);
+                setDetailSheetOpen(true);
+              }}
             >
               <CardHeader className="pb-2">
                 <div className="flex items-start justify-between">
@@ -287,9 +294,15 @@ export default function TeamManagement() {
                     {member.profiles.title}
                   </p>
                 )}
-                <p className="text-xs text-muted-foreground">
-                  Joined {new Date(member.joined_at).toLocaleDateString()}
-                </p>
+                <div className="flex items-center justify-between">
+                  <p className="text-xs text-muted-foreground">
+                    Joined {new Date(member.joined_at).toLocaleDateString()}
+                  </p>
+                  <Button variant="ghost" size="sm" className="h-7 px-2">
+                    <Eye className="h-3 w-3 mr-1" />
+                    <span className="text-xs">View</span>
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           ))}
@@ -320,6 +333,21 @@ export default function TeamManagement() {
         businessId={activeCompanyId}
         currentUserId={profile.id}
         canInviteMore={canInviteMore}
+      />
+
+      <UserDetailSheet
+        member={selectedMember ? {
+          ...selectedMember,
+          profiles: selectedMember.profiles ? {
+            ...selectedMember.profiles,
+            avatar_url: selectedMember.profiles.avatar_url || null,
+          } : null,
+        } : null}
+        businessName={activeCompany?.business?.name || undefined}
+        open={detailSheetOpen}
+        onOpenChange={setDetailSheetOpen}
+        canEditRole={canManageTeam}
+        currentUserId={profile.id}
       />
     </DashboardLayout>
   );
