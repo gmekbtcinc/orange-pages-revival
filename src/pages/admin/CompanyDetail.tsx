@@ -54,6 +54,7 @@ import {
   Ticket,
   Mic,
   UtensilsCrossed,
+  Search,
 } from "lucide-react";
 import { format } from "date-fns";
 
@@ -777,67 +778,205 @@ function AdminInviteDialog({
   const queryClient = useQueryClient();
   const [email, setEmail] = useState("");
   const [displayName, setDisplayName] = useState("");
-  const [role, setRole] = useState<"company_admin" | "company_user">("company_user");
+  const [role, setRole] = useState<"owner" | "admin" | "member">("member");
+  const [mode, setMode] = useState<"invite" | "assign">("invite");
+  
+  // For direct assign mode
+  const [searchEmail, setSearchEmail] = useState("");
+  const [foundProfile, setFoundProfile] = useState<{ id: string; display_name: string; email: string } | null>(null);
+  const [searching, setSearching] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
+
+  const searchProfile = async () => {
+    if (!searchEmail.trim()) return;
+    setSearching(true);
+    setSearchError(null);
+    setFoundProfile(null);
+    
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("id, display_name, email")
+      .eq("email", searchEmail.trim().toLowerCase())
+      .maybeSingle();
+    
+    setSearching(false);
+    
+    if (error) {
+      setSearchError("Error searching for user");
+      return;
+    }
+    
+    if (data) {
+      setFoundProfile(data);
+    } else {
+      setSearchError("No user found with this email. They need to create an account first, or use Invite mode.");
+    }
+  };
 
   const inviteMutation = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.from("company_users").insert({
-        business_id: businessId,
-        email: email.toLowerCase().trim(),
-        display_name: displayName.trim(),
-        role,
-        user_id: null,
-        invited_at: new Date().toISOString(),
-        is_active: true,
-        can_claim_tickets: true,
-        can_register_events: true,
-        can_apply_speaking: role === "company_admin",
-        can_edit_profile: role === "company_admin",
-        can_manage_users: role === "company_admin",
-        can_rsvp_dinners: role === "company_admin",
-        can_request_resources: role === "company_admin",
-      });
+      // Create invitation record
+      const inviteToken = crypto.randomUUID();
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + 7);
 
-      if (error) throw error;
+      const { error: inviteError } = await supabase
+        .from("invitations")
+        .insert({
+          business_id: businessId,
+          email: email.toLowerCase().trim(),
+          display_name: displayName.trim(),
+          role: role,
+          status: "pending",
+          token: inviteToken,
+          expires_at: expiresAt.toISOString(),
+        });
+
+      if (inviteError) throw inviteError;
+
+      // Try to send email
+      try {
+        await supabase.functions.invoke("send-team-invitation", {
+          body: {
+            email: email.toLowerCase().trim(),
+            displayName: displayName.trim(),
+            inviterName: "BFC Admin",
+            companyName: "the company",
+            role: role === "admin" ? "Admin" : role === "owner" ? "Owner" : "Member",
+            inviteToken,
+            origin: window.location.origin,
+          },
+        });
+      } catch (e) {
+        console.error("Email failed:", e);
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-company-team", businessId] });
-      toast({ title: "User added", description: "Team member has been added." });
-      onOpenChange(false);
-      setEmail("");
-      setDisplayName("");
-      setRole("company_user");
+      toast({ title: "Invitation sent", description: "Team member has been invited." });
+      handleClose();
     },
     onError: (error: any) => {
       toast({ variant: "destructive", title: "Error", description: error.message });
     },
   });
 
+  const assignMutation = useMutation({
+    mutationFn: async () => {
+      if (!foundProfile) throw new Error("No user selected");
+
+      // Check if already a member
+      const { data: existing } = await supabase
+        .from("team_memberships")
+        .select("id")
+        .eq("profile_id", foundProfile.id)
+        .eq("business_id", businessId)
+        .maybeSingle();
+
+      if (existing) throw new Error("User is already a team member");
+
+      // Check if first membership
+      const { count } = await supabase
+        .from("team_memberships")
+        .select("*", { count: "exact", head: true })
+        .eq("profile_id", foundProfile.id);
+
+      const { error } = await supabase.from("team_memberships").insert({
+        profile_id: foundProfile.id,
+        business_id: businessId,
+        role: role,
+        is_primary: (count || 0) === 0,
+      });
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-company-team", businessId] });
+      toast({ title: "User assigned", description: `${foundProfile?.display_name} has been added to the team.` });
+      handleClose();
+    },
+    onError: (error: any) => {
+      toast({ variant: "destructive", title: "Error", description: error.message });
+    },
+  });
+
+  const handleClose = () => {
+    setEmail("");
+    setDisplayName("");
+    setRole("member");
+    setSearchEmail("");
+    setFoundProfile(null);
+    setSearchError(null);
+    setMode("invite");
+    onOpenChange(false);
+  };
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Add Team Member</DialogTitle>
           <DialogDescription>Add a new user to this company's team.</DialogDescription>
         </DialogHeader>
+        
+        {/* Mode Toggle */}
+        <Tabs value={mode} onValueChange={(v) => setMode(v as "invite" | "assign")}>
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="invite">Send Invitation</TabsTrigger>
+            <TabsTrigger value="assign">Direct Assign</TabsTrigger>
+          </TabsList>
+        </Tabs>
+
         <div className="space-y-4">
-          <div className="space-y-2">
-            <Label>Email</Label>
-            <Input
-              type="email"
-              placeholder="user@company.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>Name</Label>
-            <Input
-              placeholder="John Doe"
-              value={displayName}
-              onChange={(e) => setDisplayName(e.target.value)}
-            />
-          </div>
+          {mode === "invite" ? (
+            <>
+              <div className="space-y-2">
+                <Label>Email</Label>
+                <Input
+                  type="email"
+                  placeholder="user@company.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Name</Label>
+                <Input
+                  placeholder="John Doe"
+                  value={displayName}
+                  onChange={(e) => setDisplayName(e.target.value)}
+                />
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="space-y-2">
+                <Label>Find existing user by email</Label>
+                <div className="flex gap-2">
+                  <Input
+                    type="email"
+                    placeholder="user@example.com"
+                    value={searchEmail}
+                    onChange={(e) => setSearchEmail(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && searchProfile()}
+                  />
+                  <Button variant="secondary" onClick={searchProfile} disabled={searching}>
+                    {searching ? <Loader2 className="h-4 w-4 animate-spin" /> : "Search"}
+                  </Button>
+                </div>
+              </div>
+              {searchError && (
+                <p className="text-sm text-destructive">{searchError}</p>
+              )}
+              {foundProfile && (
+                <div className="p-3 bg-green-500/10 border border-green-500/30 rounded-lg">
+                  <p className="font-medium">{foundProfile.display_name}</p>
+                  <p className="text-sm text-muted-foreground">{foundProfile.email}</p>
+                </div>
+              )}
+            </>
+          )}
+
           <div className="space-y-2">
             <Label>Role</Label>
             <Select value={role} onValueChange={(v) => setRole(v as any)}>
@@ -845,20 +984,28 @@ function AdminInviteDialog({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="company_admin">Admin</SelectItem>
-                <SelectItem value="company_user">User</SelectItem>
+                <SelectItem value="owner">Owner</SelectItem>
+                <SelectItem value="admin">Admin</SelectItem>
+                <SelectItem value="member">Member</SelectItem>
               </SelectContent>
             </Select>
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button variant="outline" onClick={handleClose}>
             Cancel
           </Button>
-          <Button onClick={() => inviteMutation.mutate()} disabled={inviteMutation.isPending || !email || !displayName}>
-            {inviteMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-            Add Member
-          </Button>
+          {mode === "invite" ? (
+            <Button onClick={() => inviteMutation.mutate()} disabled={inviteMutation.isPending || !email || !displayName}>
+              {inviteMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Send Invitation
+            </Button>
+          ) : (
+            <Button onClick={() => assignMutation.mutate()} disabled={assignMutation.isPending || !foundProfile}>
+              {assignMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Assign to Team
+            </Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>
