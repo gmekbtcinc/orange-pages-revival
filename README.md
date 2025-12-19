@@ -96,34 +96,46 @@ src/
 
 ## 🗄 Database Schema
 
-### Core Tables
+### User & Team Tables
+- `profiles` - User profiles (linked to auth.users via id)
+- `team_memberships` - User-to-company associations with roles (owner/admin/member)
+- `invitations` - Team member invitations with token-based acceptance
+- `company_leadership` - Public leadership entries for company profiles
+
+### Business Tables
 - `businesses` - Company listings with profiles
 - `categories` - Business categories
-- `company_users` - User-company associations with roles/permissions
 - `memberships` - BFC membership records with tiers
-- `events` - Conferences and events
-- `event_allocations` - Tier-based benefit allocations per event
-
-### Activity Tables
-- `ticket_claims` - Conference ticket claims
-- `symposium_registrations` - Symposium attendance
-- `speaker_applications` - Speaking slot applications
-- `vip_dinner_rsvps` - VIP dinner reservations
-- `member_resource_requests` - Resource/support requests
-
-### Supporting Tables
 - `business_claims` - Ownership claim requests
 - `business_submissions` - New business submissions
-- `user_invitations` - Team member invitations
+
+### Event Tables
+- `events` - Conferences and events
+- `event_allocations` - Tier-based benefit allocations per event
+- `ticket_claims` - Conference ticket claims (references profile_id)
+- `symposium_registrations` - Symposium attendance (references profile_id)
+- `speaker_applications` - Speaking slot applications (references profile_id)
+- `vip_dinner_rsvps` - VIP dinner reservations (references profile_id)
+- `member_resource_requests` - Resource/support requests (references profile_id)
+
+### Supporting Tables
 - `admins` - Admin user records
-- `user_roles` - Role-based access control
+- `user_roles` - App-level role-based access control (super_admin, admin, moderator)
+
+### Deprecated Tables
+- `company_users` - Legacy user-company table (replaced by profiles + team_memberships)
 
 ## 🔐 Security
 
 - **Row Level Security (RLS)**: All tables protected with granular policies
-- **Role-based Access**: super_admin, company_admin, company_user roles
-- **Permission Flags**: Granular permissions (can_claim_tickets, can_edit_profile, etc.)
-- **Tier-based Limits**: User limits enforced per membership tier
+- **Multi-tier Role System**:
+  - App roles: `super_admin`, `admin`, `moderator` (in `user_roles` table)
+  - Team roles: `owner`, `admin`, `member` (in `team_memberships` table)
+- **Derived Permissions**: User permissions derived from team role + membership tier
+- **Tier-based Benefits**: Member benefits determined by active membership tier
+- **Multi-company Support**: Users can belong to multiple companies via team_memberships
+
+See [ARCHITECTURE.md](./ARCHITECTURE.md) for detailed documentation.
 
 ## 🚀 Getting Started
 
