@@ -749,96 +749,6 @@ export type Database = {
           },
         ]
       }
-      company_users: {
-        Row: {
-          accepted_at: string | null
-          avatar_url: string | null
-          business_id: string | null
-          can_apply_speaking: boolean | null
-          can_claim_tickets: boolean | null
-          can_edit_profile: boolean | null
-          can_manage_users: boolean | null
-          can_register_events: boolean | null
-          can_request_resources: boolean | null
-          can_rsvp_dinners: boolean | null
-          created_at: string | null
-          display_name: string
-          email: string
-          id: string
-          invited_at: string | null
-          invited_by: string | null
-          is_active: boolean | null
-          phone: string | null
-          role: Database["public"]["Enums"]["user_role"]
-          title: string | null
-          updated_at: string | null
-          user_id: string | null
-        }
-        Insert: {
-          accepted_at?: string | null
-          avatar_url?: string | null
-          business_id?: string | null
-          can_apply_speaking?: boolean | null
-          can_claim_tickets?: boolean | null
-          can_edit_profile?: boolean | null
-          can_manage_users?: boolean | null
-          can_register_events?: boolean | null
-          can_request_resources?: boolean | null
-          can_rsvp_dinners?: boolean | null
-          created_at?: string | null
-          display_name: string
-          email: string
-          id?: string
-          invited_at?: string | null
-          invited_by?: string | null
-          is_active?: boolean | null
-          phone?: string | null
-          role?: Database["public"]["Enums"]["user_role"]
-          title?: string | null
-          updated_at?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          accepted_at?: string | null
-          avatar_url?: string | null
-          business_id?: string | null
-          can_apply_speaking?: boolean | null
-          can_claim_tickets?: boolean | null
-          can_edit_profile?: boolean | null
-          can_manage_users?: boolean | null
-          can_register_events?: boolean | null
-          can_request_resources?: boolean | null
-          can_rsvp_dinners?: boolean | null
-          created_at?: string | null
-          display_name?: string
-          email?: string
-          id?: string
-          invited_at?: string | null
-          invited_by?: string | null
-          is_active?: boolean | null
-          phone?: string | null
-          role?: Database["public"]["Enums"]["user_role"]
-          title?: string | null
-          updated_at?: string | null
-          user_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "company_users_business_id_fkey"
-            columns: ["business_id"]
-            isOneToOne: false
-            referencedRelation: "businesses"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "company_users_invited_by_fkey"
-            columns: ["invited_by"]
-            isOneToOne: false
-            referencedRelation: "company_users"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       event_allocations: {
         Row: {
           conference_tickets: number | null
@@ -1918,10 +1828,6 @@ export type Database = {
         Returns: boolean
       }
       is_business_user: {
-        Args: { _business_id: string; _user_id: string }
-        Returns: boolean
-      }
-      is_company_admin: {
         Args: { _business_id: string; _user_id: string }
         Returns: boolean
       }
