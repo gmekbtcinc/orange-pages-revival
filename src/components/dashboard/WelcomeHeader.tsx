@@ -39,18 +39,10 @@ export function WelcomeHeader() {
     queryKey: ["ticket-claims-count", activeCompanyId],
     queryFn: async () => {
       if (!activeCompanyId) return [];
-      // Get all company_users for this business, then get their ticket claims
-      const { data: companyUsers } = await supabase
-        .from("company_users")
-        .select("id")
-        .eq("business_id", activeCompanyId);
-      
-      if (!companyUsers?.length) return [];
-      
       const { data } = await supabase
         .from("ticket_claims")
         .select("id")
-        .in("company_user_id", companyUsers.map(u => u.id));
+        .eq("business_id", activeCompanyId);
       return data || [];
     },
     enabled: !!activeCompanyId,

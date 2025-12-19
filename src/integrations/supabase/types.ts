@@ -1048,7 +1048,6 @@ export type Database = {
         Row: {
           admin_notes: string | null
           business_id: string | null
-          company_user_id: string | null
           completed_at: string | null
           id: string
           profile_id: string | null
@@ -1061,7 +1060,6 @@ export type Database = {
         Insert: {
           admin_notes?: string | null
           business_id?: string | null
-          company_user_id?: string | null
           completed_at?: string | null
           id?: string
           profile_id?: string | null
@@ -1074,7 +1072,6 @@ export type Database = {
         Update: {
           admin_notes?: string | null
           business_id?: string | null
-          company_user_id?: string | null
           completed_at?: string | null
           id?: string
           profile_id?: string | null
@@ -1090,13 +1087,6 @@ export type Database = {
             columns: ["business_id"]
             isOneToOne: false
             referencedRelation: "businesses"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "member_resource_requests_company_user_id_fkey"
-            columns: ["company_user_id"]
-            isOneToOne: false
-            referencedRelation: "company_users"
             referencedColumns: ["id"]
           },
         ]
@@ -1393,7 +1383,6 @@ export type Database = {
           admin_notes: string | null
           airtable_record_id: string | null
           av_requirements: string | null
-          company_user_id: string | null
           created_at: string
           event_id: string
           format: string
@@ -1418,7 +1407,6 @@ export type Database = {
           admin_notes?: string | null
           airtable_record_id?: string | null
           av_requirements?: string | null
-          company_user_id?: string | null
           created_at?: string
           event_id: string
           format: string
@@ -1443,7 +1431,6 @@ export type Database = {
           admin_notes?: string | null
           airtable_record_id?: string | null
           av_requirements?: string | null
-          company_user_id?: string | null
           created_at?: string
           event_id?: string
           format?: string
@@ -1466,13 +1453,6 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "speaker_applications_company_user_id_fkey"
-            columns: ["company_user_id"]
-            isOneToOne: false
-            referencedRelation: "company_users"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "speaker_applications_event_id_fkey"
             columns: ["event_id"]
             isOneToOne: false
@@ -1491,12 +1471,10 @@ export type Database = {
       symposium_registrations: {
         Row: {
           accessibility_needs: string | null
-          assigned_by: string | null
           attendee_company: string | null
           attendee_email: string
           attendee_name: string
           attendee_title: string | null
-          company_user_id: string | null
           confirmed_at: string | null
           dietary_requirements: string | null
           event_id: string
@@ -1509,12 +1487,10 @@ export type Database = {
         }
         Insert: {
           accessibility_needs?: string | null
-          assigned_by?: string | null
           attendee_company?: string | null
           attendee_email: string
           attendee_name: string
           attendee_title?: string | null
-          company_user_id?: string | null
           confirmed_at?: string | null
           dietary_requirements?: string | null
           event_id: string
@@ -1527,12 +1503,10 @@ export type Database = {
         }
         Update: {
           accessibility_needs?: string | null
-          assigned_by?: string | null
           attendee_company?: string | null
           attendee_email?: string
           attendee_name?: string
           attendee_title?: string | null
-          company_user_id?: string | null
           confirmed_at?: string | null
           dietary_requirements?: string | null
           event_id?: string
@@ -1544,20 +1518,6 @@ export type Database = {
           status?: Database["public"]["Enums"]["rsvp_status"] | null
         }
         Relationships: [
-          {
-            foreignKeyName: "symposium_registrations_assigned_by_fkey"
-            columns: ["assigned_by"]
-            isOneToOne: false
-            referencedRelation: "company_users"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "symposium_registrations_company_user_id_fkey"
-            columns: ["company_user_id"]
-            isOneToOne: false
-            referencedRelation: "company_users"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "symposium_registrations_event_id_fkey"
             columns: ["event_id"]
@@ -1655,14 +1615,12 @@ export type Database = {
       }
       ticket_claims: {
         Row: {
-          assigned_by: string | null
           attendee_company: string | null
           attendee_email: string
           attendee_name: string
           attendee_title: string | null
           business_id: string | null
           claimed_at: string
-          company_user_id: string | null
           confirmed_at: string | null
           event_id: string
           id: string
@@ -1673,14 +1631,12 @@ export type Database = {
           ticket_code: string | null
         }
         Insert: {
-          assigned_by?: string | null
           attendee_company?: string | null
           attendee_email: string
           attendee_name: string
           attendee_title?: string | null
           business_id?: string | null
           claimed_at?: string
-          company_user_id?: string | null
           confirmed_at?: string | null
           event_id: string
           id?: string
@@ -1691,14 +1647,12 @@ export type Database = {
           ticket_code?: string | null
         }
         Update: {
-          assigned_by?: string | null
           attendee_company?: string | null
           attendee_email?: string
           attendee_name?: string
           attendee_title?: string | null
           business_id?: string | null
           claimed_at?: string
-          company_user_id?: string | null
           confirmed_at?: string | null
           event_id?: string
           id?: string
@@ -1710,24 +1664,10 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "ticket_claims_assigned_by_fkey"
-            columns: ["assigned_by"]
-            isOneToOne: false
-            referencedRelation: "company_users"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "ticket_claims_business_id_fkey"
             columns: ["business_id"]
             isOneToOne: false
             referencedRelation: "businesses"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "ticket_claims_company_user_id_fkey"
-            columns: ["company_user_id"]
-            isOneToOne: false
-            referencedRelation: "company_users"
             referencedColumns: ["id"]
           },
           {
@@ -1968,8 +1908,6 @@ export type Database = {
       }
       vip_dinner_rsvps: {
         Row: {
-          assigned_by: string | null
-          company_user_id: string | null
           confirmation_code: string | null
           confirmed_at: string | null
           dietary_requirements: string | null
@@ -1986,8 +1924,6 @@ export type Database = {
           status: Database["public"]["Enums"]["rsvp_status"] | null
         }
         Insert: {
-          assigned_by?: string | null
-          company_user_id?: string | null
           confirmation_code?: string | null
           confirmed_at?: string | null
           dietary_requirements?: string | null
@@ -2004,8 +1940,6 @@ export type Database = {
           status?: Database["public"]["Enums"]["rsvp_status"] | null
         }
         Update: {
-          assigned_by?: string | null
-          company_user_id?: string | null
           confirmation_code?: string | null
           confirmed_at?: string | null
           dietary_requirements?: string | null
@@ -2022,20 +1956,6 @@ export type Database = {
           status?: Database["public"]["Enums"]["rsvp_status"] | null
         }
         Relationships: [
-          {
-            foreignKeyName: "vip_dinner_rsvps_assigned_by_fkey"
-            columns: ["assigned_by"]
-            isOneToOne: false
-            referencedRelation: "company_users"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "vip_dinner_rsvps_company_user_id_fkey"
-            columns: ["company_user_id"]
-            isOneToOne: false
-            referencedRelation: "company_users"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "vip_dinner_rsvps_event_id_fkey"
             columns: ["event_id"]
