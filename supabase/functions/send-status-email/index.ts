@@ -7,7 +7,8 @@ const PRODUCTION_URL = "https://orangepages.bitcoinforcorporations.com";
 const getCorsHeaders = (origin: string | null) => {
   const isAllowed = origin && (
     ALLOWED_ORIGINS.some(allowed => origin.startsWith(allowed.replace(/\/$/, ''))) ||
-    origin.endsWith('.lovableproject.com')
+    origin.endsWith('.lovableproject.com') ||
+    origin.endsWith('.lovable.app')
   );
   return { 'Access-Control-Allow-Origin': isAllowed ? origin : ALLOWED_ORIGINS[0], 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type' };
 };
