@@ -11,7 +11,10 @@ const ALLOWED_ORIGINS = [
 ];
 
 const getCorsHeaders = (origin: string | null) => {
-  const isAllowed = origin && ALLOWED_ORIGINS.some(allowed => origin.startsWith(allowed.replace(/\/$/, '')));
+  const isAllowed = origin && (
+    ALLOWED_ORIGINS.some(allowed => origin.startsWith(allowed.replace(/\/$/, ''))) ||
+    origin.endsWith('.lovableproject.com')
+  );
   return {
     'Access-Control-Allow-Origin': isAllowed ? origin : ALLOWED_ORIGINS[0],
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -45,7 +48,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log("Sending invitation email to:", email);
 
-    const baseUrl = requestOrigin.includes("lovable.app") || requestOrigin.includes("lovable.dev") || requestOrigin.includes("localhost") 
+    const baseUrl = requestOrigin.includes("lovable.app") || requestOrigin.includes("lovable.dev") || requestOrigin.includes("lovableproject.com") || requestOrigin.includes("localhost") 
       ? PRODUCTION_URL 
       : requestOrigin;
     
