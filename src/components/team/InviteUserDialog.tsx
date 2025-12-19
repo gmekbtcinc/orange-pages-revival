@@ -39,6 +39,7 @@ export function InviteUserDialog({
 }: InviteUserDialogProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<"admin" | "member">("member");
   const [inviteUrl, setInviteUrl] = useState<string | null>(null);
@@ -85,6 +86,7 @@ export function InviteUserDialog({
         .insert({
           business_id: businessId,
           email: email.toLowerCase().trim(),
+          display_name: displayName.trim() || null,
           role,
           invited_by: currentUserId,
           status: "pending",
@@ -105,6 +107,7 @@ export function InviteUserDialog({
         const { data, error: emailError } = await supabase.functions.invoke("send-team-invitation", {
           body: {
             email: email.toLowerCase().trim(),
+            displayName: displayName.trim() || undefined,
             inviterName: inviterData?.inviterName || "A team member",
             companyName: inviterData?.companyName || "your company",
             role,
@@ -159,6 +162,7 @@ export function InviteUserDialog({
   });
 
   const resetForm = () => {
+    setDisplayName("");
     setEmail("");
     setRole("member");
     setInviteUrl(null);
@@ -182,6 +186,17 @@ export function InviteUserDialog({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="displayName">Name</Label>
+            <Input
+              id="displayName"
+              type="text"
+              placeholder="John Doe"
+              value={displayName}
+              onChange={(e) => setDisplayName(e.target.value)}
+            />
+          </div>
+
           <div className="space-y-2">
             <Label htmlFor="email">Email *</Label>
             <Input
