@@ -93,6 +93,17 @@ export function ClaimBusinessDialog({
         },
       }).catch((err) => console.error("Claim confirmation email error:", err));
       
+      // Notify admins of new claim (fire and forget)
+      supabase.functions.invoke("notify-admin", {
+        body: {
+          type: "new_claim",
+          businessName,
+          submitterName: formData.claimant_name,
+          submitterEmail: formData.claimant_email,
+          origin: window.location.origin,
+        },
+      }).catch((err) => console.error("Admin notification error:", err));
+      
       toast({
         title: "Claim submitted!",
         description:
