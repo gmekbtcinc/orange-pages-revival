@@ -48,22 +48,54 @@ export default function InviteAccept() {
         return;
       }
 
-      // Fetch invitation from NEW invitations table
-      const { data, error: fetchError } = await supabase
-        .from("invitations")
+      // Try user_invitations table first (admin-created invitations)
+      let data = null;
+      let fetchError = null;
+
+      const { data: userInviteData, error: userInviteError } = await supabase
+        .from("user_invitations")
         .select(`
           id,
           email,
-          token,
+          invite_token,
           role,
           status,
           expires_at,
           business_id,
-          businesses:business_id (name),
-          inviter:profiles!invitations_invited_by_fkey (display_name)
+          display_name,
+          businesses:business_id (name)
         `)
-        .eq("token", token)
+        .eq("invite_token", token)
         .maybeSingle();
+
+      if (userInviteData) {
+        // Map user_invitations fields to expected format
+        data = {
+          ...userInviteData,
+          token: userInviteData.invite_token,
+          inviter: null, // user_invitations doesn't track inviter name
+        };
+      } else {
+        // Fallback to team invitations table
+        const { data: teamInviteData, error: teamInviteError } = await supabase
+          .from("invitations")
+          .select(`
+            id,
+            email,
+            token,
+            role,
+            status,
+            expires_at,
+            business_id,
+            businesses:business_id (name),
+            inviter:profiles!invitations_invited_by_fkey (display_name)
+          `)
+          .eq("token", token)
+          .maybeSingle();
+
+        data = teamInviteData;
+        fetchError = teamInviteError || userInviteError;
+      }
 
       if (fetchError) {
         console.error("Error fetching invitation:", fetchError);
