@@ -206,7 +206,18 @@ export default function Login() {
       if (message.includes("Invalid login credentials")) {
         message = "Invalid email or password. Please try again.";
       } else if (message.includes("User already registered")) {
+        // If coming from an invitation and user already exists, switch to login mode
+        if (returnTo.includes("invite")) {
+          message = "You already have an account. Please sign in with your password.";
+          setIsLogin(true);
+          toast({
+            title: "Account exists",
+            description: message,
+          });
+          return;
+        }
         message = "This email is already registered. Please sign in instead.";
+        setIsLogin(true);
       }
       toast({
         title: "Error",

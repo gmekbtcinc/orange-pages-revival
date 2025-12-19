@@ -37,7 +37,7 @@ export default function InviteAccept() {
 
   useEffect(() => {
     const checkAuthAndFetchInvitation = async () => {
-      // Check auth status
+      // Check auth status first
       const { data: { session } } = await supabase.auth.getSession();
       setIsAuthenticated(!!session?.user);
       setCurrentUserEmail(session?.user?.email || null);
@@ -95,40 +95,6 @@ export default function InviteAccept() {
 
       // Check if revoked
       if (data.status === "revoked") {
-        setError("This invitation has been revoked");
-        setLoading(false);
-        return;
-      }
-
-      if (fetchError) {
-        console.error("Error fetching invitation:", fetchError);
-        setError("Failed to load invitation");
-        setLoading(false);
-        return;
-      }
-
-      if (!data) {
-        setError("Invitation not found or has been revoked");
-        setLoading(false);
-        return;
-      }
-
-      // Check if expired
-      if (data.expires_at && new Date(data.expires_at) < new Date()) {
-        setError("This invitation has expired");
-        setLoading(false);
-        return;
-      }
-
-      // Check if already accepted
-      if ((data.status as string) === "accepted") {
-        setError("This invitation has already been accepted");
-        setLoading(false);
-        return;
-      }
-
-      // Check if revoked
-      if ((data.status as string) === "revoked") {
         setError("This invitation has been revoked");
         setLoading(false);
         return;
