@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { UserProvider } from "@/contexts/UserContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AdminProtectedRoute } from "@/components/AdminProtectedRoute";
+import { PermissionGuard } from "@/components/PermissionGuard";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import Index from "./pages/Index";
 import BusinessDetail from "./pages/BusinessDetail";
@@ -78,7 +79,9 @@ const App = () => (
               path="/dashboard/company-profile"
               element={
                 <ProtectedRoute>
-                  <CompanyProfile />
+                  <PermissionGuard permission="canEditProfile">
+                    <CompanyProfile />
+                  </PermissionGuard>
                 </ProtectedRoute>
               }
             />
@@ -86,7 +89,9 @@ const App = () => (
               path="/dashboard/team"
               element={
                 <ProtectedRoute>
-                  <TeamManagement />
+                  <PermissionGuard permission="canManageTeam">
+                    <TeamManagement />
+                  </PermissionGuard>
                 </ProtectedRoute>
               }
             />

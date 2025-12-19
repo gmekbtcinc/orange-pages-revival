@@ -149,8 +149,8 @@ export function DashboardLayout({ children, breadcrumbs }: DashboardLayoutProps)
                   <Settings className="mr-2 h-4 w-4" />
                   Account Settings
                 </DropdownMenuItem>
-                {activeCompanyId && (
-                  <DropdownMenuItem 
+                {activeCompanyId && permissions?.canEditProfile && (
+                  <DropdownMenuItem
                     className="cursor-pointer"
                     onClick={() => navigate("/dashboard/company-profile")}
                   >
@@ -158,7 +158,7 @@ export function DashboardLayout({ children, breadcrumbs }: DashboardLayoutProps)
                     Company Profile
                   </DropdownMenuItem>
                 )}
-                {canManageUsers && activeCompanyId && (
+                {activeCompanyId && canManageUsers && (
                   <DropdownMenuItem 
                     className="cursor-pointer"
                     onClick={() => navigate("/dashboard/team")}
