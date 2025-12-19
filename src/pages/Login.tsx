@@ -15,20 +15,23 @@ const authSchema = z.object({
 });
 
 export default function Login() {
-  const [isLogin, setIsLogin] = useState(true);
-  const [email, setEmail] = useState("");
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const { toast } = useToast();
+
+  // Get URL params for pre-filling and mode selection
+  const returnTo = searchParams.get("returnTo") || searchParams.get("redirect") || "/dashboard";
+  const prefillEmail = searchParams.get("email") || "";
+  const defaultToSignup = searchParams.get("signup") === "true";
+
+  const [isLogin, setIsLogin] = useState(!defaultToSignup);
+  const [email, setEmail] = useState(prefillEmail);
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [resetLoading, setResetLoading] = useState(false);
   const [showResetForm, setShowResetForm] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
-  const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const { toast } = useToast();
-
-  // Get returnTo from URL params (also check 'redirect' for backwards compatibility), default to /dashboard
-  const returnTo = searchParams.get("returnTo") || searchParams.get("redirect") || "/dashboard";
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
