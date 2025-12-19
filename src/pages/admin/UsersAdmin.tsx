@@ -107,7 +107,7 @@ export default function UsersAdmin() {
             business_id,
             profile_id,
             created_at,
-            profiles (
+            profiles!team_memberships_profile_id_fkey (
               id,
               display_name,
               email,
