@@ -23,9 +23,11 @@ export function BenefitsOverview() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("tier_track_packages")
-        .select("*, membership_tiers(name)")
-        .eq("status", "active");
-      if (error) throw error;
+        .select("*, membership_tiers(name)");
+      if (error) {
+        console.error("[BenefitsOverview] packages query error:", error);
+        throw error;
+      }
       return data;
     },
   });
@@ -36,10 +38,11 @@ export function BenefitsOverview() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("benefits")
-        .select("*, benefit_categories(name)")
-        .eq("is_active", true)
-        .order("display_order");
-      if (error) throw error;
+        .select("*, benefit_categories(name)");
+      if (error) {
+        console.error("[BenefitsOverview] benefits query error:", error);
+        throw error;
+      }
       return data;
     },
   });
@@ -89,9 +92,10 @@ export function BenefitsOverview() {
     return null;
   }
 
-  // Find the package for this tier
+  // Find the package for this tier (case-insensitive matching)
+  const memberTier = membership.tier?.toLowerCase();
   const tierPackage = packages.find((p: any) =>
-    p.tier_id === membership.tier || p.membership_tiers?.name?.toLowerCase() === membership.tier
+    p.membership_tiers?.name?.toLowerCase() === memberTier
   );
 
   // Get benefits for this package

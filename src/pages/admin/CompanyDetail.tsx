@@ -220,8 +220,7 @@ export default function CompanyDetail() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("tier_track_packages")
-        .select("*, membership_tiers(name)")
-        .eq("status", "active");
+        .select("*, membership_tiers(name)");
       if (error) throw error;
       return data;
     },
