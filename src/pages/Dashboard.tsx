@@ -8,6 +8,7 @@ import { WelcomeHeader } from "@/components/dashboard/WelcomeHeader";
 import { QuickActions } from "@/components/dashboard/QuickActions";
 import { MemberFastFacts } from "@/components/dashboard/MemberFastFacts";
 import { EventCards } from "@/components/dashboard/EventCards";
+import { BenefitsOverview } from "@/components/dashboard/BenefitsOverview";
 import { MemberResources } from "@/components/dashboard/MemberResources";
 import { ClaimStatusCard } from "@/components/claims/ClaimStatusCard";
 import { SubmissionStatusCard } from "@/components/claims/SubmissionStatusCard";
@@ -216,6 +217,9 @@ export default function Dashboard() {
 
         {/* Member Fast Facts */}
         <MemberFastFacts />
+
+        {/* Benefits Overview */}
+        <BenefitsOverview />
 
         {/* Events Section */}
         <div id="events-section">
