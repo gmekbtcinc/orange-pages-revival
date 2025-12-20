@@ -5,7 +5,18 @@ import { supabase } from "@/integrations/supabase/client";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { EditCompanyDialog } from "@/components/admin/EditCompanyDialog";
 import { CompanyOverrideDialog } from "@/components/admin/CompanyOverrideDialog";
-import { PASS_TYPE_SHORT_LABELS, computeEffectiveAllocation, type CompanyAllocationOverride, type ExtendedEventAllocation } from "@/types/user";
+import { FulfillmentDialog } from "@/components/admin/FulfillmentDialog";
+import {
+  PASS_TYPE_SHORT_LABELS,
+  FULFILLMENT_STATUS_LABELS,
+  FULFILLMENT_STATUS_COLORS,
+  BENEFIT_SCOPE_LABELS,
+  computeEffectiveAllocation,
+  type CompanyAllocationOverride,
+  type ExtendedEventAllocation,
+  type Fulfillment,
+  type FulfillmentStatus
+} from "@/types/user";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -92,6 +103,14 @@ export default function CompanyDetail() {
     id: string;
     name: string;
   } | null>(null);
+  const [fulfillmentDialogOpen, setFulfillmentDialogOpen] = useState(false);
+  const [selectedBenefitForFulfillment, setSelectedBenefitForFulfillment] = useState<{
+    id: string;
+    name: string;
+    eventId?: string | null;
+    periodYear?: number;
+  } | null>(null);
+  const [selectedFulfillment, setSelectedFulfillment] = useState<Fulfillment | null>(null);
 
   // Fetch company data
   const { data: company, isLoading } = useQuery({
@@ -191,6 +210,74 @@ export default function CompanyDetail() {
         .eq("business_id", id);
       if (error) throw error;
       return data as CompanyAllocationOverride[];
+    },
+    enabled: !!id,
+  });
+
+  // Fetch packages to get the company's package
+  const { data: packages = [] } = useQuery({
+    queryKey: ["packages"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("packages")
+        .select("*, membership_tiers(name)")
+        .eq("is_active", true);
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  // Fetch all benefits
+  const { data: benefits = [] } = useQuery({
+    queryKey: ["benefits"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("benefits")
+        .select("*, benefit_categories(name)")
+        .eq("is_active", true)
+        .order("display_order");
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  // Fetch package benefits (what benefits each package includes)
+  const { data: packageBenefits = [] } = useQuery({
+    queryKey: ["package-benefits"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("package_benefits")
+        .select("*");
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  // Fetch company's fulfillments
+  const { data: companyFulfillments = [] } = useQuery({
+    queryKey: ["company-fulfillments", id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("fulfillments")
+        .select("*")
+        .eq("business_id", id)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data as Fulfillment[];
+    },
+    enabled: !!id,
+  });
+
+  // Fetch company benefit overrides
+  const { data: companyBenefitOverrides = [] } = useQuery({
+    queryKey: ["company-benefit-overrides", id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("company_benefit_overrides")
+        .select("*")
+        .eq("business_id", id);
+      if (error) throw error;
+      return data;
     },
     enabled: !!id,
   });
@@ -460,6 +547,7 @@ export default function CompanyDetail() {
           <TabsList>
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="membership">Membership</TabsTrigger>
+            <TabsTrigger value="benefits">Benefits</TabsTrigger>
             <TabsTrigger value="allocations">Allocations</TabsTrigger>
             <TabsTrigger value="team">Team ({teamMembers.length})</TabsTrigger>
             <TabsTrigger value="claims">Claims ({claims.length})</TabsTrigger>
@@ -581,6 +669,197 @@ export default function CompanyDetail() {
                       <Crown className="h-4 w-4 mr-2" />
                       Create Membership
                     </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="benefits" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Benefits & Fulfillment</CardTitle>
+                <CardDescription>
+                  Track benefit delivery for this company.
+                  {membership && ` Based on ${membership.tier.charAt(0).toUpperCase() + membership.tier.slice(1)} tier.`}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {!membership ? (
+                  <div className="text-center py-8">
+                    <Crown className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                    <h3 className="text-lg font-semibold mb-2">No Membership</h3>
+                    <p className="text-muted-foreground">This company needs an active membership to receive benefits.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-6">
+                    {/* Group benefits by category */}
+                    {(() => {
+                      // Find the package for this tier
+                      const tierPackage = packages.find((p: any) =>
+                        p.tier_id === membership.tier || p.membership_tiers?.name?.toLowerCase() === membership.tier
+                      );
+
+                      // Get benefits for this package
+                      const packageBenefitIds = tierPackage
+                        ? packageBenefits.filter((pb: any) => pb.package_id === tierPackage.id)
+                        : [];
+
+                      // Group benefits by category
+                      const benefitsByCategory: Record<string, any[]> = {};
+                      const currentYear = new Date().getFullYear();
+
+                      benefits.forEach((benefit: any) => {
+                        const pb = packageBenefitIds.find((p: any) => p.benefit_id === benefit.id);
+                        if (!pb && companyBenefitOverrides.length === 0) return; // Skip if not in package and no overrides
+
+                        const category = benefit.benefit_categories?.name || "Other";
+                        if (!benefitsByCategory[category]) {
+                          benefitsByCategory[category] = [];
+                        }
+
+                        // Calculate entitled quantity
+                        const override = companyBenefitOverrides.find((o: any) =>
+                          o.benefit_id === benefit.id &&
+                          (o.period_year === currentYear || o.period_year === null)
+                        );
+
+                        let entitled = pb?.quantity || 0;
+                        if (override) {
+                          if (override.override_mode === "absolute") {
+                            entitled = override.quantity_override ?? entitled;
+                          } else {
+                            entitled = entitled + (override.quantity_override ?? 0);
+                          }
+                        }
+                        if (pb?.is_unlimited || override?.is_unlimited_override) {
+                          entitled = -1; // -1 means unlimited
+                        }
+
+                        // Count fulfillments for this benefit
+                        const fulfillments = companyFulfillments.filter((f: any) =>
+                          f.benefit_id === benefit.id &&
+                          (f.period_year === currentYear || benefit.scope === "one_time")
+                        );
+                        const fulfilled = fulfillments.reduce((sum: number, f: any) => sum + f.quantity, 0);
+
+                        benefitsByCategory[category].push({
+                          ...benefit,
+                          entitled,
+                          fulfilled,
+                          remaining: entitled === -1 ? -1 : Math.max(0, entitled - fulfilled),
+                          fulfillments,
+                        });
+                      });
+
+                      if (Object.keys(benefitsByCategory).length === 0) {
+                        return (
+                          <div className="text-center py-8 text-muted-foreground">
+                            <p>No benefits configured for this tier yet.</p>
+                            <p className="text-sm mt-2">Set up packages and benefits in the admin settings.</p>
+                          </div>
+                        );
+                      }
+
+                      return Object.entries(benefitsByCategory).map(([category, categoryBenefits]) => (
+                        <div key={category}>
+                          <h4 className="font-medium text-sm text-muted-foreground uppercase tracking-wide mb-3">
+                            {category}
+                          </h4>
+                          <div className="space-y-3">
+                            {categoryBenefits.map((benefit: any) => (
+                              <div
+                                key={benefit.id}
+                                className="flex items-center justify-between p-3 rounded-lg border bg-card"
+                              >
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-medium">{benefit.label}</span>
+                                    <Badge variant="outline" className="text-xs">
+                                      {BENEFIT_SCOPE_LABELS[benefit.scope as keyof typeof BENEFIT_SCOPE_LABELS] || benefit.scope}
+                                    </Badge>
+                                  </div>
+                                  {benefit.description && (
+                                    <p className="text-sm text-muted-foreground mt-1">{benefit.description}</p>
+                                  )}
+                                  {/* Recent fulfillments */}
+                                  {benefit.fulfillments.length > 0 && (
+                                    <div className="mt-2 space-y-1">
+                                      {benefit.fulfillments.slice(0, 3).map((f: any) => (
+                                        <div
+                                          key={f.id}
+                                          className="text-xs text-muted-foreground flex items-center gap-2 cursor-pointer hover:text-foreground"
+                                          onClick={() => {
+                                            setSelectedBenefitForFulfillment({
+                                              id: benefit.id,
+                                              name: benefit.label,
+                                              periodYear: currentYear,
+                                            });
+                                            setSelectedFulfillment(f);
+                                            setFulfillmentDialogOpen(true);
+                                          }}
+                                        >
+                                          <Badge
+                                            variant="outline"
+                                            className={`text-xs ${FULFILLMENT_STATUS_COLORS[f.status as FulfillmentStatus]?.replace("bg-", "border-")} ${FULFILLMENT_STATUS_COLORS[f.status as FulfillmentStatus]?.replace("bg-", "text-").replace("-500", "-600")}`}
+                                          >
+                                            {FULFILLMENT_STATUS_LABELS[f.status as FulfillmentStatus]}
+                                          </Badge>
+                                          <span>{f.title || `${f.quantity}x delivered`}</span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="flex items-center gap-4">
+                                  {/* Progress */}
+                                  <div className="text-right">
+                                    <div className="text-lg font-semibold">
+                                      {benefit.entitled === -1 ? (
+                                        <span className="text-green-600">∞</span>
+                                      ) : (
+                                        <>
+                                          <span className={benefit.fulfilled > 0 ? "text-green-600" : ""}>
+                                            {benefit.fulfilled}
+                                          </span>
+                                          <span className="text-muted-foreground"> / {benefit.entitled}</span>
+                                        </>
+                                      )}
+                                    </div>
+                                    <div className="text-xs text-muted-foreground">
+                                      {benefit.entitled === -1
+                                        ? "Unlimited"
+                                        : benefit.remaining > 0
+                                          ? `${benefit.remaining} remaining`
+                                          : benefit.fulfilled > 0
+                                            ? "Complete"
+                                            : "Not started"
+                                      }
+                                    </div>
+                                  </div>
+                                  {/* Add fulfillment button */}
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => {
+                                      setSelectedBenefitForFulfillment({
+                                        id: benefit.id,
+                                        name: benefit.label,
+                                        periodYear: currentYear,
+                                      });
+                                      setSelectedFulfillment(null);
+                                      setFulfillmentDialogOpen(true);
+                                    }}
+                                  >
+                                    + Add
+                                  </Button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ));
+                    })()}
                   </div>
                 )}
               </CardContent>
@@ -907,6 +1186,26 @@ export default function CompanyDetail() {
           onOpenChange={(open) => {
             setOverrideDialogOpen(open);
             if (!open) setSelectedEventForOverride(null);
+          }}
+        />
+      )}
+
+      {/* Fulfillment Dialog */}
+      {selectedBenefitForFulfillment && (
+        <FulfillmentDialog
+          businessId={id!}
+          benefitId={selectedBenefitForFulfillment.id}
+          benefitName={selectedBenefitForFulfillment.name}
+          eventId={selectedBenefitForFulfillment.eventId}
+          periodYear={selectedBenefitForFulfillment.periodYear}
+          existingFulfillment={selectedFulfillment}
+          open={fulfillmentDialogOpen}
+          onOpenChange={(open) => {
+            setFulfillmentDialogOpen(open);
+            if (!open) {
+              setSelectedBenefitForFulfillment(null);
+              setSelectedFulfillment(null);
+            }
           }}
         />
       )}
