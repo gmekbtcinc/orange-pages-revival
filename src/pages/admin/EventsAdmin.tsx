@@ -129,8 +129,10 @@ export default function EventsAdmin() {
         return <Badge className="bg-orange-500 hover:bg-orange-600">Flagship</Badge>;
       case "regional":
         return <Badge className="bg-blue-500 hover:bg-blue-600">Regional</Badge>;
+      case "partner":
+        return <Badge className="bg-emerald-500 hover:bg-emerald-600">Partner</Badge>;
       default:
-        return <Badge variant="secondary">Secondary</Badge>;
+        return <Badge variant="secondary">{type}</Badge>;
     }
   };
 

@@ -14,6 +14,7 @@ import { format, parseISO } from "date-fns";
 import { toast } from "sonner";
 import { EditEventDialog } from "@/components/admin/EditEventDialog";
 import { AllocationsDialog } from "@/components/admin/AllocationsDialog";
+import { PASS_TYPE_SHORT_LABELS, PASS_TYPE_LABELS } from "@/types/user";
 
 export default function EventDetail() {
   const { id } = useParams<{ id: string }>();
@@ -182,8 +183,10 @@ export default function EventDetail() {
         return <Badge className="bg-orange-500">Flagship</Badge>;
       case "regional":
         return <Badge className="bg-blue-500">Regional</Badge>;
+      case "partner":
+        return <Badge className="bg-emerald-500">Partner</Badge>;
       default:
-        return <Badge variant="secondary">Secondary</Badge>;
+        return <Badge variant="secondary">{type}</Badge>;
     }
   };
 
@@ -390,62 +393,85 @@ export default function EventDetail() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Tier</TableHead>
-                      <TableHead className="text-center">Members</TableHead>
-                      <TableHead className="text-center">Tickets Required</TableHead>
-                      <TableHead className="text-center">Symposium Required</TableHead>
-                      <TableHead className="text-center">VIP Dinner Required</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {["industry", "premier", "executive", "sponsor", "chairman"].map((tier) => {
-                      const alloc = allocations?.find((a) => a.tier === tier);
-                      const memberCount = membershipCounts?.[tier] || 0;
-                      const ticketsRequired = memberCount * (alloc?.conference_tickets ?? 0);
-                      const symposiumRequired = memberCount * (alloc?.symposium_seats ?? 0);
-                      const dinnerRequired = memberCount * (alloc?.vip_dinner_seats ?? 0);
-                      return (
-                        <TableRow key={tier}>
-                          <TableCell className="font-medium">{getTierLabel(tier)}</TableCell>
-                          <TableCell className="text-center">{memberCount}</TableCell>
-                          <TableCell className="text-center">{ticketsRequired}</TableCell>
-                          <TableCell className="text-center">{symposiumRequired}</TableCell>
-                          <TableCell className="text-center">{dinnerRequired}</TableCell>
-                        </TableRow>
-                      );
-                    })}
-                    {/* Totals Row */}
-                    <TableRow className="bg-muted/50 font-semibold">
-                      <TableCell>TOTAL</TableCell>
-                      <TableCell className="text-center">
-                        {["industry", "premier", "executive", "sponsor", "chairman"].reduce(
-                          (sum, tier) => sum + (membershipCounts?.[tier] || 0), 0
-                        )}
-                      </TableCell>
-                      <TableCell className="text-center">
-                        {["industry", "premier", "executive", "sponsor", "chairman"].reduce((sum, tier) => {
-                          const alloc = allocations?.find((a) => a.tier === tier);
-                          return sum + (membershipCounts?.[tier] || 0) * (alloc?.conference_tickets ?? 0);
-                        }, 0)}
-                      </TableCell>
-                      <TableCell className="text-center">
-                        {["industry", "premier", "executive", "sponsor", "chairman"].reduce((sum, tier) => {
-                          const alloc = allocations?.find((a) => a.tier === tier);
-                          return sum + (membershipCounts?.[tier] || 0) * (alloc?.symposium_seats ?? 0);
-                        }, 0)}
-                      </TableCell>
-                      <TableCell className="text-center">
-                        {["industry", "premier", "executive", "sponsor", "chairman"].reduce((sum, tier) => {
-                          const alloc = allocations?.find((a) => a.tier === tier);
-                          return sum + (membershipCounts?.[tier] || 0) * (alloc?.vip_dinner_seats ?? 0);
-                        }, 0)}
-                      </TableCell>
-                    </TableRow>
-                  </TableBody>
-                </Table>
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="min-w-[120px]">Tier</TableHead>
+                        <TableHead className="text-center">Members</TableHead>
+                        <TableHead className="text-center" title={PASS_TYPE_LABELS.ga}>{PASS_TYPE_SHORT_LABELS.ga}</TableHead>
+                        <TableHead className="text-center" title={PASS_TYPE_LABELS.pro}>{PASS_TYPE_SHORT_LABELS.pro}</TableHead>
+                        <TableHead className="text-center" title={PASS_TYPE_LABELS.whale}>{PASS_TYPE_SHORT_LABELS.whale}</TableHead>
+                        <TableHead className="text-center">Custom</TableHead>
+                        <TableHead className="text-center">Symposium</TableHead>
+                        <TableHead className="text-center">VIP Dinner</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {["industry", "premier", "executive", "sponsor", "chairman"].map((tier) => {
+                        const alloc = allocations?.find((a) => a.tier === tier);
+                        const memberCount = membershipCounts?.[tier] || 0;
+                        return (
+                          <TableRow key={tier}>
+                            <TableCell className="font-medium">{getTierLabel(tier)}</TableCell>
+                            <TableCell className="text-center">{memberCount}</TableCell>
+                            <TableCell className="text-center">{memberCount * (alloc?.ga_tickets ?? 0)}</TableCell>
+                            <TableCell className="text-center">{memberCount * (alloc?.pro_tickets ?? 0)}</TableCell>
+                            <TableCell className="text-center">{memberCount * (alloc?.whale_tickets ?? 0)}</TableCell>
+                            <TableCell className="text-center">{memberCount * (alloc?.custom_tickets ?? 0)}</TableCell>
+                            <TableCell className="text-center">{memberCount * (alloc?.symposium_seats ?? 0)}</TableCell>
+                            <TableCell className="text-center">{memberCount * (alloc?.vip_dinner_seats ?? 0)}</TableCell>
+                          </TableRow>
+                        );
+                      })}
+                      {/* Totals Row */}
+                      <TableRow className="bg-muted/50 font-semibold">
+                        <TableCell>TOTAL</TableCell>
+                        <TableCell className="text-center">
+                          {["industry", "premier", "executive", "sponsor", "chairman"].reduce(
+                            (sum, tier) => sum + (membershipCounts?.[tier] || 0), 0
+                          )}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          {["industry", "premier", "executive", "sponsor", "chairman"].reduce((sum, tier) => {
+                            const alloc = allocations?.find((a) => a.tier === tier);
+                            return sum + (membershipCounts?.[tier] || 0) * (alloc?.ga_tickets ?? 0);
+                          }, 0)}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          {["industry", "premier", "executive", "sponsor", "chairman"].reduce((sum, tier) => {
+                            const alloc = allocations?.find((a) => a.tier === tier);
+                            return sum + (membershipCounts?.[tier] || 0) * (alloc?.pro_tickets ?? 0);
+                          }, 0)}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          {["industry", "premier", "executive", "sponsor", "chairman"].reduce((sum, tier) => {
+                            const alloc = allocations?.find((a) => a.tier === tier);
+                            return sum + (membershipCounts?.[tier] || 0) * (alloc?.whale_tickets ?? 0);
+                          }, 0)}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          {["industry", "premier", "executive", "sponsor", "chairman"].reduce((sum, tier) => {
+                            const alloc = allocations?.find((a) => a.tier === tier);
+                            return sum + (membershipCounts?.[tier] || 0) * (alloc?.custom_tickets ?? 0);
+                          }, 0)}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          {["industry", "premier", "executive", "sponsor", "chairman"].reduce((sum, tier) => {
+                            const alloc = allocations?.find((a) => a.tier === tier);
+                            return sum + (membershipCounts?.[tier] || 0) * (alloc?.symposium_seats ?? 0);
+                          }, 0)}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          {["industry", "premier", "executive", "sponsor", "chairman"].reduce((sum, tier) => {
+                            const alloc = allocations?.find((a) => a.tier === tier);
+                            return sum + (membershipCounts?.[tier] || 0) * (alloc?.vip_dinner_seats ?? 0);
+                          }, 0)}
+                        </TableCell>
+                      </TableRow>
+                    </TableBody>
+                  </Table>
+                </div>
               </CardContent>
             </Card>
 
@@ -455,29 +481,37 @@ export default function EventDetail() {
                 <CardTitle>Tier Allocations (Per Member)</CardTitle>
               </CardHeader>
               <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Tier</TableHead>
-                      <TableHead className="text-center">Conference Tickets</TableHead>
-                      <TableHead className="text-center">Symposium Seats</TableHead>
-                      <TableHead className="text-center">VIP Dinner Seats</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {["industry", "premier", "executive", "sponsor", "chairman"].map((tier) => {
-                      const alloc = allocations?.find((a) => a.tier === tier);
-                      return (
-                        <TableRow key={tier}>
-                          <TableCell className="font-medium">{getTierLabel(tier)}</TableCell>
-                          <TableCell className="text-center">{alloc?.conference_tickets ?? 0}</TableCell>
-                          <TableCell className="text-center">{alloc?.symposium_seats ?? 0}</TableCell>
-                          <TableCell className="text-center">{alloc?.vip_dinner_seats ?? 0}</TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="min-w-[120px]">Tier</TableHead>
+                        <TableHead className="text-center" title={PASS_TYPE_LABELS.ga}>{PASS_TYPE_SHORT_LABELS.ga}</TableHead>
+                        <TableHead className="text-center" title={PASS_TYPE_LABELS.pro}>{PASS_TYPE_SHORT_LABELS.pro}</TableHead>
+                        <TableHead className="text-center" title={PASS_TYPE_LABELS.whale}>{PASS_TYPE_SHORT_LABELS.whale}</TableHead>
+                        <TableHead className="text-center">{allocations?.find(a => a.custom_pass_name)?.custom_pass_name || "Custom"}</TableHead>
+                        <TableHead className="text-center">Symposium</TableHead>
+                        <TableHead className="text-center">VIP Dinner</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {["industry", "premier", "executive", "sponsor", "chairman"].map((tier) => {
+                        const alloc = allocations?.find((a) => a.tier === tier);
+                        return (
+                          <TableRow key={tier}>
+                            <TableCell className="font-medium">{getTierLabel(tier)}</TableCell>
+                            <TableCell className="text-center">{alloc?.ga_tickets ?? 0}</TableCell>
+                            <TableCell className="text-center">{alloc?.pro_tickets ?? 0}</TableCell>
+                            <TableCell className="text-center">{alloc?.whale_tickets ?? 0}</TableCell>
+                            <TableCell className="text-center">{alloc?.custom_tickets ?? 0}</TableCell>
+                            <TableCell className="text-center">{alloc?.symposium_seats ?? 0}</TableCell>
+                            <TableCell className="text-center">{alloc?.vip_dinner_seats ?? 0}</TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>

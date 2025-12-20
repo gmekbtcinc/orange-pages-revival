@@ -34,6 +34,7 @@ const EventDetail = lazy(() => import("./pages/admin/EventDetail"));
 const TiersTracksAdmin = lazy(() => import("./pages/admin/TiersTracksAdmin"));
 const BenefitsAdmin = lazy(() => import("./pages/admin/BenefitsAdmin"));
 const PackagesAdmin = lazy(() => import("./pages/admin/PackagesAdmin"));
+const PackageDetail = lazy(() => import("./pages/admin/PackageDetail"));
 const PricingAdmin = lazy(() => import("./pages/admin/PricingAdmin"));
 
 const queryClient = new QueryClient();
@@ -211,6 +212,16 @@ const App = () => (
                 <AdminProtectedRoute>
                   <Suspense fallback={<AdminLoadingFallback />}>
                     <PackagesAdmin />
+                  </Suspense>
+                </AdminProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/packages/:id"
+              element={
+                <AdminProtectedRoute>
+                  <Suspense fallback={<AdminLoadingFallback />}>
+                    <PackageDetail />
                   </Suspense>
                 </AdminProtectedRoute>
               }

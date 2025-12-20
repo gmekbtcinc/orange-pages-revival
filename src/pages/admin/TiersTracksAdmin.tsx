@@ -2,14 +2,16 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, Pencil } from 'lucide-react';
+import { Loader2, Pencil, Plus } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { AdminLayout } from '@/components/admin/AdminLayout';
 import { BrandSelector } from '@/components/ui/brand-selector';
@@ -26,14 +28,18 @@ interface Tier {
   description: string | null;
   tagline: string | null;
   color_hex: string | null;
+  is_active: boolean;
 }
 
 interface Track {
   id: string;
   name: string;
+  slug: string;
   description: string | null;
+  target_audience: string | null;
   display_order: number;
   icon_url: string | null;
+  is_active: boolean;
 }
 
 interface BrandTag {
@@ -56,18 +62,23 @@ export default function TiersTracksAdmin() {
 
   const [tierForm, setTierForm] = useState({
     name: '',
+    slug: '',
     display_order: 0,
     icon_url: null as string | null,
     description: '',
     tagline: '',
     color_hex: '',
+    is_active: true,
   });
 
   const [trackForm, setTrackForm] = useState({
     name: '',
+    slug: '',
     description: '',
+    target_audience: '',
     display_order: 0,
     icon_url: null as string | null,
+    is_active: true,
   });
 
   const [selectedBrandIds, setSelectedBrandIds] = useState<string[]>([]);
@@ -129,13 +140,26 @@ export default function TiersTracksAdmin() {
 
     try {
       if (editingTier) {
+        // Update existing tier (don't update slug)
+        const { slug, ...updateData } = tierForm;
         const { error } = await supabase
           .from('membership_tiers')
-          .update(tierForm)
+          .update(updateData)
           .eq('id', editingTier.id);
 
         if (error) throw error;
         toast({ title: 'Tier updated successfully' });
+      } else {
+        // Create new tier
+        const { error } = await supabase
+          .from('membership_tiers')
+          .insert({
+            ...tierForm,
+            slug: tierForm.slug || tierForm.name.toLowerCase().replace(/\s+/g, '-'),
+          });
+
+        if (error) throw error;
+        toast({ title: 'Tier created successfully' });
       }
 
       setTierDialogOpen(false);
@@ -151,33 +175,53 @@ export default function TiersTracksAdmin() {
     e.preventDefault();
 
     try {
+      let trackId = editingTrack?.id;
+
       if (editingTrack) {
+        // Update existing track (don't update slug)
+        const { slug, ...updateData } = trackForm;
         const { error } = await supabase
           .from('membership_tracks')
-          .update(trackForm)
+          .update(updateData)
           .eq('id', editingTrack.id);
 
         if (error) throw error;
 
+        // Clear existing brand associations
         await supabase
           .from('track_brand_tags')
           .delete()
           .eq('track_id', editingTrack.id);
 
-        if (selectedBrandIds.length > 0) {
-          const associations = selectedBrandIds.map(brandId => ({
-            track_id: editingTrack.id,
-            brand_tag_id: brandId,
-          }));
-
-          const { error: brandError } = await supabase
-            .from('track_brand_tags')
-            .insert(associations);
-
-          if (brandError) throw brandError;
-        }
-
         toast({ title: 'Track updated successfully' });
+      } else {
+        // Create new track
+        const { data, error } = await supabase
+          .from('membership_tracks')
+          .insert({
+            ...trackForm,
+            slug: trackForm.slug || trackForm.name.toLowerCase().replace(/\s+/g, '-'),
+          })
+          .select('id')
+          .single();
+
+        if (error) throw error;
+        trackId = data.id;
+        toast({ title: 'Track created successfully' });
+      }
+
+      // Add brand associations
+      if (trackId && selectedBrandIds.length > 0) {
+        const associations = selectedBrandIds.map(brandId => ({
+          track_id: trackId,
+          brand_tag_id: brandId,
+        }));
+
+        const { error: brandError } = await supabase
+          .from('track_brand_tags')
+          .insert(associations);
+
+        if (brandError) throw brandError;
       }
 
       setTrackDialogOpen(false);
@@ -191,24 +235,38 @@ export default function TiersTracksAdmin() {
 
   const resetTierForm = () => {
     setEditingTier(null);
-    setTierForm({ name: '', display_order: 0, icon_url: null, description: '', tagline: '', color_hex: '' });
+    setTierForm({ name: '', slug: '', display_order: 0, icon_url: null, description: '', tagline: '', color_hex: '', is_active: true });
   };
 
   const resetTrackForm = () => {
     setEditingTrack(null);
-    setTrackForm({ name: '', description: '', display_order: 0, icon_url: null });
+    setTrackForm({ name: '', slug: '', description: '', target_audience: '', display_order: 0, icon_url: null, is_active: true });
     setSelectedBrandIds([]);
+  };
+
+  const openCreateTierDialog = () => {
+    resetTierForm();
+    setTierForm(prev => ({ ...prev, display_order: tiers.length + 1 }));
+    setTierDialogOpen(true);
+  };
+
+  const openCreateTrackDialog = () => {
+    resetTrackForm();
+    setTrackForm(prev => ({ ...prev, display_order: tracks.length + 1 }));
+    setTrackDialogOpen(true);
   };
 
   const handleEditTier = (tier: Tier) => {
     setEditingTier(tier);
     setTierForm({
       name: tier.name,
+      slug: tier.slug,
       display_order: tier.display_order,
       icon_url: tier.icon_url,
       description: tier.description || '',
       tagline: tier.tagline || '',
       color_hex: tier.color_hex || '',
+      is_active: tier.is_active,
     });
     setTierDialogOpen(true);
   };
@@ -217,9 +275,12 @@ export default function TiersTracksAdmin() {
     setEditingTrack(track);
     setTrackForm({
       name: track.name,
+      slug: track.slug,
       description: track.description || '',
+      target_audience: track.target_audience || '',
       display_order: track.display_order,
       icon_url: track.icon_url,
+      is_active: track.is_active,
     });
 
     const { data } = await supabase
@@ -273,99 +334,61 @@ export default function TiersTracksAdmin() {
 
           <TabsContent value="tiers">
             <Card>
-              <CardHeader>
+              <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle>Membership Tiers ({tiers.length})</CardTitle>
+                <Button onClick={openCreateTierDialog} size="sm" className="gap-1">
+                  <Plus className="h-4 w-4" />
+                  Add Tier
+                </Button>
               </CardHeader>
               <CardContent>
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      <TableHead className="w-16">Color</TableHead>
                       <TableHead>Icon</TableHead>
                       <TableHead>Name</TableHead>
                       <TableHead>Tagline</TableHead>
-                      <TableHead>Display Order</TableHead>
+                      <TableHead>Order</TableHead>
+                      <TableHead>Status</TableHead>
                       <TableHead></TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {tiers.map((tier) => (
-                      <TableRow key={tier.id}>
+                      <TableRow key={tier.id} className={!tier.is_active ? 'opacity-50' : ''}>
+                        <TableCell>
+                          {tier.color_hex ? (
+                            <div
+                              className="h-6 w-6 rounded-full border border-border"
+                              style={{ backgroundColor: tier.color_hex }}
+                              title={tier.color_hex}
+                            />
+                          ) : (
+                            <div className="h-6 w-6 rounded-full bg-muted border border-border" />
+                          )}
+                        </TableCell>
                         <TableCell>
                           {tier.icon_url ? (
                             <img src={tier.icon_url} alt={tier.name} className="h-8 w-8 object-contain" />
                           ) : (
                             <div className="h-8 w-8 bg-muted rounded flex items-center justify-center text-xs text-muted-foreground">
-                              N/A
+                              —
                             </div>
                           )}
                         </TableCell>
                         <TableCell className="font-medium capitalize">{tier.name}</TableCell>
-                        <TableCell>{tier.tagline || '—'}</TableCell>
+                        <TableCell className="max-w-xs truncate">{tier.tagline || '—'}</TableCell>
                         <TableCell>{tier.display_order}</TableCell>
                         <TableCell>
-                          <Dialog open={tierDialogOpen && editingTier?.id === tier.id} onOpenChange={setTierDialogOpen}>
-                            <DialogTrigger asChild>
-                              <Button size="sm" variant="ghost" onClick={() => handleEditTier(tier)}>
-                                <Pencil className="h-4 w-4" />
-                              </Button>
-                            </DialogTrigger>
-                            <DialogContent>
-                              <DialogHeader>
-                                <DialogTitle>Edit Tier</DialogTitle>
-                              </DialogHeader>
-                              <form onSubmit={handleTierSubmit} className="space-y-4">
-                                <div>
-                                  <Label htmlFor="tier-name">Name</Label>
-                                  <Input
-                                    id="tier-name"
-                                    value={tierForm.name}
-                                    onChange={(e) => setTierForm({ ...tierForm, name: e.target.value })}
-                                    required
-                                  />
-                                </div>
-                                <div>
-                                  <Label htmlFor="tier-description">Description</Label>
-                                  <Textarea
-                                    id="tier-description"
-                                    value={tierForm.description}
-                                    onChange={(e) => setTierForm({ ...tierForm, description: e.target.value })}
-                                    rows={2}
-                                  />
-                                </div>
-                                <div>
-                                  <Label htmlFor="tier-tagline">Tagline</Label>
-                                  <Input
-                                    id="tier-tagline"
-                                    value={tierForm.tagline}
-                                    onChange={(e) => setTierForm({ ...tierForm, tagline: e.target.value })}
-                                  />
-                                </div>
-                                <div>
-                                  <Label htmlFor="tier-order">Display Order</Label>
-                                  <Input
-                                    id="tier-order"
-                                    type="number"
-                                    value={tierForm.display_order}
-                                    onChange={(e) => setTierForm({ ...tierForm, display_order: parseInt(e.target.value) })}
-                                  />
-                                </div>
-                                <div>
-                                  <Label>Tier Icon</Label>
-                                  <ImageUpload
-                                    bucket="brand-logos"
-                                    value={tierForm.icon_url}
-                                    onChange={(url) => setTierForm({ ...tierForm, icon_url: url })}
-                                  />
-                                </div>
-                                <div className="flex justify-end gap-2">
-                                  <Button type="button" variant="outline" onClick={() => setTierDialogOpen(false)}>
-                                    Cancel
-                                  </Button>
-                                  <Button type="submit">Update</Button>
-                                </div>
-                              </form>
-                            </DialogContent>
-                          </Dialog>
+                          <Badge variant={tier.is_active ? 'default' : 'secondary'}>
+                            {tier.is_active ? 'Active' : 'Inactive'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Button size="sm" variant="ghost" onClick={() => handleEditTier(tier)}>
+                            <Pencil className="h-4 w-4" />
+                          </Button>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -373,12 +396,123 @@ export default function TiersTracksAdmin() {
                 </Table>
               </CardContent>
             </Card>
+
+            {/* Tier Dialog */}
+            <Dialog open={tierDialogOpen} onOpenChange={setTierDialogOpen}>
+              <DialogContent className="max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>{editingTier ? 'Edit Tier' : 'Create New Tier'}</DialogTitle>
+                </DialogHeader>
+                <form onSubmit={handleTierSubmit} className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="tier-name">Name *</Label>
+                      <Input
+                        id="tier-name"
+                        value={tierForm.name}
+                        onChange={(e) => setTierForm({ ...tierForm, name: e.target.value })}
+                        placeholder="e.g., Executive"
+                        required
+                      />
+                    </div>
+                    {!editingTier && (
+                      <div>
+                        <Label htmlFor="tier-slug">Slug</Label>
+                        <Input
+                          id="tier-slug"
+                          value={tierForm.slug}
+                          onChange={(e) => setTierForm({ ...tierForm, slug: e.target.value })}
+                          placeholder="auto-generated if empty"
+                        />
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <Label htmlFor="tier-tagline">Tagline</Label>
+                    <Input
+                      id="tier-tagline"
+                      value={tierForm.tagline}
+                      onChange={(e) => setTierForm({ ...tierForm, tagline: e.target.value })}
+                      placeholder="Short description shown to members"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="tier-description">Description</Label>
+                    <Textarea
+                      id="tier-description"
+                      value={tierForm.description}
+                      onChange={(e) => setTierForm({ ...tierForm, description: e.target.value })}
+                      placeholder="Full description of this tier's benefits"
+                      rows={3}
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="tier-color">Brand Color</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          id="tier-color"
+                          type="color"
+                          value={tierForm.color_hex || '#F7931A'}
+                          onChange={(e) => setTierForm({ ...tierForm, color_hex: e.target.value })}
+                          className="w-12 h-10 p-1 cursor-pointer"
+                        />
+                        <Input
+                          value={tierForm.color_hex}
+                          onChange={(e) => setTierForm({ ...tierForm, color_hex: e.target.value })}
+                          placeholder="#F7931A"
+                          className="flex-1"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <Label htmlFor="tier-order">Display Order</Label>
+                      <Input
+                        id="tier-order"
+                        type="number"
+                        value={tierForm.display_order}
+                        onChange={(e) => setTierForm({ ...tierForm, display_order: parseInt(e.target.value) || 0 })}
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <Label>Tier Icon</Label>
+                    <ImageUpload
+                      bucket="brand-logos"
+                      value={tierForm.icon_url}
+                      onChange={(url) => setTierForm({ ...tierForm, icon_url: url })}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between rounded-lg border p-3">
+                    <div>
+                      <Label htmlFor="tier-active" className="cursor-pointer">Active</Label>
+                      <p className="text-xs text-muted-foreground">Inactive tiers are hidden from selection</p>
+                    </div>
+                    <Switch
+                      id="tier-active"
+                      checked={tierForm.is_active}
+                      onCheckedChange={(checked) => setTierForm({ ...tierForm, is_active: checked })}
+                    />
+                  </div>
+                  <div className="flex justify-end gap-2 pt-2">
+                    <Button type="button" variant="outline" onClick={() => setTierDialogOpen(false)}>
+                      Cancel
+                    </Button>
+                    <Button type="submit">{editingTier ? 'Update' : 'Create'}</Button>
+                  </div>
+                </form>
+              </DialogContent>
+            </Dialog>
           </TabsContent>
 
           <TabsContent value="tracks">
             <Card>
-              <CardHeader>
+              <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle>Membership Tracks ({tracks.length})</CardTitle>
+                <Button onClick={openCreateTrackDialog} size="sm" className="gap-1">
+                  <Plus className="h-4 w-4" />
+                  Add Track
+                </Button>
               </CardHeader>
               <CardContent>
                 <Table>
@@ -386,26 +520,27 @@ export default function TiersTracksAdmin() {
                     <TableRow>
                       <TableHead>Icon</TableHead>
                       <TableHead>Name</TableHead>
-                      <TableHead>Description</TableHead>
+                      <TableHead>Target Audience</TableHead>
                       <TableHead>Associated Brands</TableHead>
-                      <TableHead>Display Order</TableHead>
+                      <TableHead>Order</TableHead>
+                      <TableHead>Status</TableHead>
                       <TableHead></TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {tracks.map((track) => (
-                      <TableRow key={track.id}>
+                      <TableRow key={track.id} className={!track.is_active ? 'opacity-50' : ''}>
                         <TableCell>
                           {track.icon_url ? (
                             <img src={track.icon_url} alt={track.name} className="h-8 w-8 object-contain" />
                           ) : (
                             <div className="h-8 w-8 bg-muted rounded flex items-center justify-center text-xs text-muted-foreground">
-                              N/A
+                              —
                             </div>
                           )}
                         </TableCell>
                         <TableCell className="font-medium">{track.name}</TableCell>
-                        <TableCell className="max-w-md truncate">{track.description || '—'}</TableCell>
+                        <TableCell className="max-w-xs truncate">{track.target_audience || '—'}</TableCell>
                         <TableCell>
                           <div className="flex flex-wrap gap-1">
                             {brandTags[track.id]?.map((brand) => (
@@ -424,71 +559,14 @@ export default function TiersTracksAdmin() {
                         </TableCell>
                         <TableCell>{track.display_order}</TableCell>
                         <TableCell>
-                          <Dialog open={trackDialogOpen && editingTrack?.id === track.id} onOpenChange={setTrackDialogOpen}>
-                            <DialogTrigger asChild>
-                              <Button size="sm" variant="ghost" onClick={() => handleEditTrack(track)}>
-                                <Pencil className="h-4 w-4" />
-                              </Button>
-                            </DialogTrigger>
-                            <DialogContent className="max-h-[90vh] overflow-y-auto">
-                              <DialogHeader>
-                                <DialogTitle>Edit Track</DialogTitle>
-                              </DialogHeader>
-                              <form onSubmit={handleTrackSubmit} className="space-y-4">
-                                <div>
-                                  <Label htmlFor="track-name">Name</Label>
-                                  <Input
-                                    id="track-name"
-                                    value={trackForm.name}
-                                    onChange={(e) => setTrackForm({ ...trackForm, name: e.target.value })}
-                                    required
-                                  />
-                                </div>
-                                <div>
-                                  <Label htmlFor="track-description">Description</Label>
-                                  <Textarea
-                                    id="track-description"
-                                    value={trackForm.description}
-                                    onChange={(e) => setTrackForm({ ...trackForm, description: e.target.value })}
-                                    rows={3}
-                                  />
-                                </div>
-                                <div>
-                                  <Label htmlFor="track-order">Display Order</Label>
-                                  <Input
-                                    id="track-order"
-                                    type="number"
-                                    value={trackForm.display_order}
-                                    onChange={(e) => setTrackForm({ ...trackForm, display_order: parseInt(e.target.value) })}
-                                  />
-                                </div>
-                                <div>
-                                  <Label>Track Icon</Label>
-                                  <ImageUpload
-                                    bucket="brand-logos"
-                                    value={trackForm.icon_url}
-                                    onChange={(url) => setTrackForm({ ...trackForm, icon_url: url })}
-                                  />
-                                </div>
-                                <div>
-                                  <Label>Associated Brands (Optional)</Label>
-                                  <p className="text-xs text-muted-foreground mb-2">
-                                    Tag which BTC Inc brands are relevant for this membership track
-                                  </p>
-                                  <BrandSelector
-                                    selectedBrandIds={selectedBrandIds}
-                                    onChange={setSelectedBrandIds}
-                                  />
-                                </div>
-                                <div className="flex justify-end gap-2">
-                                  <Button type="button" variant="outline" onClick={() => setTrackDialogOpen(false)}>
-                                    Cancel
-                                  </Button>
-                                  <Button type="submit">Update</Button>
-                                </div>
-                              </form>
-                            </DialogContent>
-                          </Dialog>
+                          <Badge variant={track.is_active ? 'default' : 'secondary'}>
+                            {track.is_active ? 'Active' : 'Inactive'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Button size="sm" variant="ghost" onClick={() => handleEditTrack(track)}>
+                            <Pencil className="h-4 w-4" />
+                          </Button>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -496,6 +574,103 @@ export default function TiersTracksAdmin() {
                 </Table>
               </CardContent>
             </Card>
+
+            {/* Track Dialog */}
+            <Dialog open={trackDialogOpen} onOpenChange={setTrackDialogOpen}>
+              <DialogContent className="max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>{editingTrack ? 'Edit Track' : 'Create New Track'}</DialogTitle>
+                </DialogHeader>
+                <form onSubmit={handleTrackSubmit} className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="track-name">Name *</Label>
+                      <Input
+                        id="track-name"
+                        value={trackForm.name}
+                        onChange={(e) => setTrackForm({ ...trackForm, name: e.target.value })}
+                        placeholder="e.g., Media & Events"
+                        required
+                      />
+                    </div>
+                    {!editingTrack && (
+                      <div>
+                        <Label htmlFor="track-slug">Slug</Label>
+                        <Input
+                          id="track-slug"
+                          value={trackForm.slug}
+                          onChange={(e) => setTrackForm({ ...trackForm, slug: e.target.value })}
+                          placeholder="auto-generated if empty"
+                        />
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <Label htmlFor="track-target">Target Audience</Label>
+                    <Input
+                      id="track-target"
+                      value={trackForm.target_audience}
+                      onChange={(e) => setTrackForm({ ...trackForm, target_audience: e.target.value })}
+                      placeholder="e.g., Media companies, Event organizers"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="track-description">Description</Label>
+                    <Textarea
+                      id="track-description"
+                      value={trackForm.description}
+                      onChange={(e) => setTrackForm({ ...trackForm, description: e.target.value })}
+                      placeholder="What this track offers to members"
+                      rows={3}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="track-order">Display Order</Label>
+                    <Input
+                      id="track-order"
+                      type="number"
+                      value={trackForm.display_order}
+                      onChange={(e) => setTrackForm({ ...trackForm, display_order: parseInt(e.target.value) || 0 })}
+                    />
+                  </div>
+                  <div>
+                    <Label>Track Icon</Label>
+                    <ImageUpload
+                      bucket="brand-logos"
+                      value={trackForm.icon_url}
+                      onChange={(url) => setTrackForm({ ...trackForm, icon_url: url })}
+                    />
+                  </div>
+                  <div>
+                    <Label>Associated Brands (Optional)</Label>
+                    <p className="text-xs text-muted-foreground mb-2">
+                      Tag which BTC Inc brands are relevant for this membership track
+                    </p>
+                    <BrandSelector
+                      selectedBrandIds={selectedBrandIds}
+                      onChange={setSelectedBrandIds}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between rounded-lg border p-3">
+                    <div>
+                      <Label htmlFor="track-active" className="cursor-pointer">Active</Label>
+                      <p className="text-xs text-muted-foreground">Inactive tracks are hidden from selection</p>
+                    </div>
+                    <Switch
+                      id="track-active"
+                      checked={trackForm.is_active}
+                      onCheckedChange={(checked) => setTrackForm({ ...trackForm, is_active: checked })}
+                    />
+                  </div>
+                  <div className="flex justify-end gap-2 pt-2">
+                    <Button type="button" variant="outline" onClick={() => setTrackDialogOpen(false)}>
+                      Cancel
+                    </Button>
+                    <Button type="submit">{editingTrack ? 'Update' : 'Create'}</Button>
+                  </div>
+                </form>
+              </DialogContent>
+            </Dialog>
           </TabsContent>
         </Tabs>
       </div>

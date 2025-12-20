@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import type { PassType } from "@/types/user";
 
 interface ClaimTicketModalProps {
   isOpen: boolean;
@@ -19,6 +20,8 @@ interface ClaimTicketModalProps {
   eventId: string;
   businessId: string;
   profileId: string;
+  passType: PassType;
+  passTypeLabel: string;
   remaining: number;
 }
 
@@ -28,6 +31,8 @@ export function ClaimTicketModal({
   eventId,
   businessId,
   profileId,
+  passType,
+  passTypeLabel,
   remaining,
 }: ClaimTicketModalProps) {
   const [attendeeName, setAttendeeName] = useState("");
@@ -47,6 +52,7 @@ export function ClaimTicketModal({
         attendee_email: attendeeEmail,
         attendee_title: attendeeTitle || null,
         attendee_company: attendeeCompany || null,
+        pass_type: passType,
         status: "pending",
       });
 
@@ -56,7 +62,7 @@ export function ClaimTicketModal({
       queryClient.invalidateQueries({ queryKey: ["ticket_claims", businessId, eventId] });
       toast({
         title: "Ticket claimed!",
-        description: `Ticket claimed for ${attendeeName}`,
+        description: `${passTypeLabel} ticket claimed for ${attendeeName}`,
       });
       resetForm();
       onClose();
@@ -86,9 +92,9 @@ export function ClaimTicketModal({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Claim Conference Ticket</DialogTitle>
+          <DialogTitle>Claim {passTypeLabel} Ticket</DialogTitle>
           <DialogDescription>
-            Enter attendee details for ticket registration. {remaining} ticket(s) remaining.
+            Enter attendee details for ticket registration. {remaining} {passTypeLabel} ticket(s) remaining.
           </DialogDescription>
         </DialogHeader>
 
@@ -145,7 +151,7 @@ export function ClaimTicketModal({
               className="bg-bitcoin-orange hover:bg-bitcoin-orange-dark"
               disabled={claimMutation.isPending}
             >
-              {claimMutation.isPending ? "Claiming..." : "Claim Ticket"}
+              {claimMutation.isPending ? "Claiming..." : `Claim ${passTypeLabel}`}
             </Button>
           </div>
         </form>

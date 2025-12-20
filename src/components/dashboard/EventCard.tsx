@@ -31,7 +31,7 @@ export function EventCard({ event, allocation, businessId, profileId, isPrimary 
   const eventTypeColors: Record<string, string> = {
     flagship: "bg-bitcoin-orange",
     regional: "bg-blue-600",
-    secondary: "bg-gray-600",
+    partner: "bg-emerald-600",
   };
 
   return (
@@ -90,7 +90,7 @@ export function EventCard({ event, allocation, businessId, profileId, isPrimary 
           eventId={event.id}
           businessId={businessId}
           profileId={profileId}
-          allocated={allocation?.conference_tickets || 0}
+          allocation={allocation}
         />
 
         {/* Primary events get all 4 modules */}

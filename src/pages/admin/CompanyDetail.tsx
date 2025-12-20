@@ -4,6 +4,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { EditCompanyDialog } from "@/components/admin/EditCompanyDialog";
+import { CompanyOverrideDialog } from "@/components/admin/CompanyOverrideDialog";
+import { PASS_TYPE_SHORT_LABELS, computeEffectiveAllocation, type CompanyAllocationOverride, type ExtendedEventAllocation } from "@/types/user";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -85,6 +87,11 @@ export default function CompanyDetail() {
   const [editDialogOpen, setEditDialogOpen] = useState(location.hash === "#edit");
   const [tierDialogOpen, setTierDialogOpen] = useState(false);
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
+  const [overrideDialogOpen, setOverrideDialogOpen] = useState(false);
+  const [selectedEventForOverride, setSelectedEventForOverride] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
 
   // Fetch company data
   const { data: company, isLoading } = useQuery({
@@ -140,6 +147,50 @@ export default function CompanyDetail() {
 
       if (error) throw error;
       return data;
+    },
+    enabled: !!id,
+  });
+
+  // Fetch active events for allocations tab
+  const { data: activeEvents = [] } = useQuery({
+    queryKey: ["active-events"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("events")
+        .select("id, name, event_type, start_date")
+        .eq("is_active", true)
+        .order("start_date", { ascending: true });
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!id,
+  });
+
+  // Fetch all tier allocations for active events
+  const { data: tierAllocations = [] } = useQuery({
+    queryKey: ["tier-allocations", company?.memberships?.tier],
+    queryFn: async () => {
+      if (!company?.memberships?.tier) return [];
+      const { data, error } = await supabase
+        .from("event_allocations")
+        .select("*")
+        .eq("tier", company.memberships.tier);
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!company?.memberships?.tier,
+  });
+
+  // Fetch company overrides
+  const { data: companyOverrides = [] } = useQuery({
+    queryKey: ["company-overrides", id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("company_allocation_overrides")
+        .select("*")
+        .eq("business_id", id);
+      if (error) throw error;
+      return data as CompanyAllocationOverride[];
     },
     enabled: !!id,
   });
@@ -409,6 +460,7 @@ export default function CompanyDetail() {
           <TabsList>
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="membership">Membership</TabsTrigger>
+            <TabsTrigger value="allocations">Allocations</TabsTrigger>
             <TabsTrigger value="team">Team ({teamMembers.length})</TabsTrigger>
             <TabsTrigger value="claims">Claims ({claims.length})</TabsTrigger>
             <TabsTrigger value="activity">Activity</TabsTrigger>
@@ -529,6 +581,137 @@ export default function CompanyDetail() {
                       <Crown className="h-4 w-4 mr-2" />
                       Create Membership
                     </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="allocations" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Event Allocations</CardTitle>
+                <CardDescription>
+                  Ticket and seat allocations for this company across all active events.
+                  {membership && ` Based on ${membership.tier.charAt(0).toUpperCase() + membership.tier.slice(1)} tier defaults.`}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {!membership ? (
+                  <div className="text-center py-8">
+                    <Crown className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                    <h3 className="text-lg font-semibold mb-2">No Membership</h3>
+                    <p className="text-muted-foreground">This company needs an active membership to receive allocations.</p>
+                  </div>
+                ) : activeEvents.length === 0 ? (
+                  <div className="text-center py-8">
+                    <Calendar className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                    <h3 className="text-lg font-semibold mb-2">No Active Events</h3>
+                    <p className="text-muted-foreground">There are no active events at this time.</p>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="min-w-[150px]">Event</TableHead>
+                          <TableHead className="text-center">{PASS_TYPE_SHORT_LABELS.ga}</TableHead>
+                          <TableHead className="text-center">{PASS_TYPE_SHORT_LABELS.pro}</TableHead>
+                          <TableHead className="text-center">{PASS_TYPE_SHORT_LABELS.whale}</TableHead>
+                          <TableHead className="text-center">Custom</TableHead>
+                          <TableHead className="text-center">Symposium</TableHead>
+                          <TableHead className="text-center">VIP Dinner</TableHead>
+                          <TableHead className="text-center">Override</TableHead>
+                          <TableHead className="w-[100px]"></TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {activeEvents.map((event) => {
+                          const tierAlloc = tierAllocations.find((a) => a.event_id === event.id);
+                          const override = companyOverrides.find((o) => o.event_id === event.id);
+
+                          // Convert to ExtendedEventAllocation format
+                          const extendedAlloc: ExtendedEventAllocation = {
+                            id: tierAlloc?.id || "",
+                            event_id: event.id,
+                            tier: membership.tier,
+                            conference_tickets: tierAlloc?.conference_tickets ?? null,
+                            ga_tickets: tierAlloc?.ga_tickets ?? 0,
+                            pro_tickets: tierAlloc?.pro_tickets ?? 0,
+                            whale_tickets: tierAlloc?.whale_tickets ?? 0,
+                            custom_tickets: tierAlloc?.custom_tickets ?? 0,
+                            custom_pass_name: tierAlloc?.custom_pass_name ?? null,
+                            symposium_seats: tierAlloc?.symposium_seats ?? 0,
+                            vip_dinner_seats: tierAlloc?.vip_dinner_seats ?? 0,
+                            created_at: tierAlloc?.created_at ?? null,
+                          };
+
+                          const effective = computeEffectiveAllocation(extendedAlloc, override);
+
+                          return (
+                            <TableRow key={event.id}>
+                              <TableCell>
+                                <div>
+                                  <p className="font-medium">{event.name}</p>
+                                  <p className="text-xs text-muted-foreground capitalize">{event.event_type}</p>
+                                </div>
+                              </TableCell>
+                              <TableCell className="text-center">
+                                <span className={effective.has_override && override?.ga_tickets_override !== null ? "font-semibold text-primary" : ""}>
+                                  {effective.ga_tickets}
+                                </span>
+                              </TableCell>
+                              <TableCell className="text-center">
+                                <span className={effective.has_override && override?.pro_tickets_override !== null ? "font-semibold text-primary" : ""}>
+                                  {effective.pro_tickets}
+                                </span>
+                              </TableCell>
+                              <TableCell className="text-center">
+                                <span className={effective.has_override && override?.whale_tickets_override !== null ? "font-semibold text-primary" : ""}>
+                                  {effective.whale_tickets}
+                                </span>
+                              </TableCell>
+                              <TableCell className="text-center">
+                                <span className={effective.has_override && override?.custom_tickets_override !== null ? "font-semibold text-primary" : ""}>
+                                  {effective.custom_tickets}
+                                </span>
+                              </TableCell>
+                              <TableCell className="text-center">
+                                <span className={effective.has_override && override?.symposium_seats_override !== null ? "font-semibold text-primary" : ""}>
+                                  {effective.symposium_seats}
+                                </span>
+                              </TableCell>
+                              <TableCell className="text-center">
+                                <span className={effective.has_override && override?.vip_dinner_seats_override !== null ? "font-semibold text-primary" : ""}>
+                                  {effective.vip_dinner_seats}
+                                </span>
+                              </TableCell>
+                              <TableCell className="text-center">
+                                {override ? (
+                                  <Badge variant="outline" className="bg-blue-500/10 text-blue-500 border-blue-500/30">
+                                    {override.override_mode === "additive" ? "+/-" : "Set"}
+                                  </Badge>
+                                ) : (
+                                  <span className="text-muted-foreground">—</span>
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => {
+                                    setSelectedEventForOverride({ id: event.id, name: event.name });
+                                    setOverrideDialogOpen(true);
+                                  }}
+                                >
+                                  {override ? "Edit" : "Add"}
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
                   </div>
                 )}
               </CardContent>
@@ -711,6 +894,22 @@ export default function CompanyDetail() {
         onOpenChange={setInviteDialogOpen}
         businessId={id!}
       />
+
+      {/* Override Dialog */}
+      {selectedEventForOverride && membership && (
+        <CompanyOverrideDialog
+          businessId={id!}
+          eventId={selectedEventForOverride.id}
+          eventName={selectedEventForOverride.name}
+          tierAllocation={tierAllocations.find((a) => a.event_id === selectedEventForOverride.id) ?? null}
+          existingOverride={companyOverrides.find((o) => o.event_id === selectedEventForOverride.id) ?? null}
+          open={overrideDialogOpen}
+          onOpenChange={(open) => {
+            setOverrideDialogOpen(open);
+            if (!open) setSelectedEventForOverride(null);
+          }}
+        />
+      )}
     </AdminLayout>
   );
 }

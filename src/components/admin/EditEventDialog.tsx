@@ -175,7 +175,7 @@ export function EditEventDialog({ event, open, onOpenChange }: EditEventDialogPr
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Event Type</Label>
-            <Select value={formData.event_type} onValueChange={(v) => setFormData((f) => ({ ...f, event_type: v as "flagship" | "regional" | "partner" }))}>
+              <Select value={formData.event_type} onValueChange={(v) => setFormData((f) => ({ ...f, event_type: v as "flagship" | "regional" | "partner" }))}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>

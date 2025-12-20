@@ -2,9 +2,10 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Loader2, Pencil, Plus } from 'lucide-react';
+import { Loader2, Pencil, Plus, Gift } from 'lucide-react';
 import { AdminLayout } from '@/components/admin/AdminLayout';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
@@ -25,6 +26,7 @@ interface TierTrackPackage {
   is_active: boolean;
   membership_tiers: { name: string };
   membership_tracks: { name: string };
+  package_benefits: { count: number }[];
 }
 
 interface Tier {
@@ -67,7 +69,7 @@ export default function PackagesAdmin() {
     try {
       const { data, error } = await supabase
         .from('tier_track_packages')
-        .select('*, membership_tiers(name), membership_tracks(name)')
+        .select('*, membership_tiers(name), membership_tracks(name), package_benefits(count)')
         .eq('is_active', true)
         .order('name');
 
@@ -244,6 +246,7 @@ export default function PackagesAdmin() {
                   <TableHead>Name</TableHead>
                   <TableHead>Tier</TableHead>
                   <TableHead>Track</TableHead>
+                  <TableHead>Benefits</TableHead>
                   <TableHead>Base Price</TableHead>
                   <TableHead>Annual Price</TableHead>
                   <TableHead>Featured</TableHead>
@@ -253,32 +256,41 @@ export default function PackagesAdmin() {
               <TableBody>
                 {packages.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
-                      No packages found
+                    <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
+                      No packages found. Create a package to get started.
                     </TableCell>
                   </TableRow>
                 ) : (
-                  packages.map((pkg) => (
-                    <TableRow key={pkg.id}>
-                      <TableCell className="font-medium">{pkg.name}</TableCell>
-                      <TableCell className="capitalize">{pkg.membership_tiers.name}</TableCell>
-                      <TableCell>{pkg.membership_tracks.name}</TableCell>
-                      <TableCell>${(pkg.base_price || 0).toLocaleString()}</TableCell>
-                      <TableCell>${(pkg.annual_price || 0).toLocaleString()}</TableCell>
-                      <TableCell>{pkg.is_featured ? 'Yes' : 'No'}</TableCell>
-                      <TableCell>
-                        <div className="flex items-center justify-end gap-2">
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => navigate(`/admin/packages/${pkg.id}`)}
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))
+                  packages.map((pkg) => {
+                    const benefitCount = pkg.package_benefits?.[0]?.count || 0;
+                    return (
+                      <TableRow key={pkg.id}>
+                        <TableCell className="font-medium">{pkg.name}</TableCell>
+                        <TableCell className="capitalize">{pkg.membership_tiers.name}</TableCell>
+                        <TableCell>{pkg.membership_tracks.name}</TableCell>
+                        <TableCell>
+                          <Badge variant={benefitCount > 0 ? 'default' : 'secondary'} className="gap-1">
+                            <Gift className="h-3 w-3" />
+                            {benefitCount}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>${(pkg.base_price || 0).toLocaleString()}</TableCell>
+                        <TableCell>${(pkg.annual_price || 0).toLocaleString()}</TableCell>
+                        <TableCell>{pkg.is_featured ? 'Yes' : 'No'}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center justify-end gap-2">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => navigate(`/admin/packages/${pkg.id}`)}
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
                 )}
               </TableBody>
             </Table>
