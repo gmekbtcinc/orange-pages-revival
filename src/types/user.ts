@@ -15,6 +15,12 @@ export type InvitationStatus = "pending" | "accepted" | "expired" | "revoked";
 export type PassType = "ga" | "pro" | "whale" | "custom";
 export type EventType = "flagship" | "regional" | "partner";
 
+// Benefit tracking types
+export type FulfillmentMode = "self_service" | "admin";
+export type BenefitScope = "per_event" | "per_period" | "one_time";
+export type TrackingType = "count" | "boolean";
+export type FulfillmentStatus = "scheduled" | "in_progress" | "completed" | "cancelled";
+
 // Pass type display configuration
 export const PASS_TYPE_LABELS: Record<PassType, string> = {
   ga: "General Admission",
@@ -42,6 +48,66 @@ export const EVENT_TYPE_LABELS: Record<EventType, string> = {
   regional: "Regional",
   partner: "Partner",
 };
+
+// Benefit tracking labels
+export const FULFILLMENT_MODE_LABELS: Record<FulfillmentMode, string> = {
+  self_service: "Self-Service",
+  admin: "Admin Fulfilled",
+};
+
+export const BENEFIT_SCOPE_LABELS: Record<BenefitScope, string> = {
+  per_event: "Per Event",
+  per_period: "Per Year",
+  one_time: "One-Time",
+};
+
+export const FULFILLMENT_STATUS_LABELS: Record<FulfillmentStatus, string> = {
+  scheduled: "Scheduled",
+  in_progress: "In Progress",
+  completed: "Completed",
+  cancelled: "Cancelled",
+};
+
+export const FULFILLMENT_STATUS_COLORS: Record<FulfillmentStatus, string> = {
+  scheduled: "bg-blue-500",
+  in_progress: "bg-yellow-500",
+  completed: "bg-green-500",
+  cancelled: "bg-gray-500",
+};
+
+// Benefit tracking interfaces
+export interface CompanyBenefitOverride {
+  id: string;
+  business_id: string;
+  benefit_id: string;
+  event_id: string | null;
+  period_year: number | null;
+  quantity_override: number | null;
+  is_unlimited_override: boolean | null;
+  override_mode: "absolute" | "additive";
+  reason: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Fulfillment {
+  id: string;
+  business_id: string;
+  benefit_id: string;
+  event_id: string | null;
+  period_year: number | null;
+  quantity: number;
+  status: FulfillmentStatus;
+  fulfilled_at: string | null;
+  fulfilled_by: string | null;
+  title: string | null;
+  notes: string | null;
+  proof_url: string | null;
+  scheduled_date: string | null;
+  created_at: string;
+  updated_at: string;
+}
 
 // Extended types with relations
 export interface TeamMembershipWithBusiness extends TeamMembership {
