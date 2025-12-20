@@ -41,12 +41,12 @@ export function EventCards() {
     );
   }
 
-  // Separate primary (flagship/regional) and secondary events
+  // Separate primary (flagship/regional) and partner events
   const primaryEvents = events?.filter(
     (e) => e.event_type === "flagship" || e.event_type === "regional"
   ) || [];
-  const secondaryEvents = events?.filter(
-    (e) => e.event_type === "secondary"
+  const partnerEvents = events?.filter(
+    (e) => e.event_type === "partner"
   ) || [];
 
   const getAllocationForEvent = (eventId: string) => {
@@ -82,14 +82,14 @@ export function EventCards() {
         )}
       </div>
 
-      {/* Secondary Events */}
-      {secondaryEvents.length > 0 && (
+      {/* Partner Events */}
+      {partnerEvents.length > 0 && (
         <div>
           <h2 className="text-xl font-semibold text-foreground mb-4">
-            Secondary Events
+            Partner Events
           </h2>
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {secondaryEvents.map((event) => (
+            {partnerEvents.map((event) => (
               <EventCard
                 key={event.id}
                 event={event}
