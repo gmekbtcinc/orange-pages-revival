@@ -214,14 +214,14 @@ export default function CompanyDetail() {
     enabled: !!id,
   });
 
-  // Fetch packages to get the company's package
+  // Fetch packages (tier_track_packages table)
   const { data: packages = [] } = useQuery({
-    queryKey: ["packages"],
+    queryKey: ["tier-packages"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("packages")
+        .from("tier_track_packages")
         .select("*, membership_tiers(name)")
-        .eq("is_active", true);
+        .eq("status", "active");
       if (error) throw error;
       return data;
     },

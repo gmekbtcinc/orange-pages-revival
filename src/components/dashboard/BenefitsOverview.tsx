@@ -17,14 +17,14 @@ export function BenefitsOverview() {
   const { activeCompanyId, membership } = useUser();
   const currentYear = new Date().getFullYear();
 
-  // Fetch packages
+  // Fetch packages (tier_track_packages table)
   const { data: packages = [] } = useQuery({
-    queryKey: ["packages"],
+    queryKey: ["tier-packages"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("packages")
+        .from("tier_track_packages")
         .select("*, membership_tiers(name)")
-        .eq("is_active", true);
+        .eq("status", "active");
       if (error) throw error;
       return data;
     },
