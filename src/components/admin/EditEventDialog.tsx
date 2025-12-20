@@ -31,7 +31,7 @@ export function EditEventDialog({ event, open, onOpenChange }: EditEventDialogPr
     name: "",
     slug: "",
     logo_url: "" as string | null,
-    event_type: "regional" as "flagship" | "regional" | "secondary",
+    event_type: "regional" as "flagship" | "regional" | "partner",
     start_date: null as Date | null,
     end_date: null as Date | null,
     location_city: "",
@@ -175,14 +175,14 @@ export function EditEventDialog({ event, open, onOpenChange }: EditEventDialogPr
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Event Type</Label>
-              <Select value={formData.event_type} onValueChange={(v) => setFormData((f) => ({ ...f, event_type: v as "flagship" | "regional" | "secondary" }))}>
+            <Select value={formData.event_type} onValueChange={(v) => setFormData((f) => ({ ...f, event_type: v as "flagship" | "regional" | "partner" }))}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="flagship">Flagship</SelectItem>
                   <SelectItem value="regional">Regional</SelectItem>
-                  <SelectItem value="secondary">Secondary</SelectItem>
+                  <SelectItem value="partner">Partner</SelectItem>
                 </SelectContent>
               </Select>
             </div>

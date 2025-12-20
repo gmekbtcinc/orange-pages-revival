@@ -680,6 +680,82 @@ export type Database = {
         }
         Relationships: []
       }
+      company_allocation_overrides: {
+        Row: {
+          business_id: string
+          created_at: string
+          created_by: string | null
+          custom_pass_name: string | null
+          custom_tickets_override: number | null
+          event_id: string
+          ga_tickets_override: number | null
+          id: string
+          override_mode: string
+          pro_tickets_override: number | null
+          reason: string | null
+          symposium_seats_override: number | null
+          updated_at: string
+          vip_dinner_seats_override: number | null
+          whale_tickets_override: number | null
+        }
+        Insert: {
+          business_id: string
+          created_at?: string
+          created_by?: string | null
+          custom_pass_name?: string | null
+          custom_tickets_override?: number | null
+          event_id: string
+          ga_tickets_override?: number | null
+          id?: string
+          override_mode?: string
+          pro_tickets_override?: number | null
+          reason?: string | null
+          symposium_seats_override?: number | null
+          updated_at?: string
+          vip_dinner_seats_override?: number | null
+          whale_tickets_override?: number | null
+        }
+        Update: {
+          business_id?: string
+          created_at?: string
+          created_by?: string | null
+          custom_pass_name?: string | null
+          custom_tickets_override?: number | null
+          event_id?: string
+          ga_tickets_override?: number | null
+          id?: string
+          override_mode?: string
+          pro_tickets_override?: number | null
+          reason?: string | null
+          symposium_seats_override?: number | null
+          updated_at?: string
+          vip_dinner_seats_override?: number | null
+          whale_tickets_override?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_allocation_overrides_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_allocation_overrides_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_allocation_overrides_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       company_leadership: {
         Row: {
           bio: string | null
@@ -753,29 +829,44 @@ export type Database = {
         Row: {
           conference_tickets: number | null
           created_at: string
+          custom_pass_name: string | null
+          custom_tickets: number | null
           event_id: string
+          ga_tickets: number | null
           id: string
+          pro_tickets: number | null
           symposium_seats: number | null
           tier: Database["public"]["Enums"]["member_tier"]
           vip_dinner_seats: number | null
+          whale_tickets: number | null
         }
         Insert: {
           conference_tickets?: number | null
           created_at?: string
+          custom_pass_name?: string | null
+          custom_tickets?: number | null
           event_id: string
+          ga_tickets?: number | null
           id?: string
+          pro_tickets?: number | null
           symposium_seats?: number | null
           tier: Database["public"]["Enums"]["member_tier"]
           vip_dinner_seats?: number | null
+          whale_tickets?: number | null
         }
         Update: {
           conference_tickets?: number | null
           created_at?: string
+          custom_pass_name?: string | null
+          custom_tickets?: number | null
           event_id?: string
+          ga_tickets?: number | null
           id?: string
+          pro_tickets?: number | null
           symposium_seats?: number | null
           tier?: Database["public"]["Enums"]["member_tier"]
           vip_dinner_seats?: number | null
+          whale_tickets?: number | null
         }
         Relationships: [
           {
@@ -789,6 +880,7 @@ export type Database = {
       }
       events: {
         Row: {
+          available_pass_types: string[] | null
           created_at: string
           description: string | null
           end_date: string | null
@@ -817,6 +909,7 @@ export type Database = {
           vip_dinner_venue: string | null
         }
         Insert: {
+          available_pass_types?: string[] | null
           created_at?: string
           description?: string | null
           end_date?: string | null
@@ -845,6 +938,7 @@ export type Database = {
           vip_dinner_venue?: string | null
         }
         Update: {
+          available_pass_types?: string[] | null
           created_at?: string
           description?: string | null
           end_date?: string | null
@@ -1539,6 +1633,7 @@ export type Database = {
           id: string
           is_external_attendee: boolean | null
           notes: string | null
+          pass_type: Database["public"]["Enums"]["pass_type"]
           profile_id: string | null
           status: Database["public"]["Enums"]["rsvp_status"] | null
           ticket_code: string | null
@@ -1555,6 +1650,7 @@ export type Database = {
           id?: string
           is_external_attendee?: boolean | null
           notes?: string | null
+          pass_type?: Database["public"]["Enums"]["pass_type"]
           profile_id?: string | null
           status?: Database["public"]["Enums"]["rsvp_status"] | null
           ticket_code?: string | null
@@ -1571,6 +1667,7 @@ export type Database = {
           id?: string
           is_external_attendee?: boolean | null
           notes?: string | null
+          pass_type?: Database["public"]["Enums"]["pass_type"]
           profile_id?: string | null
           status?: Database["public"]["Enums"]["rsvp_status"] | null
           ticket_code?: string | null
@@ -1847,7 +1944,7 @@ export type Database = {
       business_status: "pending" | "approved" | "rejected"
       claim_status: "pending" | "approved" | "rejected"
       company_type: "public" | "private" | "subsidiary"
-      event_type: "flagship" | "regional" | "secondary"
+      event_type: "flagship" | "regional" | "partner"
       invitation_status: "pending" | "accepted" | "expired" | "revoked"
       invite_status: "pending" | "accepted" | "expired" | "revoked"
       member_tier:
@@ -1859,6 +1956,7 @@ export type Database = {
         | "industry"
         | "premier"
         | "sponsor"
+      pass_type: "ga" | "pro" | "whale" | "custom"
       rsvp_status:
         | "pending"
         | "confirmed"
@@ -2005,7 +2103,7 @@ export const Constants = {
       business_status: ["pending", "approved", "rejected"],
       claim_status: ["pending", "approved", "rejected"],
       company_type: ["public", "private", "subsidiary"],
-      event_type: ["flagship", "regional", "secondary"],
+      event_type: ["flagship", "regional", "partner"],
       invitation_status: ["pending", "accepted", "expired", "revoked"],
       invite_status: ["pending", "accepted", "expired", "revoked"],
       member_tier: [
@@ -2018,6 +2116,7 @@ export const Constants = {
         "premier",
         "sponsor",
       ],
+      pass_type: ["ga", "pro", "whale", "custom"],
       rsvp_status: [
         "pending",
         "confirmed",
