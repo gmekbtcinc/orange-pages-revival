@@ -21,6 +21,7 @@ import {
   Settings,
   Home,
   Bell,
+  Gift,
 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -45,9 +46,9 @@ const allNavItems = [
   { label: "Claims", href: "/admin/claims", icon: FileCheck, roles: ["super_admin", "admin", "moderator"], showBadge: true },
   { label: "Users", href: "/admin/users", icon: Users, roles: ["super_admin", "admin"], showBadge: false },
   { label: "Events", href: "/admin/events", icon: Calendar, roles: ["super_admin", "admin"], showBadge: false },
+  { label: "Benefits", href: "/admin/benefits", icon: Gift, roles: ["super_admin", "admin"], showBadge: false },
   // Hidden for now - revisit later:
   // { label: "Tiers & Tracks", href: "/admin/tiers", icon: Layers, roles: ["super_admin", "admin"] },
-  // { label: "Benefits", href: "/admin/benefits", icon: Gift, roles: ["super_admin", "admin"] },
   // { label: "Packages", href: "/admin/packages", icon: Package, roles: ["super_admin", "admin"] },
   // { label: "Pricing", href: "/admin/pricing", icon: DollarSign, roles: ["super_admin", "admin"] },
 ];
