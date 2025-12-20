@@ -129,6 +129,7 @@ export type Database = {
           created_at: string | null
           description: string | null
           display_order: number | null
+          fulfillment_mode: string | null
           icon: string | null
           id: string
           image_url: string | null
@@ -137,6 +138,8 @@ export type Database = {
           label: string
           long_description: string | null
           region_multiplier: number | null
+          scope: string | null
+          tracking_type: string | null
           unit_label: string | null
           updated_at: string | null
         }
@@ -146,6 +149,7 @@ export type Database = {
           created_at?: string | null
           description?: string | null
           display_order?: number | null
+          fulfillment_mode?: string | null
           icon?: string | null
           id?: string
           image_url?: string | null
@@ -154,6 +158,8 @@ export type Database = {
           label: string
           long_description?: string | null
           region_multiplier?: number | null
+          scope?: string | null
+          tracking_type?: string | null
           unit_label?: string | null
           updated_at?: string | null
         }
@@ -163,6 +169,7 @@ export type Database = {
           created_at?: string | null
           description?: string | null
           display_order?: number | null
+          fulfillment_mode?: string | null
           icon?: string | null
           id?: string
           image_url?: string | null
@@ -171,6 +178,8 @@ export type Database = {
           label?: string
           long_description?: string | null
           region_multiplier?: number | null
+          scope?: string | null
+          tracking_type?: string | null
           unit_label?: string | null
           updated_at?: string | null
         }
@@ -756,6 +765,80 @@ export type Database = {
           },
         ]
       }
+      company_benefit_overrides: {
+        Row: {
+          benefit_id: string
+          business_id: string
+          created_at: string
+          created_by: string | null
+          event_id: string | null
+          id: string
+          is_unlimited_override: boolean | null
+          override_mode: string
+          period_year: number | null
+          quantity_override: number | null
+          reason: string | null
+          updated_at: string
+        }
+        Insert: {
+          benefit_id: string
+          business_id: string
+          created_at?: string
+          created_by?: string | null
+          event_id?: string | null
+          id?: string
+          is_unlimited_override?: boolean | null
+          override_mode?: string
+          period_year?: number | null
+          quantity_override?: number | null
+          reason?: string | null
+          updated_at?: string
+        }
+        Update: {
+          benefit_id?: string
+          business_id?: string
+          created_at?: string
+          created_by?: string | null
+          event_id?: string | null
+          id?: string
+          is_unlimited_override?: boolean | null
+          override_mode?: string
+          period_year?: number | null
+          quantity_override?: number | null
+          reason?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_benefit_overrides_benefit_id_fkey"
+            columns: ["benefit_id"]
+            isOneToOne: false
+            referencedRelation: "benefits"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_benefit_overrides_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_benefit_overrides_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_benefit_overrides_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       company_leadership: {
         Row: {
           bio: string | null
@@ -967,6 +1050,89 @@ export type Database = {
           vip_dinner_venue?: string | null
         }
         Relationships: []
+      }
+      fulfillments: {
+        Row: {
+          benefit_id: string
+          business_id: string
+          created_at: string
+          event_id: string | null
+          fulfilled_at: string | null
+          fulfilled_by: string | null
+          id: string
+          notes: string | null
+          period_year: number | null
+          proof_url: string | null
+          quantity: number
+          scheduled_date: string | null
+          status: string
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          benefit_id: string
+          business_id: string
+          created_at?: string
+          event_id?: string | null
+          fulfilled_at?: string | null
+          fulfilled_by?: string | null
+          id?: string
+          notes?: string | null
+          period_year?: number | null
+          proof_url?: string | null
+          quantity?: number
+          scheduled_date?: string | null
+          status?: string
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          benefit_id?: string
+          business_id?: string
+          created_at?: string
+          event_id?: string | null
+          fulfilled_at?: string | null
+          fulfilled_by?: string | null
+          id?: string
+          notes?: string | null
+          period_year?: number | null
+          proof_url?: string | null
+          quantity?: number
+          scheduled_date?: string | null
+          status?: string
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fulfillments_benefit_id_fkey"
+            columns: ["benefit_id"]
+            isOneToOne: false
+            referencedRelation: "benefits"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fulfillments_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fulfillments_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fulfillments_fulfilled_by_fkey"
+            columns: ["fulfilled_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       invitations: {
         Row: {
