@@ -29,6 +29,7 @@ interface EditBillingDialogProps {
   onOpenChange: (open: boolean) => void;
   membership: {
     id: string;
+    member_since: string;
     billing_email: string | null;
     billing_contact_name: string | null;
     payment_amount_cents: number | null;
@@ -50,6 +51,9 @@ export function EditBillingDialog({
 }: EditBillingDialogProps) {
   const { toast } = useToast();
 
+  const [memberSince, setMemberSince] = useState<Date>(
+    new Date(membership.member_since)
+  );
   const [billingEmail, setBillingEmail] = useState(membership.billing_email || "");
   const [billingContactName, setBillingContactName] = useState(membership.billing_contact_name || "");
   const [paymentAmountDollars, setPaymentAmountDollars] = useState(
@@ -72,6 +76,7 @@ export function EditBillingDialog({
       const { error } = await supabase
         .from("memberships")
         .update({
+          member_since: format(memberSince, "yyyy-MM-dd"),
           billing_email: billingEmail || null,
           billing_contact_name: billingContactName || null,
           payment_amount_cents: paymentCents,
@@ -97,13 +102,44 @@ export function EditBillingDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Edit Billing Information</DialogTitle>
+          <DialogTitle>Edit Membership Details</DialogTitle>
           <DialogDescription>
-            Update billing details for {membership.businesses?.name}
+            Update membership and billing details for {membership.businesses?.name}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 max-h-[60vh] overflow-y-auto">
+          {/* Member Since - prominent at top */}
+          <div className="space-y-2">
+            <Label>Member Since</Label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    "w-full justify-start text-left font-normal",
+                    !memberSince && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {memberSince ? format(memberSince, "PPP") : "Pick a date"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={memberSince}
+                  onSelect={(date) => date && setMemberSince(date)}
+                  initialFocus
+                  className="p-3 pointer-events-auto"
+                />
+              </PopoverContent>
+            </Popover>
+            <p className="text-xs text-muted-foreground">
+              The date this company became a BFC member
+            </p>
+          </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Billing Email</Label>

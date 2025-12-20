@@ -4,9 +4,26 @@ import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Building2, Crown, FileCheck, Users, ArrowRight, Clock, CheckCircle, XCircle, UserPlus } from "lucide-react";
+import { Building2, Crown, FileCheck, Users, ArrowRight, Clock, CheckCircle, XCircle, UserPlus, Ticket, GraduationCap, Mic, Utensils, Activity } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
+
+type ActivityItem = {
+  id: string;
+  type: "ticket" | "symposium" | "speaker" | "dinner";
+  userName: string;
+  companyName: string | null;
+  eventName: string | null;
+  timestamp: string;
+  status: string | null;
+};
+
+const activityConfig = {
+  ticket: { icon: Ticket, label: "Ticket Claimed", color: "text-blue-500" },
+  symposium: { icon: GraduationCap, label: "Symposium Registration", color: "text-purple-500" },
+  speaker: { icon: Mic, label: "Speaker Application", color: "text-green-500" },
+  dinner: { icon: Utensils, label: "VIP Dinner RSVP", color: "text-orange-500" },
+};
 
 const statusColors: Record<string, string> = {
   pending: "bg-yellow-500/10 text-yellow-600 border-yellow-500/30",
@@ -26,11 +43,15 @@ export default function AdminDashboard() {
   const { data: stats } = useQuery({
     queryKey: ["admin-stats"],
     queryFn: async () => {
-      const [companies, memberships, pendingClaims, users] = await Promise.all([
+      const [companies, memberships, pendingClaims, users, ticketClaims, symposiums, speakerApps, dinnerRsvps] = await Promise.all([
         supabase.from("businesses").select("id", { count: "exact", head: true }),
         supabase.from("memberships").select("id", { count: "exact", head: true }).eq("is_active", true),
         supabase.from("business_claims").select("id", { count: "exact", head: true }).eq("status", "pending"),
         supabase.from("profiles").select("id", { count: "exact", head: true }),
+        supabase.from("ticket_claims").select("id", { count: "exact", head: true }),
+        supabase.from("symposium_registrations").select("id", { count: "exact", head: true }),
+        supabase.from("speaker_applications").select("id", { count: "exact", head: true }),
+        supabase.from("vip_dinner_rsvps").select("id", { count: "exact", head: true }),
       ]);
 
       return {
@@ -38,6 +59,7 @@ export default function AdminDashboard() {
         memberships: memberships.count || 0,
         pendingClaims: pendingClaims.count || 0,
         users: users.count || 0,
+        totalEngagements: (ticketClaims.count || 0) + (symposiums.count || 0) + (speakerApps.count || 0) + (dinnerRsvps.count || 0),
       };
     },
   });
@@ -80,6 +102,106 @@ export default function AdminDashboard() {
     },
   });
 
+  const { data: recentActivity = [] } = useQuery({
+    queryKey: ["admin-recent-activity"],
+    queryFn: async () => {
+      const [tickets, symposiums, speakers, dinners] = await Promise.all([
+        supabase
+          .from("ticket_claims")
+          .select(`
+            id,
+            attendee_name,
+            attendee_company,
+            claimed_at,
+            status,
+            events (name)
+          `)
+          .order("claimed_at", { ascending: false })
+          .limit(5),
+        supabase
+          .from("symposium_registrations")
+          .select(`
+            id,
+            attendee_name,
+            attendee_company,
+            registered_at,
+            status,
+            events (name)
+          `)
+          .order("registered_at", { ascending: false })
+          .limit(5),
+        supabase
+          .from("speaker_applications")
+          .select(`
+            id,
+            speaker_name,
+            speaker_company,
+            created_at,
+            status,
+            events (name)
+          `)
+          .order("created_at", { ascending: false })
+          .limit(5),
+        supabase
+          .from("vip_dinner_rsvps")
+          .select(`
+            id,
+            guest_name,
+            guest_company,
+            rsvp_at,
+            status,
+            events (name)
+          `)
+          .order("rsvp_at", { ascending: false })
+          .limit(5),
+      ]);
+
+      const activities: ActivityItem[] = [
+        ...(tickets.data || []).map((t: any) => ({
+          id: `ticket-${t.id}`,
+          type: "ticket" as const,
+          userName: t.attendee_name,
+          companyName: t.attendee_company,
+          eventName: t.events?.name,
+          timestamp: t.claimed_at,
+          status: t.status,
+        })),
+        ...(symposiums.data || []).map((s: any) => ({
+          id: `symposium-${s.id}`,
+          type: "symposium" as const,
+          userName: s.attendee_name,
+          companyName: s.attendee_company,
+          eventName: s.events?.name,
+          timestamp: s.registered_at,
+          status: s.status,
+        })),
+        ...(speakers.data || []).map((s: any) => ({
+          id: `speaker-${s.id}`,
+          type: "speaker" as const,
+          userName: s.speaker_name,
+          companyName: s.speaker_company,
+          eventName: s.events?.name,
+          timestamp: s.created_at,
+          status: s.status,
+        })),
+        ...(dinners.data || []).map((d: any) => ({
+          id: `dinner-${d.id}`,
+          type: "dinner" as const,
+          userName: d.guest_name,
+          companyName: d.guest_company,
+          eventName: d.events?.name,
+          timestamp: d.rsvp_at,
+          status: d.status,
+        })),
+      ];
+
+      // Sort by timestamp descending and take top 10
+      return activities
+        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+        .slice(0, 10);
+    },
+  });
+
   const statCards = [
     {
       label: "Total Companies",
@@ -94,16 +216,22 @@ export default function AdminDashboard() {
       color: "text-yellow-500",
     },
     {
-      label: "Pending Claims",
-      value: stats?.pendingClaims || 0,
-      icon: FileCheck,
-      color: "text-orange-500",
-    },
-    {
       label: "Total Users",
       value: stats?.users || 0,
       icon: Users,
       color: "text-green-500",
+    },
+    {
+      label: "Event Engagements",
+      value: stats?.totalEngagements || 0,
+      icon: Activity,
+      color: "text-purple-500",
+    },
+    {
+      label: "Pending Claims",
+      value: stats?.pendingClaims || 0,
+      icon: FileCheck,
+      color: "text-orange-500",
     },
   ];
 
@@ -116,7 +244,7 @@ export default function AdminDashboard() {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-4">
           {statCards.map((stat) => (
             <Card key={stat.label} className="bg-card border-border">
               <CardContent className="pt-6">
@@ -247,6 +375,60 @@ export default function AdminDashboard() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Platform Activity Feed */}
+        <Card className="bg-card border-border">
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Activity className="h-5 w-5" />
+                Platform Activity
+              </CardTitle>
+              <CardDescription>Recent member engagement across events</CardDescription>
+            </div>
+            <Button variant="ghost" size="sm" onClick={() => navigate("/admin/events")} className="gap-1">
+              View Events
+              <ArrowRight className="h-4 w-4" />
+            </Button>
+          </CardHeader>
+          <CardContent>
+            {recentActivity.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">No activity yet</p>
+            ) : (
+              <div className="space-y-3">
+                {recentActivity.map((activity) => {
+                  const config = activityConfig[activity.type];
+                  const ActivityIcon = config.icon;
+                  return (
+                    <div key={activity.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <div className={`h-8 w-8 rounded-full bg-muted flex items-center justify-center`}>
+                          <ActivityIcon className={`h-4 w-4 ${config.color}`} />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="font-medium text-sm text-foreground truncate">
+                            {activity.userName}
+                          </p>
+                          <p className="text-xs text-muted-foreground truncate">
+                            {activity.companyName || "—"} • {activity.eventName || "Unknown Event"}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-right flex-shrink-0">
+                        <Badge variant="outline" className="text-xs">
+                          {config.label}
+                        </Badge>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {activity.timestamp && format(new Date(activity.timestamp), "MMM d, h:mm a")}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </AdminLayout>
   );

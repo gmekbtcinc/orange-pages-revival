@@ -495,7 +495,7 @@ export default function MembershipsAdmin() {
                               setBillingDialogOpen(true);
                             }}>
                               <Edit className="h-4 w-4 mr-2" />
-                              Edit Billing
+                              Edit Details
                             </DropdownMenuItem>
                             {membership.is_active ? (
                               <DropdownMenuItem
