@@ -30,6 +30,7 @@ export function EditEventDialog({ event, open, onOpenChange }: EditEventDialogPr
   const [formData, setFormData] = useState({
     name: "",
     slug: "",
+    subtitle: "",
     logo_url: "" as string | null,
     event_type: "regional" as "flagship" | "regional" | "partner",
     start_date: null as Date | null,
@@ -56,6 +57,7 @@ export function EditEventDialog({ event, open, onOpenChange }: EditEventDialogPr
       setFormData({
         name: event.name || "",
         slug: event.slug || "",
+        subtitle: event.subtitle || "",
         logo_url: event.logo_url || null,
         event_type: event.event_type || "regional",
         start_date: event.start_date ? new Date(event.start_date) : null,
@@ -88,6 +90,7 @@ export function EditEventDialog({ event, open, onOpenChange }: EditEventDialogPr
         .update({
           name: formData.name,
           slug: formData.slug,
+          subtitle: formData.subtitle || null,
           logo_url: formData.logo_url || null,
           event_type: formData.event_type,
           start_date: formData.start_date?.toISOString().split("T")[0] || null,
@@ -150,15 +153,26 @@ export function EditEventDialog({ event, open, onOpenChange }: EditEventDialogPr
         </DialogHeader>
 
         <div className="space-y-6">
-          {/* Event Logo */}
-          <ImageUploader
-            currentUrl={formData.logo_url}
-            onUpload={(url) => setFormData((f) => ({ ...f, logo_url: url }))}
-            onRemove={() => setFormData((f) => ({ ...f, logo_url: null }))}
-            folder="event-logos"
-            label="Event Logo"
-            aspectRatio="square"
-          />
+          {/* Event Logo - show current logo if exists */}
+          <div className="flex items-start gap-4">
+            {formData.logo_url && (
+              <img
+                src={formData.logo_url}
+                alt="Event logo"
+                className="h-16 w-16 rounded-lg object-cover border"
+              />
+            )}
+            <div className="flex-1">
+              <ImageUploader
+                currentUrl={formData.logo_url}
+                onUpload={(url) => setFormData((f) => ({ ...f, logo_url: url }))}
+                onRemove={() => setFormData((f) => ({ ...f, logo_url: null }))}
+                folder="event-logos"
+                label="Event Logo"
+                aspectRatio="square"
+              />
+            </div>
+          </div>
 
           {/* Basic Info */}
           <div className="grid grid-cols-2 gap-4">
@@ -170,6 +184,16 @@ export function EditEventDialog({ event, open, onOpenChange }: EditEventDialogPr
               <Label>Slug</Label>
               <Input value={formData.slug} onChange={(e) => setFormData((f) => ({ ...f, slug: e.target.value }))} />
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Subtitle</Label>
+            <Input 
+              value={formData.subtitle} 
+              onChange={(e) => setFormData((f) => ({ ...f, subtitle: e.target.value }))} 
+              placeholder="e.g., Middle East, Virtual, Flagship Conference"
+            />
+            <p className="text-xs text-muted-foreground">Shown below the event name in lists</p>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
