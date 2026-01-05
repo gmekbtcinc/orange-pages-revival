@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Calendar, MapPin, Users, Ticket, FileText, Mic, MoreHorizontal, Eye, Edit, Settings, Power } from "lucide-react";
+import { Calendar, MapPin, Users, Ticket, FileText, Mic, MoreHorizontal, Eye, Edit, Settings, Power, ArrowUpDown, ArrowUp, ArrowDown, Image } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format, parseISO } from "date-fns";
@@ -18,6 +18,9 @@ import type { Database } from "@/integrations/supabase/types";
 
 type Event = Database["public"]["Tables"]["events"]["Row"];
 
+type SortField = "name" | "event_type" | "start_date" | "location_city" | "is_active";
+type SortDirection = "asc" | "desc";
+
 export default function EventsAdmin() {
   const queryClient = useQueryClient();
   const [filter, setFilter] = useState("all");
@@ -25,6 +28,8 @@ export default function EventsAdmin() {
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [editOpen, setEditOpen] = useState(false);
   const [allocationsOpen, setAllocationsOpen] = useState(false);
+  const [sortField, setSortField] = useState<SortField>("start_date");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
   const pageSize = 10;
 
   // Fetch stats
@@ -53,7 +58,6 @@ export default function EventsAdmin() {
       let query = supabase
         .from("events")
         .select("*", { count: "exact" })
-        .order("start_date", { ascending: false })
         .range(page * pageSize, (page + 1) * pageSize - 1);
 
       const now = new Date().toISOString().split("T")[0];
@@ -104,6 +108,74 @@ export default function EventsAdmin() {
       };
     },
   });
+
+  // Sort events client-side
+  const sortedEvents = useMemo(() => {
+    if (!eventsData?.events) return [];
+    
+    const today = new Date().toISOString().split("T")[0];
+    
+    return [...eventsData.events].sort((a, b) => {
+      let comparison = 0;
+      
+      switch (sortField) {
+        case "name":
+          comparison = (a.name || "").localeCompare(b.name || "");
+          break;
+        case "event_type":
+          comparison = (a.event_type || "").localeCompare(b.event_type || "");
+          break;
+        case "start_date":
+          // For date sorting, handle nulls and sort upcoming events first
+          const dateA = a.start_date || "9999-12-31";
+          const dateB = b.start_date || "9999-12-31";
+          
+          if (sortDirection === "asc") {
+            // Ascending: closest upcoming first, then past events
+            const aIsUpcoming = dateA >= today;
+            const bIsUpcoming = dateB >= today;
+            
+            if (aIsUpcoming && bIsUpcoming) {
+              comparison = dateA.localeCompare(dateB);
+            } else if (aIsUpcoming) {
+              comparison = -1;
+            } else if (bIsUpcoming) {
+              comparison = 1;
+            } else {
+              comparison = dateB.localeCompare(dateA); // Past events: most recent first
+            }
+            return comparison; // Return directly for special date handling
+          } else {
+            comparison = dateB.localeCompare(dateA);
+          }
+          break;
+        case "location_city":
+          comparison = (a.location_city || "").localeCompare(b.location_city || "");
+          break;
+        case "is_active":
+          comparison = (a.is_active ? 1 : 0) - (b.is_active ? 1 : 0);
+          break;
+      }
+      
+      return sortDirection === "desc" ? -comparison : comparison;
+    });
+  }, [eventsData?.events, sortField, sortDirection]);
+
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      setSortField(field);
+      setSortDirection("asc");
+    }
+  };
+
+  const SortIcon = ({ field }: { field: SortField }) => {
+    if (sortField !== field) return <ArrowUpDown className="h-3 w-3 ml-1 opacity-50" />;
+    return sortDirection === "asc" 
+      ? <ArrowUp className="h-3 w-3 ml-1" />
+      : <ArrowDown className="h-3 w-3 ml-1" />;
+  };
 
   // Toggle active mutation
   const toggleActiveMutation = useMutation({
@@ -215,11 +287,36 @@ export default function EventsAdmin() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Event</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Location</TableHead>
-                  <TableHead>Status</TableHead>
+                  <TableHead>
+                    <Button variant="ghost" size="sm" className="h-8 px-2 -ml-2" onClick={() => handleSort("name")}>
+                      Event
+                      <SortIcon field="name" />
+                    </Button>
+                  </TableHead>
+                  <TableHead>
+                    <Button variant="ghost" size="sm" className="h-8 px-2 -ml-2" onClick={() => handleSort("event_type")}>
+                      Type
+                      <SortIcon field="event_type" />
+                    </Button>
+                  </TableHead>
+                  <TableHead>
+                    <Button variant="ghost" size="sm" className="h-8 px-2 -ml-2" onClick={() => handleSort("start_date")}>
+                      Date
+                      <SortIcon field="start_date" />
+                    </Button>
+                  </TableHead>
+                  <TableHead>
+                    <Button variant="ghost" size="sm" className="h-8 px-2 -ml-2" onClick={() => handleSort("location_city")}>
+                      Location
+                      <SortIcon field="location_city" />
+                    </Button>
+                  </TableHead>
+                  <TableHead>
+                    <Button variant="ghost" size="sm" className="h-8 px-2 -ml-2" onClick={() => handleSort("is_active")}>
+                      Status
+                      <SortIcon field="is_active" />
+                    </Button>
+                  </TableHead>
                   <TableHead>Stats</TableHead>
                   <TableHead className="w-[50px]"></TableHead>
                 </TableRow>
@@ -231,21 +328,34 @@ export default function EventsAdmin() {
                       Loading...
                     </TableCell>
                   </TableRow>
-                ) : eventsData?.events.length === 0 ? (
+                ) : sortedEvents.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                       No events found
                     </TableCell>
                   </TableRow>
                 ) : (
-                  eventsData?.events.map((event) => (
+                  sortedEvents.map((event) => (
                     <TableRow key={event.id}>
                       <TableCell>
-                        <div>
-                          <Link to={`/admin/events/${event.id}`} className="font-medium hover:text-primary">
-                            {event.name}
-                          </Link>
-                          {event.subtitle && <p className="text-sm text-muted-foreground">{event.subtitle}</p>}
+                        <div className="flex items-center gap-3">
+                          {event.logo_url ? (
+                            <img
+                              src={event.logo_url}
+                              alt={event.name}
+                              className="h-10 w-10 rounded-lg object-cover border flex-shrink-0"
+                            />
+                          ) : (
+                            <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
+                              <Image className="h-4 w-4 text-muted-foreground" />
+                            </div>
+                          )}
+                          <div>
+                            <Link to={`/admin/events/${event.id}`} className="font-medium hover:text-primary">
+                              {event.name}
+                            </Link>
+                            {event.subtitle && <p className="text-sm text-muted-foreground">{event.subtitle}</p>}
+                          </div>
                         </div>
                       </TableCell>
                       <TableCell>{getTypeBadge(event.event_type)}</TableCell>
