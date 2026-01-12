@@ -6,6 +6,8 @@ import { AdminLayout } from "@/components/admin/AdminLayout";
 import { EditCompanyDialog } from "@/components/admin/EditCompanyDialog";
 import { CompanyOverrideDialog } from "@/components/admin/CompanyOverrideDialog";
 import { FulfillmentDialog } from "@/components/admin/FulfillmentDialog";
+import { EditBillingDialog } from "@/components/admin/EditBillingDialog";
+import { AddBenefitOverrideDialog } from "@/components/admin/AddBenefitOverrideDialog";
 import {
   PASS_TYPE_SHORT_LABELS,
   FULFILLMENT_STATUS_LABELS,
@@ -68,6 +70,10 @@ import {
   Mic,
   UtensilsCrossed,
   Search,
+  CreditCard,
+  Plus,
+  Gift,
+  Package,
 } from "lucide-react";
 import { format } from "date-fns";
 
@@ -97,6 +103,8 @@ export default function CompanyDetail() {
   const [activeTab, setActiveTab] = useState(defaultTab);
   const [editDialogOpen, setEditDialogOpen] = useState(location.hash === "#edit");
   const [tierDialogOpen, setTierDialogOpen] = useState(false);
+  const [billingDialogOpen, setBillingDialogOpen] = useState(false);
+  const [benefitOverrideDialogOpen, setBenefitOverrideDialogOpen] = useState(false);
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
   const [overrideDialogOpen, setOverrideDialogOpen] = useState(false);
   const [selectedEventForOverride, setSelectedEventForOverride] = useState<{
@@ -607,8 +615,34 @@ export default function CompanyDetail() {
 
           <TabsContent value="membership" className="space-y-4">
             <Card>
-              <CardHeader>
+              <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle>Membership Details</CardTitle>
+                {membership && (
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" onClick={() => setBillingDialogOpen(true)}>
+                      <CreditCard className="h-4 w-4 mr-2" />
+                      Edit Billing
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => setTierDialogOpen(true)}>
+                      <Crown className="h-4 w-4 mr-2" />
+                      Change Tier
+                    </Button>
+                    {(() => {
+                      const tierPackage = packages.find((p: any) =>
+                        p.tier_id === membership.tier || p.membership_tiers?.name?.toLowerCase() === membership.tier
+                      );
+                      if (tierPackage) {
+                        return (
+                          <Button variant="outline" size="sm" onClick={() => navigate(`/admin/packages/${tierPackage.id}`)}>
+                            <Package className="h-4 w-4 mr-2" />
+                            View Package
+                          </Button>
+                        );
+                      }
+                      return null;
+                    })()}
+                  </div>
+                )}
               </CardHeader>
               <CardContent>
                 {membership ? (
@@ -651,6 +685,22 @@ export default function CompanyDetail() {
                         <Label className="text-muted-foreground">Billing Contact</Label>
                         <p className="mt-1">{membership.billing_contact_name || "Not set"}</p>
                       </div>
+                      <div>
+                        <Label className="text-muted-foreground">Payment Amount</Label>
+                        <p className="mt-1">
+                          {membership.payment_amount_cents
+                            ? `$${(membership.payment_amount_cents / 100).toLocaleString()}`
+                            : "Not set"}
+                        </p>
+                      </div>
+                      <div>
+                        <Label className="text-muted-foreground">Next Payment Due</Label>
+                        <p className="mt-1">
+                          {membership.next_payment_due
+                            ? format(new Date(membership.next_payment_due), "MMMM d, yyyy")
+                            : "Not set"}
+                        </p>
+                      </div>
                     </div>
                     {membership.notes && (
                       <div>
@@ -676,12 +726,20 @@ export default function CompanyDetail() {
 
           <TabsContent value="benefits" className="space-y-4">
             <Card>
-              <CardHeader>
-                <CardTitle>Benefits & Fulfillment</CardTitle>
-                <CardDescription>
-                  Track benefit delivery for this company.
-                  {membership && ` Based on ${membership.tier.charAt(0).toUpperCase() + membership.tier.slice(1)} tier.`}
-                </CardDescription>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle>Benefits & Fulfillment</CardTitle>
+                  <CardDescription>
+                    Track benefit delivery for this company.
+                    {membership && ` Based on ${membership.tier.charAt(0).toUpperCase() + membership.tier.slice(1)} tier.`}
+                  </CardDescription>
+                </div>
+                {membership && (
+                  <Button variant="outline" size="sm" onClick={() => setBenefitOverrideDialogOpen(true)}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Override
+                  </Button>
+                )}
               </CardHeader>
               <CardContent>
                 {!membership ? (
@@ -710,7 +768,13 @@ export default function CompanyDetail() {
 
                       benefits.forEach((benefit: any) => {
                         const pb = packageBenefitIds.find((p: any) => p.benefit_id === benefit.id);
-                        if (!pb && companyBenefitOverrides.length === 0) return; // Skip if not in package and no overrides
+                        const override = companyBenefitOverrides.find((o: any) =>
+                          o.benefit_id === benefit.id &&
+                          (o.period_year === currentYear || o.period_year === null)
+                        );
+                        
+                        // Skip if not in package and no override for this benefit
+                        if (!pb && !override) return;
 
                         const category = benefit.benefit_categories?.name || "Other";
                         if (!benefitsByCategory[category]) {
@@ -718,11 +782,6 @@ export default function CompanyDetail() {
                         }
 
                         // Calculate entitled quantity
-                        const override = companyBenefitOverrides.find((o: any) =>
-                          o.benefit_id === benefit.id &&
-                          (o.period_year === currentYear || o.period_year === null)
-                        );
-
                         let entitled = pb?.quantity || 0;
                         if (override) {
                           if (override.override_mode === "absolute") {
@@ -748,14 +807,38 @@ export default function CompanyDetail() {
                           fulfilled,
                           remaining: entitled === -1 ? -1 : Math.max(0, entitled - fulfilled),
                           fulfillments,
+                          hasOverride: !!override,
                         });
                       });
 
                       if (Object.keys(benefitsByCategory).length === 0) {
+                        const tierPackageForLink = packages.find((p: any) =>
+                          p.membership_tiers?.name?.toLowerCase() === membership.tier
+                        );
                         return (
-                          <div className="text-center py-8 text-muted-foreground">
-                            <p>No benefits configured for this tier yet.</p>
-                            <p className="text-sm mt-2">Set up packages and benefits in the admin settings.</p>
+                          <div className="text-center py-8">
+                            <Gift className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                            <h3 className="text-lg font-semibold mb-2">No Benefits Configured</h3>
+                            <p className="text-muted-foreground mb-4">
+                              No benefits have been set up for the {membership.tier.charAt(0).toUpperCase() + membership.tier.slice(1)} tier yet.
+                            </p>
+                            <div className="flex gap-2 justify-center">
+                              {tierPackageForLink ? (
+                                <Button variant="outline" onClick={() => navigate(`/admin/packages/${tierPackageForLink.id}`)}>
+                                  <Package className="h-4 w-4 mr-2" />
+                                  Configure Package Benefits
+                                </Button>
+                              ) : (
+                                <Button variant="outline" onClick={() => navigate("/admin/packages")}>
+                                  <Package className="h-4 w-4 mr-2" />
+                                  Manage Packages
+                                </Button>
+                              )}
+                              <Button variant="secondary" onClick={() => setBenefitOverrideDialogOpen(true)}>
+                                <Plus className="h-4 w-4 mr-2" />
+                                Add Override for This Company
+                              </Button>
+                            </div>
                           </div>
                         );
                       }
@@ -777,6 +860,11 @@ export default function CompanyDetail() {
                                     <Badge variant="outline" className="text-xs">
                                       {BENEFIT_SCOPE_LABELS[benefit.scope as keyof typeof BENEFIT_SCOPE_LABELS] || benefit.scope}
                                     </Badge>
+                                    {benefit.hasOverride && (
+                                      <Badge variant="secondary" className="text-xs bg-blue-500/10 text-blue-500 border-blue-500/30">
+                                        Override
+                                      </Badge>
+                                    )}
                                   </div>
                                   {benefit.description && (
                                     <p className="text-sm text-muted-foreground mt-1">{benefit.description}</p>
@@ -1208,6 +1296,41 @@ export default function CompanyDetail() {
           }}
         />
       )}
+
+      {/* Edit Billing Dialog */}
+      {membership && (
+        <EditBillingDialog
+          open={billingDialogOpen}
+          onOpenChange={setBillingDialogOpen}
+          membership={{
+            id: membership.id,
+            member_since: membership.member_since,
+            billing_email: membership.billing_email,
+            billing_contact_name: membership.billing_contact_name,
+            payment_amount_cents: membership.payment_amount_cents,
+            renewal_date: membership.renewal_date,
+            next_payment_due: membership.next_payment_due,
+            stripe_customer_id: membership.stripe_customer_id,
+            stripe_subscription_id: membership.stripe_subscription_id,
+            notes: membership.notes,
+            businesses: { name: company.name },
+          }}
+          onSuccess={() => {
+            queryClient.invalidateQueries({ queryKey: ["admin-company", id] });
+          }}
+        />
+      )}
+
+      {/* Add Benefit Override Dialog */}
+      <AddBenefitOverrideDialog
+        open={benefitOverrideDialogOpen}
+        onOpenChange={setBenefitOverrideDialogOpen}
+        businessId={id!}
+        businessName={company.name}
+        onSuccess={() => {
+          queryClient.invalidateQueries({ queryKey: ["company-benefit-overrides", id] });
+        }}
+      />
     </AdminLayout>
   );
 }
